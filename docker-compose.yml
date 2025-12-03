@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: anonymous-chat-mongodb
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: anonymous-chat
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - anonymous-chat-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anonymous-chat-backend
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      MONGODB_URI: mongodb://mongodb:27017/anonymous-chat
+      CORS_ORIGIN: http://localhost:3000
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      LOG_LEVEL: info
+    depends_on:
+      - mongodb
+    networks:
+      - anonymous-chat-network
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  mongodb_data:
+
+networks:
+  anonymous-chat-network:
+    driver: bridge
+
