@@ -227,3 +227,4 @@ export class UserController {
 router.post('/', validate(createUserSchema), asyncHandler(UserController.create));
 ```
 
+

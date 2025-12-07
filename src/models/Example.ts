@@ -30,3 +30,4 @@ const ExampleSchema = new Schema<IExample>(
 
 export const Example = model<IExample>('Example', ExampleSchema);
 
+
