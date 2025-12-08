@@ -19,7 +19,7 @@ initializeSentry(app);
 app.use(helmet());
 app.use(
   cors({
-    origin: config.corsOrigin,
+    origin: config.frontendUrl,
     credentials: true,
   })
 );

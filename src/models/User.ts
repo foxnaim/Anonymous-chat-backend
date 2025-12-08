@@ -11,6 +11,8 @@ export interface IUser extends BaseDocument {
   companyId?: Types.ObjectId;
   name?: string;
   lastLogin?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
 }
 
 const userSchema = new Schema<IUser>(
@@ -43,6 +45,14 @@ const userSchema = new Schema<IUser>(
     },
     lastLogin: {
       type: Date,
+    },
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
     },
   },
   baseSchemaOptions
