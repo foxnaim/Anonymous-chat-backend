@@ -8,7 +8,7 @@ export const createCompanySchema = z.object({
       .length(8, 'Company code must be exactly 8 characters')
       .regex(/^[A-Z0-9]{8}$/, 'Company code must be uppercase alphanumeric'),
     adminEmail: z.string().email('Invalid email format'),
-    status: z.enum(['Активна', 'Пробная', 'Заблокирована']).optional(),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
     plan: z.string().optional(),
     employees: z.number().int().min(0).optional(),
     messagesLimit: z.number().int().min(0).optional(),

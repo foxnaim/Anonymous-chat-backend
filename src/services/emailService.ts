@@ -24,7 +24,9 @@ class EmailService {
     // Если SMTP не настроен, в development режиме просто предупреждаем
     if (!config.smtpHost || !config.smtpUser || !config.smtpPassword) {
       if (config.nodeEnv === 'development') {
-        logger.warn('SMTP не настроен. В development режиме токен будет возвращен в ответе для тестирования.');
+        logger.warn(
+          'SMTP не настроен. В development режиме токен будет возвращен в ответе для тестирования.'
+        );
         // В development без SMTP не создаем транспортер
         return;
       } else {
@@ -73,8 +75,12 @@ class EmailService {
         text: options.text || options.html.replace(/<[^>]*>/g, ''), // Убираем HTML теги для текстовой версии
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
-      logger.info(`Email отправлен на ${options.to}: ${info.messageId}`);
+      const info: unknown = await this.transporter.sendMail(mailOptions);
+      const messageId =
+        info && typeof info === 'object' && 'messageId' in info
+          ? String((info as { messageId: unknown }).messageId)
+          : 'unknown';
+      logger.info(`Email отправлен на ${options.to}: ${messageId}`);
     } catch (error) {
       logger.error('Ошибка отправки email:', error);
       throw error;
@@ -84,7 +90,11 @@ class EmailService {
   /**
    * Отправляет письмо для восстановления пароля
    */
-  async sendPasswordResetEmail(email: string, resetToken: string, resetUrl?: string): Promise<void> {
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+    resetUrl?: string
+  ): Promise<void> {
     const resetLink = resetUrl || `${config.frontendUrl}/reset-password?token=${resetToken}`;
 
     const html = `
@@ -144,4 +154,3 @@ class EmailService {
 }
 
 export const emailService = new EmailService();
-

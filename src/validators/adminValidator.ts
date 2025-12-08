@@ -17,3 +17,14 @@ export const updateAdminSchema = z.object({
     role: z.enum(['admin', 'super_admin']).optional(),
   }),
 });
+
+export const updateAdminSettingsSchema = z.object({
+  body: z.object({
+    fullscreenMode: z.boolean().optional(),
+    language: z.enum(['ru', 'en', 'kk']).optional(),
+    theme: z.enum(['light', 'dark', 'system']).optional(),
+    itemsPerPage: z.number().int().min(5).max(100).optional(),
+    notificationsEnabled: z.boolean().optional(),
+    emailNotifications: z.boolean().optional(),
+  }),
+});

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { User } from '../models/User';
@@ -119,7 +120,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     password: hashedPassword,
     name: name || companyName,
     role,
-    companyId: companyId ? (companyId as any) : undefined,
+    companyId: companyId ? (companyId as unknown as Types.ObjectId) : undefined,
   });
 
   const token = generateToken({
@@ -230,7 +231,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
     // Отправляем email с ссылкой для восстановления пароля
     await emailService.sendPasswordResetEmail(String(email), resetToken);
     logger.info(`Password reset email sent to ${email}`);
-    
+
     res.json({
       success: true,
       message: 'If the email exists, a password reset link has been sent',
@@ -238,7 +239,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   } catch (error) {
     // Логируем ошибку, но не прерываем процесс
     logger.error(`Failed to send password reset email to ${email}:`, error);
-    
+
     // В development режиме все еще возвращаем токен для тестирования
     if (config.nodeEnv === 'development') {
       logger.warn(`Password reset token for ${email}: ${resetToken}`);

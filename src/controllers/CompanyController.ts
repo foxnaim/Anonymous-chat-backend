@@ -82,16 +82,20 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
     name?: string;
     code?: string;
     adminEmail?: string;
-    status?: string;
+    password?: string;
     plan?: string;
     employees?: number;
     messagesLimit?: number;
     storageLimit?: number;
   };
-  const { name, code, adminEmail, status, plan, employees, messagesLimit, storageLimit } = body;
+  const { name, code, adminEmail, password, plan, employees, messagesLimit, storageLimit } = body;
 
-  if (!name || !code || !adminEmail) {
-    throw new AppError('Name, code, and adminEmail are required', 400, ErrorCode.BAD_REQUEST);
+  if (!name || !code || !adminEmail || !password) {
+    throw new AppError('Name, code, adminEmail, and password are required', 400, ErrorCode.BAD_REQUEST);
+  }
+
+  if (password.length < 6) {
+    throw new AppError('Password must be at least 6 characters', 400, ErrorCode.BAD_REQUEST);
   }
 
   // Проверяем, не существует ли компания с таким кодом
@@ -107,9 +111,11 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
   }
 
   const registeredDate = new Date().toISOString().split('T')[0];
+  const selectedPlan = plan || 'Пробный';
+  const isTrialPlan = selectedPlan === 'Пробный';
   let trialEndDate: string | undefined;
 
-  if (status === 'Пробная') {
+  if (isTrialPlan) {
     const endDate = new Date(registeredDate);
     endDate.setMonth(endDate.getMonth() + 2);
     trialEndDate = endDate.toISOString().split('T')[0];
@@ -119,21 +125,20 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
     name: String(name),
     code: String(code).toUpperCase(),
     adminEmail: String(adminEmail).toLowerCase(),
-    status: status || 'Пробная',
-    plan: plan || 'Бесплатный',
+    status: isTrialPlan ? 'Пробная' : 'Активна',
+    plan: selectedPlan,
     registered: registeredDate,
     trialEndDate,
     employees: employees || 0,
     messages: 0,
     messagesThisMonth: 0,
-    messagesLimit: status === 'Пробная' ? 999999 : messagesLimit,
+    messagesLimit: isTrialPlan ? 999999 : (messagesLimit || 10),
     storageUsed: 0,
-    storageLimit: status === 'Пробная' ? 999999 : storageLimit,
+    storageLimit: isTrialPlan ? 999999 : (storageLimit || 1),
   });
 
-  // Создаем пользователя для компании
-  const defaultPassword = 'password12'; // В продакшене должен генерироваться случайный пароль
-  const hashedPassword = await hashPassword(defaultPassword);
+  // Создаем пользователя для компании с указанным паролем
+  const hashedPassword = await hashPassword(String(password));
 
   await User.create({
     email: adminEmail.toLowerCase(),
@@ -265,5 +270,30 @@ export const updateCompanyPlan = asyncHandler(async (req: Request, res: Response
   res.json({
     success: true,
     data: companyData,
+  });
+});
+
+export const deleteCompany = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  // Только админы могут удалять компании
+  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
+    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
+  }
+
+  const company = await Company.findById(id);
+  if (!company) {
+    throw new AppError('Company not found', 404, ErrorCode.NOT_FOUND);
+  }
+
+  // Удаляем всех пользователей компании
+  await User.deleteMany({ companyId: company._id });
+
+  // Удаляем компанию
+  await Company.findByIdAndDelete(id);
+
+  res.json({
+    success: true,
+    message: 'Company deleted successfully',
   });
 });

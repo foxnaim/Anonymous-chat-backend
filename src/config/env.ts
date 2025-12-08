@@ -2,15 +2,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-interface SmtpConfig {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  password: string;
-  from: string;
-}
-
 interface EnvConfig {
   nodeEnv: string;
   port: number;
@@ -24,7 +15,12 @@ interface EnvConfig {
   jwtSecret: string;
   jwtExpiresIn: string;
   // Email/SMTP настройки
-  smtp: SmtpConfig | null;
+  smtpHost: string | undefined;
+  smtpPort: number;
+  smtpUser: string | undefined;
+  smtpPassword: string | undefined;
+  smtpFrom: string | undefined;
+  smtpSecure: boolean;
 }
 
 const getEnvVar = (key: string, defaultValue?: string): string => {

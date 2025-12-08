@@ -14,7 +14,8 @@
     "type-check": "tsc --noEmit",
     "migrate": "tsx src/migrations/cli.ts",
     "migrate:status": "tsx src/migrations/cli.ts status",
-    "migrate:rollback": "tsx src/migrations/cli.ts rollback"
+    "migrate:rollback": "tsx src/migrations/cli.ts rollback",
+    "create-admin": "tsx scripts/create-super-admin.ts"
   },
   "keywords": [
     "express",
