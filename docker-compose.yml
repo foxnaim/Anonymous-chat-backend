@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # Локальный MongoDB (опционально, можно использовать MongoDB Atlas)
   mongodb:
     image: mongo:7
     container_name: anonymous-chat-mongodb
@@ -13,6 +12,8 @@ services:
       - mongodb_data:/data/db
     networks:
       - anonymous-chat-network
+    profiles:
+      - local-db  # Запускается только с профилем local-db
 
   backend:
     build:
@@ -22,16 +23,17 @@ services:
     restart: unless-stopped
     ports:
       - '3001:3001'
+    env_file:
+      - .env  # Загружает переменные из .env файла
     environment:
-      NODE_ENV: production
-      PORT: 3001
-      MONGODB_URI: mongodb://mongodb:27017/anonymous-chat
-      CORS_ORIGIN: http://localhost:3000
-      RATE_LIMIT_WINDOW_MS: 900000
-      RATE_LIMIT_MAX_REQUESTS: 100
-      LOG_LEVEL: info
+      # Переопределяем только если нужно использовать локальный MongoDB
+      # MONGODB_URI: mongodb://mongodb:27017/anonymous-chat
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3001}
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_started
+        required: false  # Не обязателен, если используется MongoDB Atlas
     networks:
       - anonymous-chat-network
     volumes:
@@ -43,5 +45,6 @@ volumes:
 networks:
   anonymous-chat-network:
     driver: bridge
+
 
 

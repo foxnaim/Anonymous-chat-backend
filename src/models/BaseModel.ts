@@ -1,4 +1,4 @@
-import { Document, Model, Schema } from 'mongoose';
+import { Document } from 'mongoose';
 
 export interface BaseDocument extends Document {
   createdAt: Date;
@@ -7,7 +7,5 @@ export interface BaseDocument extends Document {
 
 export const baseSchemaOptions = {
   timestamps: true,
-  versionKey: false,
+  versionKey: false as const,
 };
-
-

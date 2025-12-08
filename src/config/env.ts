@@ -12,6 +12,8 @@ interface EnvConfig {
   sentryDsn: string | undefined;
   sentryEnvironment: string;
   logLevel: string;
+  jwtSecret: string;
+  jwtExpiresIn: string;
 }
 
 const getEnvVar = (key: string, defaultValue?: string): string => {
@@ -32,6 +34,6 @@ export const config: EnvConfig = {
   sentryDsn: process.env.SENTRY_DSN,
   sentryEnvironment: getEnvVar('SENTRY_ENVIRONMENT', 'development'),
   logLevel: getEnvVar('LOG_LEVEL', 'info'),
+  jwtSecret: getEnvVar('JWT_SECRET', 'your-secret-key-change-in-production'),
+  jwtExpiresIn: getEnvVar('JWT_EXPIRES_IN', '7d'),
 };
-
-

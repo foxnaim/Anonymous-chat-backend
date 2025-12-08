@@ -1,0 +1,104 @@
+import { Schema, model, Types } from 'mongoose';
+import { BaseDocument, baseSchemaOptions } from './BaseModel';
+
+export type CompanyStatus = 'Активна' | 'Пробная' | 'Заблокирована';
+
+export interface ICompany extends BaseDocument {
+  _id: Types.ObjectId;
+  name: string;
+  code: string;
+  adminEmail: string;
+  status: CompanyStatus;
+  plan: string;
+  registered: string;
+  trialEndDate?: string;
+  employees: number;
+  messages: number;
+  messagesThisMonth?: number;
+  messagesLimit?: number;
+  storageUsed?: number;
+  storageLimit?: number;
+}
+
+const companySchema = new Schema<ICompany>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+      validate: {
+        validator: (v: string): boolean => /^[A-Z0-9]{8}$/.test(v),
+        message: 'Company code must be exactly 8 uppercase alphanumeric characters',
+      },
+    },
+    adminEmail: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ['Активна', 'Пробная', 'Заблокирована'],
+      required: true,
+      default: 'Пробная',
+    },
+    plan: {
+      type: String,
+      required: true,
+      default: 'Бесплатный',
+    },
+    registered: {
+      type: String,
+      required: true,
+    },
+    trialEndDate: {
+      type: String,
+    },
+    employees: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
+    messages: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
+    messagesThisMonth: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    messagesLimit: {
+      type: Number,
+      min: 0,
+    },
+    storageUsed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    storageLimit: {
+      type: Number,
+      min: 0,
+    },
+  },
+  baseSchemaOptions
+);
+
+// Индексы
+// code уже имеет индекс через unique: true, не дублируем
+companySchema.index({ adminEmail: 1 });
+companySchema.index({ status: 1 });
+
+export const Company = model<ICompany>('Company', companySchema);

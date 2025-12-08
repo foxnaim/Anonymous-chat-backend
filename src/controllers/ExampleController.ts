@@ -13,7 +13,7 @@ export class ExampleController {
    *       200:
    *         description: List of examples
    */
-  static async getAll(req: Request, res: Response): Promise<void> {
+  static async getAll(_req: Request, res: Response): Promise<void> {
     const examples = await Example.find({ isActive: true });
     res.json({
       success: true,
@@ -104,7 +104,8 @@ export class ExampleController {
    */
   static async update(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    const example = await Example.findByIdAndUpdate(id, req.body, {
+    const body = req.body as Partial<{ name: string; description: string }>;
+    const example = await Example.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,
     });
@@ -151,5 +152,3 @@ export class ExampleController {
     });
   }
 }
-
-

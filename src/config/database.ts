@@ -1,11 +1,27 @@
 import mongoose from 'mongoose';
 import { config } from './env';
 import { logger } from '../utils/logger';
+import { Migrator } from '../migrations/migrator';
 
 export const connectDatabase = async (): Promise<void> => {
   try {
-    const conn = await mongoose.connect(config.mongodbUri);
+    const conn = await mongoose.connect(config.mongodbUri, {
+      serverSelectionTimeoutMS: 5000, // Таймаут выбора сервера 5 секунд
+      socketTimeoutMS: 45000, // Таймаут сокета 45 секунд
+      connectTimeoutMS: 10000, // Таймаут подключения 10 секунд
+    });
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
+
+    // Запускаем миграции после подключения
+    if (config.nodeEnv !== 'test') {
+      try {
+        const migrator = new Migrator();
+        await migrator.run();
+      } catch (error) {
+        logger.error('Migration error:', error);
+        // Не останавливаем сервер при ошибке миграций, только логируем
+      }
+    }
   } catch (error) {
     logger.error('MongoDB connection error:', error);
     process.exit(1);
@@ -16,8 +32,6 @@ mongoose.connection.on('disconnected', () => {
   logger.warn('MongoDB disconnected');
 });
 
-mongoose.connection.on('error', (error) => {
+mongoose.connection.on('error', error => {
   logger.error('MongoDB error:', error);
 });
-
-

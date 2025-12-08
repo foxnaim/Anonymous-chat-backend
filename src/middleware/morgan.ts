@@ -1,5 +1,4 @@
 import morgan from 'morgan';
-import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 
 const stream = {
@@ -16,5 +15,3 @@ export const morganMiddleware = morgan(
   ':method :url :status :res[content-length] - :response-time ms',
   { stream, skip }
 );
-
-

@@ -7,7 +7,6 @@ import { swaggerSpec } from './config/swagger';
 import { morganMiddleware } from './middleware/morgan';
 import { apiLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
-import { logger } from './utils/logger';
 import { initializeSentry, setupSentryErrorHandler } from './config/sentry';
 import routes from './routes';
 
@@ -35,14 +34,21 @@ app.use(morganMiddleware);
 // Rate limiting
 app.use('/api', apiLimiter);
 
-// Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Swagger documentation (ленивая инициализация)
+app.use('/api-docs', swaggerUi.serve as unknown as express.RequestHandler[]);
+app.use(
+  '/api-docs',
+  swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Anonymous Chat API',
+  }) as unknown as express.RequestHandler
+);
 
 // Routes
 app.use('/api', routes);
 
 // Root endpoint
-app.get('/', (req: Request, res: Response): void => {
+app.get('/', (_req: Request, res: Response): void => {
   res.json({
     success: true,
     message: 'Anonymous Chat API',
@@ -52,7 +58,7 @@ app.get('/', (req: Request, res: Response): void => {
 });
 
 // 404 handler
-app.use((req: Request, res: Response, next: NextFunction): void => {
+app.use((_req: Request, res: Response, _next: NextFunction): void => {
   res.status(404).json({
     success: false,
     error: {
@@ -69,4 +75,3 @@ setupSentryErrorHandler(app);
 app.use(errorHandler);
 
 export default app;
-

@@ -6,7 +6,7 @@ export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   if (err instanceof AppError) {
     logger.warn(`AppError: ${err.message}`, {
@@ -16,7 +16,17 @@ export const errorHandler = (
       method: req.method,
     });
 
-    const errorResponse: any = {
+    interface ErrorResponse {
+      success: false;
+      error: {
+        message: string;
+        code?: string;
+        details?: unknown;
+        stack?: string;
+      };
+    }
+
+    const errorResponse: ErrorResponse = {
       success: false,
       error: {
         message: err.message,
@@ -25,8 +35,8 @@ export const errorHandler = (
     };
 
     // Add validation details if present
-    if ((err as any).details) {
-      errorResponse.error.details = (err as any).details;
+    if ('details' in err && err.details) {
+      errorResponse.error.details = err.details;
     }
 
     // Add stack trace in development
@@ -53,4 +63,3 @@ export const errorHandler = (
     },
   });
 };
-

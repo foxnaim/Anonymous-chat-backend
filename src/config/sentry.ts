@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Application } from 'express';
 import { config } from './env';
 import { logger } from '../utils/logger';
@@ -42,5 +47,3 @@ export const setupSentryErrorHandler = (app: Application): void => {
     logger.warn('Sentry error handler setup failed:', error);
   }
 };
-
-

@@ -11,24 +11,29 @@ import {
 
 const router = Router();
 
-router.get('/', asyncHandler(ExampleController.getAll));
+router.get(
+  '/',
+  asyncHandler((req, res) => ExampleController.getAll(req, res))
+);
 router.get(
   '/:id',
   validate(getExampleByIdSchema),
-  asyncHandler(ExampleController.getById)
+  asyncHandler((req, res) => ExampleController.getById(req, res))
 );
-router.post('/', validate(createExampleSchema), asyncHandler(ExampleController.create));
+router.post(
+  '/',
+  validate(createExampleSchema),
+  asyncHandler((req, res) => ExampleController.create(req, res))
+);
 router.put(
   '/:id',
   validate(updateExampleSchema),
-  asyncHandler(ExampleController.update)
+  asyncHandler((req, res) => ExampleController.update(req, res))
 );
 router.delete(
   '/:id',
   validate(deleteExampleSchema),
-  asyncHandler(ExampleController.delete)
+  asyncHandler((req, res) => ExampleController.delete(req, res))
 );
 
 export default router;
-
-

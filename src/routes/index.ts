@@ -1,11 +1,20 @@
 import { Router } from 'express';
 import healthRoutes from './health';
-import exampleRoutes from './example';
+import authRoutes from './auth';
+import messageRoutes from './messages';
+import companyRoutes from './companies';
+import statsRoutes from './stats';
+import planRoutes from './plans';
+import adminRoutes from './admins';
 
 const router = Router();
 
 router.use('/health', healthRoutes);
-router.use('/examples', exampleRoutes);
+router.use('/auth', authRoutes);
+router.use('/messages', messageRoutes);
+router.use('/companies', companyRoutes);
+router.use('/stats', statsRoutes);
+router.use('/plans', planRoutes);
+router.use('/admins', adminRoutes);
 
 export default router;
-

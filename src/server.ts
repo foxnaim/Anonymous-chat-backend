@@ -4,11 +4,19 @@ import { connectDatabase } from './config/database';
 import { logger } from './utils/logger';
 
 const startServer = async (): Promise<void> => {
+  const startTime = Date.now();
   try {
+    logger.info('Starting server...');
+    const dbStartTime = Date.now();
     await connectDatabase();
+    const dbTime = Date.now() - dbStartTime;
+    logger.info(`Database connected in ${dbTime}ms`);
+
     app.listen(config.port, () => {
+      const totalTime = Date.now() - startTime;
       logger.info(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
       logger.info(`API Documentation: http://localhost:${config.port}/api-docs`);
+      logger.info(`Server started in ${totalTime}ms (DB: ${dbTime}ms)`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
@@ -28,6 +36,4 @@ process.on('uncaughtException', (err: Error) => {
   process.exit(1);
 });
 
-startServer();
-
-
+void startServer();

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
-import mongoose from 'mongoose';
+import mongoose, { ConnectionStates } from 'mongoose';
 
 const router = Router();
 
@@ -41,18 +41,21 @@ const router = Router();
  */
 router.get(
   '/health',
-  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  asyncHandler(async (_req: Request, res: Response) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    const isDbConnected = mongoose.connection.readyState === ConnectionStates.connected;
     const healthCheck = {
       uptime: process.uptime(),
       message: 'OK',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
       database: {
-        status: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        status: isDbConnected ? 'connected' : 'disconnected',
       },
     };
 
-    const statusCode = healthCheck.database.status === 'connected' ? 200 : 503;
+    const statusCode: number = isDbConnected ? 200 : 503;
 
     res.status(statusCode).json({
       success: true,
