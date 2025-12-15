@@ -18,6 +18,8 @@ export interface ICompany extends BaseDocument {
   messagesLimit?: number;
   storageUsed?: number;
   storageLimit?: number;
+  logoUrl?: string;
+  fullscreenMode?: boolean;
 }
 
 const companySchema = new Schema<ICompany>(
@@ -92,13 +94,23 @@ const companySchema = new Schema<ICompany>(
       type: Number,
       min: 0,
     },
+    logoUrl: {
+      type: String,
+      trim: true,
+    },
+    fullscreenMode: {
+      type: Boolean,
+      default: false,
+    },
   },
   baseSchemaOptions
 );
 
-// Индексы
+// Индексы для оптимизации запросов
 // code уже имеет индекс через unique: true, не дублируем
 companySchema.index({ adminEmail: 1 });
 companySchema.index({ status: 1 });
+companySchema.index({ createdAt: -1 }); // Для сортировки по дате создания
+companySchema.index({ name: 1 }); // Для поиска по имени
 
 export const Company = model<ICompany>('Company', companySchema);

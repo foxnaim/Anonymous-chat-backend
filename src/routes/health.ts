@@ -40,7 +40,7 @@ const router = Router();
  *         description: Service is unhealthy
  */
 router.get(
-  '/health',
+  '/',
   // eslint-disable-next-line @typescript-eslint/require-await
   asyncHandler(async (_req: Request, res: Response) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison

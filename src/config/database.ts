@@ -9,6 +9,10 @@ export const connectDatabase = async (): Promise<void> => {
       serverSelectionTimeoutMS: 5000, // Таймаут выбора сервера 5 секунд
       socketTimeoutMS: 45000, // Таймаут сокета 45 секунд
       connectTimeoutMS: 10000, // Таймаут подключения 10 секунд
+      // Отключаем SSL для локального MongoDB
+      ssl: false,
+      // Для локального MongoDB не нужна проверка сертификата
+      tlsAllowInvalidCertificates: false,
     });
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
 

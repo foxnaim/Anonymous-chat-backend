@@ -29,3 +29,14 @@ export const getMessageByIdSchema = z.object({
     id: z.string().min(1, 'Message ID is required'),
   }),
 });
+
+export const moderateMessageSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Message ID is required'),
+  }),
+  body: z.object({
+    action: z.enum(['approve', 'reject'], {
+      errorMap: () => ({ message: 'Action must be "approve" or "reject"' }),
+    }),
+  }),
+});

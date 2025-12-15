@@ -126,7 +126,19 @@ docker-compose -f docker-compose.dev.yml up -d
 docker-compose up -d
 ```
 
-#### 3. Сборка образа вручную
+#### 3. Продакшн с локальным MongoDB (персистентное хранилище)
+```bash
+# Создайте директорию для данных MongoDB
+sudo mkdir -p /srv/mongo-data
+sudo chown -R 999:999 /srv/mongo-data
+
+# Запуск продакшн конфигурации
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+**📖 Подробная документация по настройке продакшна:** см. [PRODUCTION.md](./PRODUCTION.md)
+
+#### 4. Сборка образа вручную
 ```bash
 docker build -t anonymous-chat-backend .
 ```
@@ -142,11 +154,32 @@ Docker Compose автоматически загружает переменны�
 
 ### Остановка контейнеров
 ```bash
-docker-compose down
+# Для разработки
+docker-compose -f docker-compose.dev.yml down
+
+# Для продакшна
+docker-compose -f docker-compose.prod.yml down
 
 # С удалением volumes (удалит данные MongoDB)
-docker-compose down -v
+docker-compose -f docker-compose.prod.yml down -v
 ```
+
+### Бэкапы MongoDB
+
+Для продакшна настроены скрипты бэкапов:
+
+```bash
+# Автоматический бэкап через mongodump (без остановки MongoDB)
+./scripts/backup-mongodb.sh
+
+# Восстановление из бэкапа
+./scripts/restore-mongodb.sh /srv/mongo-backups/mongodb_backup_YYYYMMDD_HHMMSS.gz
+
+# Бэкап через копирование данных (требует остановки MongoDB)
+./scripts/backup-mongodb-data.sh
+```
+
+Подробнее см. [PRODUCTION.md](./PRODUCTION.md)
 
 ## 🔄 Миграции базы данных
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAdmins, createAdmin, updateAdmin } from '../controllers/AdminController';
+import { getAdmins, createAdmin, updateAdmin, deleteAdmin } from '../controllers/AdminController';
 import { validate } from '../middleware/validation';
 import { createAdminSchema, updateAdminSchema } from '../validators/adminValidator';
 import { authenticate, authorize } from '../middleware/auth';
@@ -98,5 +98,30 @@ router.post('/', validate(createAdminSchema), createAdmin);
  *         description: Admin not found
  */
 router.put('/:id', validate(updateAdminSchema), updateAdmin);
+
+/**
+ * @swagger
+ * /api/admins/{id}:
+ *   delete:
+ *     summary: Delete admin (super admin only)
+ *     tags: [Admins]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Admin ID
+ *     responses:
+ *       200:
+ *         description: Admin deleted successfully
+ *       403:
+ *         description: Forbidden (cannot delete super admin or yourself)
+ *       404:
+ *         description: Admin not found
+ */
+router.delete('/:id', deleteAdmin);
 
 export default router;

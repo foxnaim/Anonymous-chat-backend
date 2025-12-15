@@ -31,8 +31,20 @@ const getEnvVar = (key: string, defaultValue?: string): string => {
   return value || defaultValue || '';
 };
 
+// Проверка критичных переменных окружения в production
+const nodeEnv = getEnvVar('NODE_ENV', 'development');
+if (nodeEnv === 'production') {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < 32) {
+    throw new Error(
+      '❌ КРИТИЧЕСКАЯ ОШИБКА БЕЗОПАСНОСТИ: JWT_SECRET должен быть установлен и содержать минимум 32 символа в production режиме!\n' +
+      'Сгенерируйте безопасный секрет: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"'
+    );
+  }
+}
+
 export const config: EnvConfig = {
-  nodeEnv: getEnvVar('NODE_ENV', 'development'),
+  nodeEnv,
   port: parseInt(getEnvVar('PORT', '3001'), 10),
   mongodbUri: getEnvVar('MONGODB_URI', 'mongodb://localhost:27017/anonymous-chat'),
   frontendUrl: getEnvVar('FRONTEND_URL', 'http://localhost:3000'),

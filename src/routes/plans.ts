@@ -23,24 +23,40 @@ const router = Router();
  */
 router.get('/', getAllPlans);
 
-// Остальные роуты требуют аутентификации
-router.use((req, res, next) => {
-  authenticate(req, res, next);
-});
-
 /**
  * @swagger
  * /api/plans/free-settings:
  *   get:
- *     summary: Get free plan settings
+ *     summary: Get free plan settings (public)
  *     tags: [Plans]
- *     security:
- *       - bearerAuth: []
+ *     description: Получение настроек бесплатного плана (количество дней пробного периода и т.д.). Публичный endpoint, так как используется на странице регистрации.
  *     responses:
  *       200:
  *         description: Free plan settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     messagesLimit:
+ *                       type: integer
+ *                     storageLimit:
+ *                       type: number
+ *                     freePeriodDays:
+ *                       type: integer
  */
+// Получение настроек бесплатного плана - публичный endpoint (нужен для страницы регистрации)
 router.get('/free-settings', getFreePlanSettings);
+
+// Остальные роуты требуют аутентификации
+router.use((req, res, next) => {
+  authenticate(req, res, next);
+});
 
 /**
  * @swagger

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { SubscriptionPlan } from '../models/SubscriptionPlan';
+import { cache } from '../utils/cache';
 
 // Настройки бесплатного плана
 let freePlanSettings = {
@@ -11,7 +12,23 @@ let freePlanSettings = {
 };
 
 export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => {
-  const plans = await SubscriptionPlan.find().sort({ price: 1 });
+  // Проверяем кэш
+  const cacheKey = 'plans:all';
+  const cachedPlans = cache.get<typeof SubscriptionPlan[]>(cacheKey);
+  if (cachedPlans) {
+    res.json({
+      success: true,
+      data: cachedPlans,
+    });
+    return;
+  }
+
+  // Оптимизация: используем lean() и select для производительности
+  let plans: any[] = await SubscriptionPlan.find()
+    .select('-__v')
+    .sort({ price: 1 })
+    .lean()
+    .exec();
 
   // Если планов нет, создаем дефолтные
   if (plans.length === 0) {
@@ -65,13 +82,34 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
     ];
 
     await SubscriptionPlan.insertMany(defaultPlans);
-    const updatedPlans = await SubscriptionPlan.find().sort({ price: 1 });
-    res.json({
-      success: true,
-      data: updatedPlans,
-    });
-    return;
+    plans = await SubscriptionPlan.find()
+      .select('-__v')
+      .sort({ price: 1 })
+      .lean()
+      .exec() as any[];
   }
+
+  // Обновляем freePeriodDays для бесплатного плана из текущих настроек
+  // Это гарантирует, что всегда используется актуальное значение из админки
+  const freePlanIndex = plans.findIndex((p) => p.id === 'free' || (p as any).isFree);
+  if (freePlanIndex !== -1) {
+    // Обновляем в базе данных (нужно найти документ, а не lean объект)
+    const freePlanDoc = await SubscriptionPlan.findOne({ 
+      $or: [{ id: 'free' }, { isFree: true }] 
+    });
+    if (freePlanDoc) {
+      freePlanDoc.freePeriodDays = freePlanSettings.freePeriodDays;
+      freePlanDoc.messagesLimit = freePlanSettings.messagesLimit;
+      await freePlanDoc.save();
+      
+      // Обновляем в массиве для ответа
+      (plans[freePlanIndex] as any).freePeriodDays = freePlanSettings.freePeriodDays;
+      (plans[freePlanIndex] as any).messagesLimit = freePlanSettings.messagesLimit;
+    }
+  }
+
+  // Кэшируем на 5 минут
+  cache.set(cacheKey, plans, 5 * 60 * 1000);
 
   res.json({
     success: true,
@@ -109,6 +147,9 @@ export const createPlan = asyncHandler(async (req: Request, res: Response) => {
     freePeriodDays,
   });
 
+  // Инвалидируем кэш планов
+  cache.delete('plans:all');
+
   res.status(201).json({
     success: true,
     data: plan,
@@ -117,6 +158,20 @@ export const createPlan = asyncHandler(async (req: Request, res: Response) => {
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export const getFreePlanSettings = asyncHandler(async (_req: Request, res: Response) => {
+  // Проверяем кэш
+  const cacheKey = 'plans:free-settings';
+  const cached = cache.get<typeof freePlanSettings>(cacheKey);
+  if (cached) {
+    res.json({
+      success: true,
+      data: cached,
+    });
+    return;
+  }
+
+  // Кэшируем на 1 минуту (настройки могут часто меняться)
+  cache.set(cacheKey, freePlanSettings, 60 * 1000);
+
   res.json({
     success: true,
     data: freePlanSettings,
@@ -139,6 +194,10 @@ export const updateFreePlanSettings = asyncHandler(async (req: Request, res: Res
     messagesLimit: messagesLimit !== undefined ? messagesLimit : freePlanSettings.messagesLimit,
     freePeriodDays: freePeriodDays !== undefined ? freePeriodDays : freePlanSettings.freePeriodDays,
   };
+
+  // Инвалидируем кэш
+  cache.delete('plans:free-settings');
+  cache.delete('plans:all'); // Также инвалидируем кэш всех планов
 
   res.json({
     success: true,

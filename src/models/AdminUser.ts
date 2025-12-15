@@ -45,8 +45,9 @@ const adminUserSchema = new Schema<IAdminUser>(
   }
 );
 
-// Индексы
+// Индексы для оптимизации запросов
 // email уже имеет индекс через unique: true, не дублируем
 adminUserSchema.index({ role: 1 });
+adminUserSchema.index({ createdAt: -1 }); // Для сортировки по дате создания
 
 export const AdminUser = model<IAdminUser>('AdminUser', adminUserSchema);

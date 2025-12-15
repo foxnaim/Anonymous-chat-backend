@@ -28,6 +28,8 @@ export const updateCompanySchema = z.object({
     employees: z.number().int().min(0).optional(),
     messagesLimit: z.number().int().min(0).optional(),
     storageLimit: z.number().min(0).optional(),
+    logoUrl: z.string().url().optional().or(z.literal('')),
+    fullscreenMode: z.boolean().optional(),
   }),
 });
 

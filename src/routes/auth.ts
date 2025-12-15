@@ -6,6 +6,8 @@ import {
   getMe,
   forgotPassword,
   resetPassword,
+  changeEmail,
+  changePassword,
 } from '../controllers/AuthController';
 import { validate } from '../middleware/validation';
 import {
@@ -14,6 +16,8 @@ import {
   verifyPasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changeEmailSchema,
+  changePasswordSchema,
 } from '../validators/authValidator';
 import { authenticate } from '../middleware/auth';
 
@@ -243,6 +247,86 @@ router.get(
     authenticate(req, res, next);
   },
   getMe
+);
+
+/**
+ * @swagger
+ * /api/auth/change-email:
+ *   post:
+ *     summary: Change user email
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newEmail
+ *               - password
+ *             properties:
+ *               newEmail:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email changed successfully
+ *       401:
+ *         description: Invalid password or unauthorized
+ *       400:
+ *         description: Bad request (email already in use, invalid format, etc.)
+ */
+router.post(
+  '/change-email',
+  (req, res, next) => {
+    authenticate(req, res, next);
+  },
+  validate(changeEmailSchema),
+  changeEmail
+);
+
+/**
+ * @swagger
+ * /api/auth/change-password:
+ *   post:
+ *     summary: Change user password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       401:
+ *         description: Invalid current password or unauthorized
+ *       400:
+ *         description: Bad request (new password same as current, too short, etc.)
+ */
+router.post(
+  '/change-password',
+  (req, res, next) => {
+    authenticate(req, res, next);
+  },
+  validate(changePasswordSchema),
+  changePassword
 );
 
 export default router;

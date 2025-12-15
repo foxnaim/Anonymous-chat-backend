@@ -11,18 +11,41 @@ export const getAllCompanies = asyncHandler(async (req: Request, res: Response) 
     throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
   }
 
-  const companies = await Company.find().sort({ createdAt: -1 });
+  const { page, limit } = req.query;
+  
+  // Пагинация
+  const pageNumber = page && typeof page === 'string' ? parseInt(page, 10) : 1;
+  const pageSize = limit && typeof limit === 'string' ? parseInt(limit, 10) : 20;
+  const skip = (pageNumber - 1) * pageSize;
+
+  // Оптимизация: используем lean() для производительности и select для исключения ненужных полей
+  const [companies, total] = await Promise.all([
+    Company.find()
+      .select('-__v') // Исключаем версию документа
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .lean()
+      .exec(),
+    Company.countDocuments(),
+  ]);
 
   // Преобразуем в формат фронтенда
   const companiesData = companies.map(company => ({
     id: company._id.toString(),
-    ...company.toObject(),
+    ...company,
     _id: undefined,
   }));
 
   res.json({
     success: true,
     data: companiesData,
+    pagination: {
+      page: pageNumber,
+      limit: pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    },
   });
 });
 
@@ -182,6 +205,8 @@ export const updateCompany = asyncHandler(async (req: Request, res: Response) =>
     employees?: number;
     messagesLimit?: number;
     storageLimit?: number;
+    logoUrl?: string;
+    fullscreenMode?: boolean;
   };
   if (updates.code && typeof updates.code === 'string') {
     updates.code = updates.code.toUpperCase();

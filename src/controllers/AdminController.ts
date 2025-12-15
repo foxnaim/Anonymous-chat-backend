@@ -3,7 +3,9 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { AdminUser } from '../models/AdminUser';
 import { User } from '../models/User';
-import { hashPassword } from '../utils/password';
+import { hashPassword, generateSecurePassword } from '../utils/password';
+import { emailService } from '../services/emailService';
+import { logger } from '../utils/logger';
 
 export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
   // Только суперадмины могут видеть всех админов
@@ -11,11 +13,34 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
   }
 
-  const admins = await AdminUser.find().sort({ createdAt: -1 });
+  const { page, limit } = req.query;
+  
+  // Пагинация
+  const pageNumber = page && typeof page === 'string' ? parseInt(page, 10) : 1;
+  const pageSize = limit && typeof limit === 'string' ? parseInt(limit, 10) : 50;
+  const skip = (pageNumber - 1) * pageSize;
+
+  // Оптимизация: используем lean() для производительности и select для исключения ненужных полей
+  const [admins, total] = await Promise.all([
+    AdminUser.find()
+      .select('-__v') // Исключаем версию документа
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .lean()
+      .exec(),
+    AdminUser.countDocuments(),
+  ]);
 
   res.json({
     success: true,
     data: admins,
+    pagination: {
+      page: pageNumber,
+      limit: pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    },
   });
 });
 
@@ -53,9 +78,9 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     createdAt,
   });
 
-  // Создаем пользователя для админа
-  const defaultPassword = 'admin123'; // В продакшене должен генерироваться случайный пароль
-  const hashedPassword = await hashPassword(defaultPassword);
+  // Генерируем безопасный случайный пароль
+  const generatedPassword = generateSecurePassword(16);
+  const hashedPassword = await hashPassword(generatedPassword);
 
   await User.create({
     email: String(email).toLowerCase(),
@@ -64,9 +89,34 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     name,
   });
 
+  // Отправляем пароль администратору по email
+  try {
+    await emailService.sendAdminPasswordEmail(
+      String(email).toLowerCase(),
+      name || 'Администратор',
+      generatedPassword
+    );
+    logger.info(`Admin password email sent to ${email}`);
+  } catch (error) {
+    // Логируем ошибку, но не прерываем создание админа
+    logger.error(`Failed to send admin password email to ${email}:`, error);
+    // В development режиме возвращаем пароль в ответе для удобства тестирования
+    if (process.env.NODE_ENV === 'development') {
+      res.status(201).json({
+        success: true,
+        data: admin,
+        // Только в development - никогда в production!
+        _devPassword: generatedPassword,
+        _devWarning: 'This password is only shown in development mode. In production, it is sent via email only.',
+      });
+      return;
+    }
+  }
+
   res.status(201).json({
     success: true,
     data: admin,
+    message: 'Admin created successfully. Password has been sent to the provided email address.',
   });
 });
 
@@ -104,5 +154,43 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
   res.json({
     success: true,
     data: admin,
+  });
+});
+
+export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
+  // Только суперадмины могут удалять админов
+  if (req.user?.role !== 'super_admin') {
+    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
+  }
+
+  const { id } = req.params;
+
+  const admin = await AdminUser.findById(id);
+  if (!admin) {
+    throw new AppError('Admin not found', 404, ErrorCode.NOT_FOUND);
+  }
+
+  // Нельзя удалить самого себя
+  if (req.user?.email === admin.email) {
+    throw new AppError('Cannot delete yourself', 400, ErrorCode.BAD_REQUEST);
+  }
+
+  // Нельзя удалить другого суперадмина (только обычных админов)
+  if (admin.role === 'super_admin') {
+    throw new AppError('Cannot delete super admin', 403, ErrorCode.FORBIDDEN);
+  }
+
+  // Удаляем пользователя
+  const user = await User.findOne({ email: admin.email });
+  if (user) {
+    await user.deleteOne();
+  }
+
+  // Удаляем админа
+  await admin.deleteOne();
+
+  res.json({
+    success: true,
+    message: 'Admin deleted successfully',
   });
 });

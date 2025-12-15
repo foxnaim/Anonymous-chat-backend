@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { AdminSettings } from '../models/AdminSettings';
 import mongoose from 'mongoose';
+import { cache } from '../utils/cache';
 
 /**
  * Получить настройки админа
@@ -22,6 +23,17 @@ export const getAdminSettings = asyncHandler(async (req: Request, res: Response)
   // Преобразуем userId в ObjectId
   const adminId = new mongoose.Types.ObjectId(userId);
 
+  // Проверяем кэш
+  const cacheKey = `admin-settings:${userId}`;
+  const cached = cache.get<typeof AdminSettings>(cacheKey);
+  if (cached) {
+    res.json({
+      success: true,
+      data: cached,
+    });
+    return;
+  }
+
   // Ищем настройки или создаем дефолтные
   let settings = await AdminSettings.findOne({ adminId });
 
@@ -37,6 +49,9 @@ export const getAdminSettings = asyncHandler(async (req: Request, res: Response)
       emailNotifications: true,
     });
   }
+
+  // Кэшируем на 2 минуты
+  cache.set(cacheKey, settings, 2 * 60 * 1000);
 
   res.json({
     success: true,
@@ -122,6 +137,12 @@ export const updateAdminSettings = asyncHandler(async (req: Request, res: Respon
 
     await settings.save();
   }
+
+  // Инвалидируем кэш
+  const cacheKey = `admin-settings:${userId}`;
+  cache.delete(cacheKey);
+  // Кэшируем обновленные настройки
+  cache.set(cacheKey, settings, 2 * 60 * 1000);
 
   res.json({
     success: true,
