@@ -402,13 +402,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
     );
   }
 
-  if (String(newPassword).length < 6) {
-    throw new AppError(
-      'New password must be at least 6 characters long. Please choose a stronger password.',
-      400,
-      ErrorCode.BAD_REQUEST
-    );
-  }
+  // Валидация пароля выполняется через Zod schema (changePasswordSchema)
 
   // Получаем пользователя с паролем
   const user = await User.findById(req.user.userId).select('+password');
