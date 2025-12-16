@@ -10,19 +10,21 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   body: z.object({
     email: z.string().email('Invalid email format'),
-    password: z.string()
+    password: z
+      .string()
       .min(8, 'Password must be at least 8 characters long')
-      .refine((pwd) => /[A-Z]/.test(pwd), {
+      .refine(pwd => /[A-Z]/.test(pwd), {
         message: 'Password must contain at least one uppercase letter',
       })
-      .refine((pwd) => /[a-z]/.test(pwd), {
+      .refine(pwd => /[a-z]/.test(pwd), {
         message: 'Password must contain at least one lowercase letter',
       })
-      .refine((pwd) => /[0-9]/.test(pwd), {
+      .refine(pwd => /[0-9]/.test(pwd), {
         message: 'Password must contain at least one digit',
       })
-      .refine((pwd) => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(pwd), {
-        message: 'Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)',
+      .refine(pwd => /[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/.test(pwd), {
+        message:
+          'Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)',
       }),
     name: z.string().optional(),
     role: z.enum(['user', 'company', 'admin']).optional(),
@@ -47,19 +49,21 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z.object({
   body: z.object({
     token: z.string().min(1, 'Token is required'),
-    password: z.string()
+    password: z
+      .string()
       .min(8, 'Password must be at least 8 characters long')
-      .refine((pwd) => /[A-Z]/.test(pwd), {
+      .refine(pwd => /[A-Z]/.test(pwd), {
         message: 'Password must contain at least one uppercase letter',
       })
-      .refine((pwd) => /[a-z]/.test(pwd), {
+      .refine(pwd => /[a-z]/.test(pwd), {
         message: 'Password must contain at least one lowercase letter',
       })
-      .refine((pwd) => /[0-9]/.test(pwd), {
+      .refine(pwd => /[0-9]/.test(pwd), {
         message: 'Password must contain at least one digit',
       })
-      .refine((pwd) => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(pwd), {
-        message: 'Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)',
+      .refine(pwd => /[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/.test(pwd), {
+        message:
+          'Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)',
       }),
   }),
 });
@@ -74,19 +78,21 @@ export const changeEmailSchema = z.object({
 export const changePasswordSchema = z.object({
   body: z.object({
     currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string()
+    newPassword: z
+      .string()
       .min(8, 'New password must be at least 8 characters long')
-      .refine((pwd) => /[A-Z]/.test(pwd), {
+      .refine(pwd => /[A-Z]/.test(pwd), {
         message: 'New password must contain at least one uppercase letter',
       })
-      .refine((pwd) => /[a-z]/.test(pwd), {
+      .refine(pwd => /[a-z]/.test(pwd), {
         message: 'New password must contain at least one lowercase letter',
       })
-      .refine((pwd) => /[0-9]/.test(pwd), {
+      .refine(pwd => /[0-9]/.test(pwd), {
         message: 'New password must contain at least one digit',
       })
-      .refine((pwd) => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(pwd), {
-        message: 'New password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)',
+      .refine(pwd => /[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/.test(pwd), {
+        message:
+          'New password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)',
       }),
   }),
 });
