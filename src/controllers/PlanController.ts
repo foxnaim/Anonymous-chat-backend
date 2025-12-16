@@ -90,7 +90,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
 
   // Обновляем freePeriodDays для бесплатного плана из текущих настроек
   // Это гарантирует, что всегда используется актуальное значение из админки
-  const freePlanIndex = plans.findIndex((p) => p.id === 'free' || p.isFree === true);
+  const freePlanIndex = plans.findIndex(p => p.id === 'free' || p.isFree === true);
   if (freePlanIndex !== -1 && freePlanIndex < plans.length) {
     // Обновляем в базе данных (нужно найти документ, а не lean объект)
     const freePlanDoc = await SubscriptionPlan.findOne({
