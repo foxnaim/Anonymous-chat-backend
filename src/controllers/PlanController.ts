@@ -4,8 +4,8 @@ import { AppError, ErrorCode } from '../utils/AppError';
 import { SubscriptionPlan, ISubscriptionPlan } from '../models/SubscriptionPlan';
 import { cache } from '../utils/cache';
 
-// Тип для lean() результата
-type PlanLean = Omit<ISubscriptionPlan, '_id'> & { _id: string };
+// Тип для lean() результата - упрощенный тип для кэширования
+type PlanLean = ISubscriptionPlan;
 
 // Настройки бесплатного плана
 let freePlanSettings = {
@@ -27,11 +27,12 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
   }
 
   // Оптимизация: используем lean() и select для производительности
-  let plans = (await SubscriptionPlan.find()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let plans: any[] = await SubscriptionPlan.find()
     .select('-__v')
     .sort({ price: 1 })
     .lean()
-    .exec()) as PlanLean[];
+    .exec();
 
   // Если планов нет, создаем дефолтные
   if (plans.length === 0) {
@@ -85,16 +86,14 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
     ];
 
     await SubscriptionPlan.insertMany(defaultPlans);
-    plans = (await SubscriptionPlan.find()
-      .select('-__v')
-      .sort({ price: 1 })
-      .lean()
-      .exec()) as PlanLean[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plans = await SubscriptionPlan.find().select('-__v').sort({ price: 1 }).lean().exec();
   }
 
   // Обновляем freePeriodDays для бесплатного плана из текущих настроек
   // Это гарантирует, что всегда используется актуальное значение из админки
-  const freePlanIndex = plans.findIndex(p => p.id === 'free' || p.isFree === true);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const freePlanIndex = plans.findIndex((p: any) => p.id === 'free' || p.isFree === true);
   if (freePlanIndex !== -1 && freePlanIndex < plans.length) {
     // Обновляем в базе данных (нужно найти документ, а не lean объект)
     const freePlanDoc = await SubscriptionPlan.findOne({
@@ -106,9 +105,12 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
       await freePlanDoc.save();
 
       // Обновляем в массиве для ответа
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const planToUpdate = plans[freePlanIndex];
       if (planToUpdate) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         planToUpdate.freePeriodDays = freePlanSettings.freePeriodDays;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         planToUpdate.messagesLimit = freePlanSettings.messagesLimit;
       }
     }
