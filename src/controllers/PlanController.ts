@@ -3,7 +3,9 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { SubscriptionPlan, ISubscriptionPlan } from '../models/SubscriptionPlan';
 import { cache } from '../utils/cache';
-import { LeanDocument } from 'mongoose';
+
+// Тип для lean() результата
+type PlanLean = Omit<ISubscriptionPlan, '_id'> & { _id: string };
 
 // Настройки бесплатного плана
 let freePlanSettings = {
@@ -15,7 +17,7 @@ let freePlanSettings = {
 export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => {
   // Проверяем кэш
   const cacheKey = 'plans:all';
-  const cachedPlans = cache.get<LeanDocument<ISubscriptionPlan>[]>(cacheKey);
+  const cachedPlans = cache.get<PlanLean[]>(cacheKey);
   if (cachedPlans) {
     res.json({
       success: true,
@@ -25,7 +27,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
   }
 
   // Оптимизация: используем lean() и select для производительности
-  let plans: LeanDocument<ISubscriptionPlan>[] = await SubscriptionPlan.find()
+  let plans: PlanLean[] = await SubscriptionPlan.find()
     .select('-__v')
     .sort({ price: 1 })
     .lean()
@@ -88,10 +90,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
 
   // Обновляем freePeriodDays для бесплатного плана из текущих настроек
   // Это гарантирует, что всегда используется актуальное значение из админки
-  const freePlanIndex = plans.findIndex((p) => {
-    const plan = p as LeanDocument<ISubscriptionPlan>;
-    return plan.id === 'free' || plan.isFree === true;
-  });
+  const freePlanIndex = plans.findIndex((p) => p.id === 'free' || p.isFree === true);
   if (freePlanIndex !== -1 && freePlanIndex < plans.length) {
     // Обновляем в базе данных (нужно найти документ, а не lean объект)
     const freePlanDoc = await SubscriptionPlan.findOne({
@@ -103,7 +102,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
       await freePlanDoc.save();
 
       // Обновляем в массиве для ответа
-      const planToUpdate = plans[freePlanIndex] as LeanDocument<ISubscriptionPlan>;
+      const planToUpdate = plans[freePlanIndex];
       if (planToUpdate) {
         planToUpdate.freePeriodDays = freePlanSettings.freePeriodDays;
         planToUpdate.messagesLimit = freePlanSettings.messagesLimit;
