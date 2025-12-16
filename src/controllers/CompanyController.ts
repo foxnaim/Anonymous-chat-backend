@@ -121,9 +121,7 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
     );
   }
 
-  if (password.length < 6) {
-    throw new AppError('Password must be at least 6 characters', 400, ErrorCode.BAD_REQUEST);
-  }
+  // Валидация пароля выполняется через Zod schema (createCompanySchema)
 
   // Проверяем, не существует ли компания с таким кодом
   const existingCompany = await Company.findOne({ code: String(code).toUpperCase() });

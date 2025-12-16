@@ -266,9 +266,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
     throw new AppError('Token and password are required', 400, ErrorCode.BAD_REQUEST);
   }
 
-  if (String(password).length < 6) {
-    throw new AppError('Password must be at least 6 characters', 400, ErrorCode.BAD_REQUEST);
-  }
+  // Валидация пароля выполняется через Zod schema (resetPasswordSchema)
 
   const hashedToken = hashResetToken(String(token));
 
