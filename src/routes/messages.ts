@@ -65,7 +65,7 @@ router.use((req, res, next) => {
  * @swagger
  * /api/messages:
  *   get:
- *     summary: Get all messages
+ *     summary: Get all messages (with pagination)
  *     tags: [Messages]
  *     security:
  *       - bearerAuth: []
@@ -76,9 +76,24 @@ router.use((req, res, next) => {
  *           type: string
  *           length: 8
  *         description: Company code to filter messages
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of items per page
  *     responses:
  *       200:
- *         description: List of messages
+ *         description: List of messages with pagination
  *         content:
  *           application/json:
  *             schema:
@@ -90,6 +105,17 @@ router.use((req, res, next) => {
  *                   type: array
  *                   items:
  *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
  */
 router.get('/', validate(getMessagesSchema), getAllMessages);
 
