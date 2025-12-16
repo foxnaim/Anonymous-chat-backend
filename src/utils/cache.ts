@@ -77,8 +77,10 @@ export const cache = new SimpleCache();
 
 // Периодическая очистка устаревших записей (каждые 10 минут)
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    cache.cleanup();
-  }, 10 * 60 * 1000);
+  setInterval(
+    () => {
+      cache.cleanup();
+    },
+    10 * 60 * 1000
+  );
 }
-

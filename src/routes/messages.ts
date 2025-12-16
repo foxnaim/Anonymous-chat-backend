@@ -142,7 +142,6 @@ router.get('/', validate(getMessagesSchema), getAllMessages);
  */
 router.get('/:id', validate(getMessageByIdSchema), getMessageById);
 
-
 /**
  * @swagger
  * /api/messages/{id}/status:

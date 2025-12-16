@@ -12,8 +12,24 @@ import sanitizeHtml from 'sanitize-html';
 export const sanitizeMessageContent = (content: string): string => {
   return sanitizeHtml(content, {
     allowedTags: [
-      'p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'code', 'pre'
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      's',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'code',
+      'pre',
     ],
     allowedAttributes: {},
     allowedStyles: {},
@@ -36,4 +52,3 @@ export const sanitizeText = (text: string): string => {
     allowedAttributes: {},
   });
 };
-

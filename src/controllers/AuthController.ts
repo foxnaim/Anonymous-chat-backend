@@ -297,43 +297,71 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
 
 export const changeEmail = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
-    throw new AppError('Authentication required. Please log in to change your email.', 401, ErrorCode.UNAUTHORIZED);
+    throw new AppError(
+      'Authentication required. Please log in to change your email.',
+      401,
+      ErrorCode.UNAUTHORIZED
+    );
   }
 
   const body = req.body as { newEmail?: string; password?: string };
   const { newEmail, password } = body;
 
   if (!newEmail || !password) {
-    throw new AppError('Both new email address and current password are required to change your email. Please fill in all fields.', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'Both new email address and current password are required to change your email. Please fill in all fields.',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   // Валидация email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(newEmail)) {
-    throw new AppError('The email address format is incorrect. Please enter a valid email address (e.g., user@example.com).', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'The email address format is incorrect. Please enter a valid email address (e.g., user@example.com).',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   // Получаем пользователя с паролем
   const user = await User.findById(req.user.userId).select('+password');
   if (!user) {
-    throw new AppError('User account not found. Please try logging in again.', 404, ErrorCode.NOT_FOUND);
+    throw new AppError(
+      'User account not found. Please try logging in again.',
+      404,
+      ErrorCode.NOT_FOUND
+    );
   }
 
   // Проверяем текущий пароль
   const isPasswordValid = await comparePassword(String(password), user.password);
   if (!isPasswordValid) {
-    throw new AppError('The current password you entered is incorrect. Please check your password and try again. Make sure Caps Lock is off and you are using the correct password.', 401, ErrorCode.UNAUTHORIZED);
+    throw new AppError(
+      'The current password you entered is incorrect. Please check your password and try again. Make sure Caps Lock is off and you are using the correct password.',
+      401,
+      ErrorCode.UNAUTHORIZED
+    );
   }
 
   // Проверяем, что новый email отличается от текущего
   if (user.email.toLowerCase() === newEmail.toLowerCase()) {
-    throw new AppError('The new email address must be different from your current email address. Please enter a different email.', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'The new email address must be different from your current email address. Please enter a different email.',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   // Проверяем, что новый email не занят
   const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
   if (existingUser) {
-    throw new AppError('This email address is already registered to another account. Please choose a different email address.', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'This email address is already registered to another account. Please choose a different email address.',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   // Обновляем email
@@ -358,36 +386,60 @@ export const changeEmail = asyncHandler(async (req: Request, res: Response) => {
 
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
-    throw new AppError('Authentication required. Please log in to change your password.', 401, ErrorCode.UNAUTHORIZED);
+    throw new AppError(
+      'Authentication required. Please log in to change your password.',
+      401,
+      ErrorCode.UNAUTHORIZED
+    );
   }
 
   const body = req.body as { currentPassword?: string; newPassword?: string };
   const { currentPassword, newPassword } = body;
 
   if (!currentPassword || !newPassword) {
-    throw new AppError('Both current password and new password are required to change your password. Please fill in all fields.', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'Both current password and new password are required to change your password. Please fill in all fields.',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   if (String(newPassword).length < 6) {
-    throw new AppError('New password must be at least 6 characters long. Please choose a stronger password.', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'New password must be at least 6 characters long. Please choose a stronger password.',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   // Получаем пользователя с паролем
   const user = await User.findById(req.user.userId).select('+password');
   if (!user) {
-    throw new AppError('User account not found. Please try logging in again.', 404, ErrorCode.NOT_FOUND);
+    throw new AppError(
+      'User account not found. Please try logging in again.',
+      404,
+      ErrorCode.NOT_FOUND
+    );
   }
 
   // Проверяем текущий пароль
   const isPasswordValid = await comparePassword(String(currentPassword), user.password);
   if (!isPasswordValid) {
-    throw new AppError('The current password you entered is incorrect. Please check your password and try again. Make sure Caps Lock is off and you are using the correct password.', 401, ErrorCode.UNAUTHORIZED);
+    throw new AppError(
+      'The current password you entered is incorrect. Please check your password and try again. Make sure Caps Lock is off and you are using the correct password.',
+      401,
+      ErrorCode.UNAUTHORIZED
+    );
   }
 
   // Проверяем, что новый пароль отличается от текущего
   const isSamePassword = await comparePassword(String(newPassword), user.password);
   if (isSamePassword) {
-    throw new AppError('The new password must be different from your current password. Please choose a different password.', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'The new password must be different from your current password. Please choose a different password.',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   // Хешируем и сохраняем новый пароль

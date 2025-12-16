@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
-import { SubscriptionPlan } from '../models/SubscriptionPlan';
+import { SubscriptionPlan, ISubscriptionPlan } from '../models/SubscriptionPlan';
 import { cache } from '../utils/cache';
+import { LeanDocument } from 'mongoose';
 
 // Настройки бесплатного плана
 let freePlanSettings = {
@@ -14,7 +15,7 @@ let freePlanSettings = {
 export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => {
   // Проверяем кэш
   const cacheKey = 'plans:all';
-  const cachedPlans = cache.get<typeof SubscriptionPlan[]>(cacheKey);
+  const cachedPlans = cache.get<LeanDocument<ISubscriptionPlan>[]>(cacheKey);
   if (cachedPlans) {
     res.json({
       success: true,
@@ -24,7 +25,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
   }
 
   // Оптимизация: используем lean() и select для производительности
-  let plans: any[] = await SubscriptionPlan.find()
+  let plans: LeanDocument<ISubscriptionPlan>[] = await SubscriptionPlan.find()
     .select('-__v')
     .sort({ price: 1 })
     .lean()
@@ -82,29 +83,31 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
     ];
 
     await SubscriptionPlan.insertMany(defaultPlans);
-    plans = await SubscriptionPlan.find()
-      .select('-__v')
-      .sort({ price: 1 })
-      .lean()
-      .exec() as any[];
+    plans = await SubscriptionPlan.find().select('-__v').sort({ price: 1 }).lean().exec();
   }
 
   // Обновляем freePeriodDays для бесплатного плана из текущих настроек
   // Это гарантирует, что всегда используется актуальное значение из админки
-  const freePlanIndex = plans.findIndex((p) => p.id === 'free' || (p as any).isFree);
-  if (freePlanIndex !== -1) {
+  const freePlanIndex = plans.findIndex((p) => {
+    const plan = p as LeanDocument<ISubscriptionPlan>;
+    return plan.id === 'free' || plan.isFree === true;
+  });
+  if (freePlanIndex !== -1 && freePlanIndex < plans.length) {
     // Обновляем в базе данных (нужно найти документ, а не lean объект)
-    const freePlanDoc = await SubscriptionPlan.findOne({ 
-      $or: [{ id: 'free' }, { isFree: true }] 
+    const freePlanDoc = await SubscriptionPlan.findOne({
+      $or: [{ id: 'free' }, { isFree: true }],
     });
     if (freePlanDoc) {
       freePlanDoc.freePeriodDays = freePlanSettings.freePeriodDays;
       freePlanDoc.messagesLimit = freePlanSettings.messagesLimit;
       await freePlanDoc.save();
-      
+
       // Обновляем в массиве для ответа
-      (plans[freePlanIndex] as any).freePeriodDays = freePlanSettings.freePeriodDays;
-      (plans[freePlanIndex] as any).messagesLimit = freePlanSettings.messagesLimit;
+      const planToUpdate = plans[freePlanIndex] as LeanDocument<ISubscriptionPlan>;
+      if (planToUpdate) {
+        planToUpdate.freePeriodDays = freePlanSettings.freePeriodDays;
+        planToUpdate.messagesLimit = freePlanSettings.messagesLimit;
+      }
     }
   }
 

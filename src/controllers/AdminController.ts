@@ -14,7 +14,7 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const { page, limit } = req.query;
-  
+
   // Пагинация
   const pageNumber = page && typeof page === 'string' ? parseInt(page, 10) : 1;
   const pageSize = limit && typeof limit === 'string' ? parseInt(limit, 10) : 50;
@@ -107,7 +107,8 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
         data: admin,
         // Только в development - никогда в production!
         _devPassword: generatedPassword,
-        _devWarning: 'This password is only shown in development mode. In production, it is sent via email only.',
+        _devWarning:
+          'This password is only shown in development mode. In production, it is sent via email only.',
       });
       return;
     }

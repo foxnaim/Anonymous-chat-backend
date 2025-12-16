@@ -12,7 +12,7 @@ export const getAllCompanies = asyncHandler(async (req: Request, res: Response) 
   }
 
   const { page, limit } = req.query;
-  
+
   // Пагинация
   const pageNumber = page && typeof page === 'string' ? parseInt(page, 10) : 1;
   const pageSize = limit && typeof limit === 'string' ? parseInt(limit, 10) : 20;
@@ -114,7 +114,11 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
   const { name, code, adminEmail, password, plan, employees, messagesLimit, storageLimit } = body;
 
   if (!name || !code || !adminEmail || !password) {
-    throw new AppError('Name, code, adminEmail, and password are required', 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      'Name, code, adminEmail, and password are required',
+      400,
+      ErrorCode.BAD_REQUEST
+    );
   }
 
   if (password.length < 6) {
@@ -155,9 +159,9 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
     employees: employees || 0,
     messages: 0,
     messagesThisMonth: 0,
-    messagesLimit: isTrialPlan ? 999999 : (messagesLimit || 10),
+    messagesLimit: isTrialPlan ? 999999 : messagesLimit || 10,
     storageUsed: 0,
-    storageLimit: isTrialPlan ? 999999 : (storageLimit || 1),
+    storageLimit: isTrialPlan ? 999999 : storageLimit || 1,
   });
 
   // Создаем пользователя для компании с указанным паролем

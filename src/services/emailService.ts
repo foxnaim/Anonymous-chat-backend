@@ -155,11 +155,7 @@ class EmailService {
   /**
    * Отправляет письмо с паролем для нового администратора
    */
-  async sendAdminPasswordEmail(
-    email: string,
-    name: string,
-    password: string
-  ): Promise<void> {
+  async sendAdminPasswordEmail(email: string, name: string, password: string): Promise<void> {
     const html = `
       <!DOCTYPE html>
       <html>

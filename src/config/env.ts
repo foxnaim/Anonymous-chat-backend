@@ -38,7 +38,7 @@ if (nodeEnv === 'production') {
   if (!jwtSecret || jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < 32) {
     throw new Error(
       '❌ КРИТИЧЕСКАЯ ОШИБКА БЕЗОПАСНОСТИ: JWT_SECRET должен быть установлен и содержать минимум 32 символа в production режиме!\n' +
-      'Сгенерируйте безопасный секрет: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"'
+        "Сгенерируйте безопасный секрет: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\""
     );
   }
 }
