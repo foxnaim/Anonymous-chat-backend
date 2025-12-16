@@ -47,3 +47,4 @@ cat "$BACKUP_FILE" | docker exec -i "$MONGO_CONTAINER" mongorestore \
 
 echo "✓ База данных восстановлена успешно!"
 
+

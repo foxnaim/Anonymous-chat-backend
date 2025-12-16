@@ -52,3 +52,4 @@ export const sanitizeText = (text: string): string => {
     allowedAttributes: {},
   });
 };
+
