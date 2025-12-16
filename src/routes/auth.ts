@@ -44,7 +44,7 @@ const router = Router();
  *                 format: email
  *               password:
  *                 type: string
- *                 minLength: 6
+ *                 minLength: 8
  *     responses:
  *       200:
  *         description: Успешный вход
@@ -99,7 +99,7 @@ router.post('/login', validate(loginSchema), login);
  *                 format: email
  *               password:
  *                 type: string
- *                 minLength: 6
+ *                 minLength: 8
  *               name:
  *                 type: string
  *               role:
@@ -206,7 +206,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
  *                 type: string
  *               password:
  *                 type: string
- *                 minLength: 6
+ *                 minLength: 8
  *     responses:
  *       200:
  *         description: Пароль успешно сброшен
@@ -311,7 +311,7 @@ router.post(
  *                 type: string
  *               newPassword:
  *                 type: string
- *                 minLength: 6
+ *                 minLength: 8
  *     responses:
  *       200:
  *         description: Пароль успешно изменен
