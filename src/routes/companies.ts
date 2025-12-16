@@ -26,8 +26,8 @@ const router = Router();
  * @swagger
  * /api/companies/code/{code}:
  *   get:
- *     summary: Get company by code (public)
- *     tags: [Companies]
+ *     summary: Получить компанию по коду (публичный)
+ *     tags: [Компании]
  *     parameters:
  *       - in: path
  *         name: code
@@ -35,12 +35,12 @@ const router = Router();
  *         schema:
  *           type: string
  *           length: 8
- *         description: Company code
+ *         description: Код компании
  *     responses:
  *       200:
- *         description: Company details
+ *         description: Детали компании
  *       404:
- *         description: Company not found
+ *         description: Компания не найдена
  */
 router.get('/code/:code', validate(getCompanyByCodeSchema), getCompanyByCode);
 
@@ -53,8 +53,8 @@ router.use((req, res, next) => {
  * @swagger
  * /api/companies:
  *   get:
- *     summary: Get all companies (admin only, with pagination)
- *     tags: [Companies]
+ *     summary: Получить все компании (только для админов, с пагинацией)
+ *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -64,7 +64,7 @@ router.use((req, res, next) => {
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Page number for pagination
+ *         description: Номер страницы для пагинации
  *       - in: query
  *         name: limit
  *         schema:
@@ -72,10 +72,10 @@ router.use((req, res, next) => {
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Number of items per page
+ *         description: Количество элементов на странице
  *     responses:
  *       200:
- *         description: List of companies with pagination
+ *         description: Список компаний с пагинацией
  *         content:
  *           application/json:
  *             schema:
@@ -99,7 +99,7 @@ router.use((req, res, next) => {
  *                     totalPages:
  *                       type: integer
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.get('/', authorize('admin', 'super_admin'), getAllCompanies);
 
@@ -107,8 +107,8 @@ router.get('/', authorize('admin', 'super_admin'), getAllCompanies);
  * @swagger
  * /api/companies/{id}:
  *   get:
- *     summary: Get company by ID
- *     tags: [Companies]
+ *     summary: Получить компанию по ID
+ *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -117,12 +117,12 @@ router.get('/', authorize('admin', 'super_admin'), getAllCompanies);
  *         required: true
  *         schema:
  *           type: string
- *         description: Company ID
+ *         description: ID компании
  *     responses:
  *       200:
- *         description: Company details
+ *         description: Детали компании
  *       404:
- *         description: Company not found
+ *         description: Компания не найдена
  */
 router.get('/:id', validate(getCompanyByIdSchema), getCompanyById);
 
@@ -130,8 +130,8 @@ router.get('/:id', validate(getCompanyByIdSchema), getCompanyById);
  * @swagger
  * /api/companies:
  *   post:
- *     summary: Create a new company (admin only)
- *     tags: [Companies]
+ *     summary: Создать новую компанию (только для админов)
+ *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -142,9 +142,9 @@ router.get('/:id', validate(getCompanyByIdSchema), getCompanyById);
  *             type: object
  *     responses:
  *       201:
- *         description: Company created successfully
+ *         description: Компания успешно создана
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.post('/', authorize('admin', 'super_admin'), validate(createCompanySchema), createCompany);
 
@@ -152,8 +152,8 @@ router.post('/', authorize('admin', 'super_admin'), validate(createCompanySchema
  * @swagger
  * /api/companies/{id}:
  *   put:
- *     summary: Update company
- *     tags: [Companies]
+ *     summary: Обновить компанию
+ *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -171,9 +171,9 @@ router.post('/', authorize('admin', 'super_admin'), validate(createCompanySchema
  *             type: object
  *     responses:
  *       200:
- *         description: Company updated
+ *         description: Компания обновлена
  *       404:
- *         description: Company not found
+ *         description: Компания не найдена
  */
 router.put('/:id', validate(updateCompanySchema), updateCompany);
 
@@ -181,8 +181,8 @@ router.put('/:id', validate(updateCompanySchema), updateCompany);
  * @swagger
  * /api/companies/{id}/status:
  *   put:
- *     summary: Update company status (admin only)
- *     tags: [Companies]
+ *     summary: Обновить статус компании (только для админов)
+ *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -203,9 +203,9 @@ router.put('/:id', validate(updateCompanySchema), updateCompany);
  *                 type: string
  *     responses:
  *       200:
- *         description: Company status updated
+ *         description: Статус компании обновлен
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.put(
   '/:id/status',
@@ -218,8 +218,8 @@ router.put(
  * @swagger
  * /api/companies/{id}/plan:
  *   put:
- *     summary: Update company plan (admin only)
- *     tags: [Companies]
+ *     summary: Обновить план компании (только для админов)
+ *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -240,9 +240,9 @@ router.put(
  *                 type: string
  *     responses:
  *       200:
- *         description: Company plan updated
+ *         description: План компании обновлен
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.put(
   '/:id/plan',
@@ -255,8 +255,8 @@ router.put(
  * @swagger
  * /api/companies/{id}:
  *   delete:
- *     summary: Delete company (admin only)
- *     tags: [Companies]
+ *     summary: Удалить компанию (только для админов)
+ *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -268,11 +268,11 @@ router.put(
  *         description: Company ID
  *     responses:
  *       200:
- *         description: Company deleted successfully
+ *         description: Компания успешно удалена
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  *       404:
- *         description: Company not found
+ *         description: Компания не найдена
  */
 router.delete('/:id', authorize('admin', 'super_admin'), deleteCompany);
 

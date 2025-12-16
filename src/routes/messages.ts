@@ -22,8 +22,8 @@ const router = Router();
  * @swagger
  * /api/messages:
  *   post:
- *     summary: Create a new anonymous message (public)
- *     tags: [Messages]
+ *     summary: Создать новое анонимное сообщение (публичный)
+ *     tags: [Сообщения]
  *     requestBody:
  *       required: true
  *       content:
@@ -47,11 +47,11 @@ const router = Router();
  *                 maxLength: 5000
  *     responses:
  *       201:
- *         description: Message created successfully
+ *         description: Сообщение успешно создано
  *       400:
- *         description: Bad request
+ *         description: Неверный запрос
  *       404:
- *         description: Company not found
+ *         description: Компания не найдена
  */
 // Создание сообщения - публичный endpoint (анонимные сообщения)
 router.post('/', validate(createMessageSchema), createMessage);
@@ -65,8 +65,8 @@ router.use((req, res, next) => {
  * @swagger
  * /api/messages:
  *   get:
- *     summary: Get all messages (with pagination)
- *     tags: [Messages]
+ *     summary: Получить все сообщения (с пагинацией)
+ *     tags: [Сообщения]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -75,14 +75,14 @@ router.use((req, res, next) => {
  *         schema:
  *           type: string
  *           length: 8
- *         description: Company code to filter messages
+ *         description: Код компании для фильтрации сообщений
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Page number for pagination
+ *         description: Номер страницы для пагинации
  *       - in: query
  *         name: limit
  *         schema:
@@ -90,10 +90,10 @@ router.use((req, res, next) => {
  *           minimum: 1
  *           maximum: 100
  *           default: 50
- *         description: Number of items per page
+ *         description: Количество элементов на странице
  *     responses:
  *       200:
- *         description: List of messages with pagination
+ *         description: Список сообщений с пагинацией
  *         content:
  *           application/json:
  *             schema:
@@ -133,12 +133,12 @@ router.get('/', validate(getMessagesSchema), getAllMessages);
  *         required: true
  *         schema:
  *           type: string
- *         description: Message ID
+ *         description: ID сообщения
  *     responses:
  *       200:
- *         description: Message details
+ *         description: Детали сообщения
  *       404:
- *         description: Message not found
+ *         description: Сообщение не найдено
  */
 router.get('/:id', validate(getMessageByIdSchema), getMessageById);
 
@@ -147,8 +147,8 @@ router.get('/:id', validate(getMessageByIdSchema), getMessageById);
  * @swagger
  * /api/messages/{id}/status:
  *   put:
- *     summary: Update message status
- *     tags: [Messages]
+ *     summary: Обновить статус сообщения
+ *     tags: [Сообщения]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -175,9 +175,9 @@ router.get('/:id', validate(getMessageByIdSchema), getMessageById);
  *                 maxLength: 2000
  *     responses:
  *       200:
- *         description: Message status updated
+ *         description: Статус сообщения обновлен
  *       404:
- *         description: Message not found
+ *         description: Сообщение не найдено
  */
 router.put('/:id/status', validate(updateMessageStatusSchema), updateMessageStatus);
 
@@ -185,8 +185,8 @@ router.put('/:id/status', validate(updateMessageStatusSchema), updateMessageStat
  * @swagger
  * /api/messages/{id}/moderate:
  *   post:
- *     summary: Moderate message (approve/reject) - admin only
- *     tags: [Messages]
+ *     summary: Модерировать сообщение (одобрить/отклонить) - только для админов
+ *     tags: [Сообщения]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -208,14 +208,14 @@ router.put('/:id/status', validate(updateMessageStatusSchema), updateMessageStat
  *               action:
  *                 type: string
  *                 enum: [approve, reject]
- *                 description: Action to perform on the message
+ *                 description: Действие для выполнения над сообщением
  *     responses:
  *       200:
- *         description: Message moderated successfully
+ *         description: Сообщение успешно отмодерировано
  *       403:
- *         description: Forbidden (admin only)
+ *         description: Запрещено (только для админов)
  *       404:
- *         description: Message not found
+ *         description: Сообщение не найдено
  */
 router.post('/:id/moderate', validate(moderateMessageSchema), moderateMessage);
 

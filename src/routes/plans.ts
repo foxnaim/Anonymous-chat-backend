@@ -15,11 +15,11 @@ const router = Router();
  * @swagger
  * /api/plans:
  *   get:
- *     summary: Get all plans (public)
- *     tags: [Plans]
+ *     summary: Получить все планы (публичный)
+ *     tags: [Планы]
  *     responses:
  *       200:
- *         description: List of plans
+ *         description: Список планов
  */
 router.get('/', getAllPlans);
 
@@ -27,12 +27,12 @@ router.get('/', getAllPlans);
  * @swagger
  * /api/plans/free-settings:
  *   get:
- *     summary: Get free plan settings (public)
- *     tags: [Plans]
+ *     summary: Получить настройки бесплатного плана (публичный)
+ *     tags: [Планы]
  *     description: Получение настроек бесплатного плана (количество дней пробного периода и т.д.). Публичный endpoint, так как используется на странице регистрации.
  *     responses:
  *       200:
- *         description: Free plan settings
+ *         description: Настройки бесплатного плана
  *         content:
  *           application/json:
  *             schema:
@@ -62,8 +62,8 @@ router.use((req, res, next) => {
  * @swagger
  * /api/plans:
  *   post:
- *     summary: Create a new plan (admin only)
- *     tags: [Plans]
+ *     summary: Создать новый план (только для админов)
+ *     tags: [Планы]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -95,9 +95,9 @@ router.use((req, res, next) => {
  *                 type: integer
  *     responses:
  *       201:
- *         description: Plan created successfully
+ *         description: План успешно создан
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.post('/', authorize('admin', 'super_admin'), validate(createPlanSchema), createPlan);
 
@@ -105,8 +105,8 @@ router.post('/', authorize('admin', 'super_admin'), validate(createPlanSchema), 
  * @swagger
  * /api/plans/free-settings:
  *   put:
- *     summary: Update free plan settings (admin only)
- *     tags: [Plans]
+ *     summary: Обновить настройки бесплатного плана (только для админов)
+ *     tags: [Планы]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -128,9 +128,9 @@ router.post('/', authorize('admin', 'super_admin'), validate(createPlanSchema), 
  *                 type: integer
  *     responses:
  *       200:
- *         description: Free plan settings updated
+ *         description: Настройки бесплатного плана обновлены
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.put(
   '/free-settings',

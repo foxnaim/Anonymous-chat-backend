@@ -16,8 +16,8 @@ router.use(authorize('super_admin'));
  * @swagger
  * /api/admins:
  *   get:
- *     summary: Get all admins (super admin only, with pagination)
- *     tags: [Admins]
+ *     summary: Получить всех админов (только для суперадминов, с пагинацией)
+ *     tags: [Администраторы]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -27,7 +27,7 @@ router.use(authorize('super_admin'));
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Page number for pagination
+ *         description: Номер страницы для пагинации
  *       - in: query
  *         name: limit
  *         schema:
@@ -35,10 +35,10 @@ router.use(authorize('super_admin'));
  *           minimum: 1
  *           maximum: 100
  *           default: 50
- *         description: Number of items per page
+ *         description: Количество элементов на странице
  *     responses:
  *       200:
- *         description: List of admins with pagination
+ *         description: Список администраторов с пагинацией
  *         content:
  *           application/json:
  *             schema:
@@ -62,7 +62,7 @@ router.use(authorize('super_admin'));
  *                     totalPages:
  *                       type: integer
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.get('/', getAdmins);
 
@@ -70,8 +70,8 @@ router.get('/', getAdmins);
  * @swagger
  * /api/admins:
  *   post:
- *     summary: Create a new admin (super admin only)
- *     tags: [Admins]
+ *     summary: Создать нового администратора (только для суперадминов)
+ *     tags: [Администраторы]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -94,9 +94,9 @@ router.get('/', getAdmins);
  *                 enum: [admin, super_admin]
  *     responses:
  *       201:
- *         description: Admin created successfully
+ *         description: Администратор успешно создан
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.post('/', validate(createAdminSchema), createAdmin);
 
@@ -104,8 +104,8 @@ router.post('/', validate(createAdminSchema), createAdmin);
  * @swagger
  * /api/admins/{id}:
  *   put:
- *     summary: Update admin (super admin only)
- *     tags: [Admins]
+ *     summary: Обновить администратора (только для суперадминов)
+ *     tags: [Администраторы]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -114,7 +114,7 @@ router.post('/', validate(createAdminSchema), createAdmin);
  *         required: true
  *         schema:
  *           type: string
- *         description: Admin ID
+ *         description: ID администратора
  *     requestBody:
  *       required: true
  *       content:
@@ -129,11 +129,11 @@ router.post('/', validate(createAdminSchema), createAdmin);
  *                 enum: [admin, super_admin]
  *     responses:
  *       200:
- *         description: Admin updated
+ *         description: Администратор обновлен
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  *       404:
- *         description: Admin not found
+ *         description: Администратор не найден
  */
 router.put('/:id', validate(updateAdminSchema), updateAdmin);
 
@@ -141,8 +141,8 @@ router.put('/:id', validate(updateAdminSchema), updateAdmin);
  * @swagger
  * /api/admins/{id}:
  *   delete:
- *     summary: Delete admin (super admin only)
- *     tags: [Admins]
+ *     summary: Удалить администратора (только для суперадминов)
+ *     tags: [Администраторы]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -154,11 +154,11 @@ router.put('/:id', validate(updateAdminSchema), updateAdmin);
  *         description: Admin ID
  *     responses:
  *       200:
- *         description: Admin deleted successfully
+ *         description: Администратор успешно удален
  *       403:
- *         description: Forbidden (cannot delete super admin or yourself)
+ *         description: Запрещено (нельзя удалить суперадмина или себя)
  *       404:
- *         description: Admin not found
+ *         description: Администратор не найден
  */
 router.delete('/:id', deleteAdmin);
 

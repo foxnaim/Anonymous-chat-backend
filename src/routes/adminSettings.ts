@@ -16,15 +16,15 @@ router.use(authorize('admin', 'super_admin'));
  * @swagger
  * /api/admin-settings:
  *   get:
- *     summary: Get admin settings
- *     tags: [Admin Settings]
+ *     summary: Получить настройки администратора
+ *     tags: [Настройки администратора]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Admin settings
+ *         description: Настройки администратора
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.get('/', getAdminSettings);
 
@@ -32,8 +32,8 @@ router.get('/', getAdminSettings);
  * @swagger
  * /api/admin-settings:
  *   put:
- *     summary: Update admin settings
- *     tags: [Admin Settings]
+ *     summary: Обновить настройки администратора
+ *     tags: [Настройки администратора]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -61,9 +61,9 @@ router.get('/', getAdminSettings);
  *                 type: boolean
  *     responses:
  *       200:
- *         description: Admin settings updated
+ *         description: Настройки администратора обновлены
  *       403:
- *         description: Forbidden
+ *         description: Запрещено
  */
 router.put('/', validate(updateAdminSettingsSchema), updateAdminSettings);
 

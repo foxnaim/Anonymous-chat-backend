@@ -27,8 +27,8 @@ router.use((req, res, next) => {
  * @swagger
  * /api/stats/company/{id}:
  *   get:
- *     summary: Get company statistics
- *     tags: [Stats]
+ *     summary: Получить статистику компании
+ *     tags: [Статистика]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -37,10 +37,10 @@ router.use((req, res, next) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: Company ID
+ *         description: ID компании
  *     responses:
  *       200:
- *         description: Company statistics
+ *         description: Статистика компании
  */
 router.get('/company/:id', validate(getCompanyStatsSchema), getCompanyStatsController);
 
@@ -48,8 +48,8 @@ router.get('/company/:id', validate(getCompanyStatsSchema), getCompanyStatsContr
  * @swagger
  * /api/stats/distribution/{id}:
  *   get:
- *     summary: Get message distribution for company
- *     tags: [Stats]
+ *     summary: Получить распределение сообщений для компании
+ *     tags: [Статистика]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -61,7 +61,7 @@ router.get('/company/:id', validate(getCompanyStatsSchema), getCompanyStatsContr
  *         description: Company ID
  *     responses:
  *       200:
- *         description: Message distribution data
+ *         description: Данные распределения сообщений
  */
 router.get(
   '/distribution/:id',
@@ -73,8 +73,8 @@ router.get(
  * @swagger
  * /api/stats/growth/{id}:
  *   get:
- *     summary: Get growth metrics for company
- *     tags: [Stats]
+ *     summary: Получить метрики роста для компании
+ *     tags: [Статистика]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -86,7 +86,7 @@ router.get(
  *         description: Company ID
  *     responses:
  *       200:
- *         description: Growth metrics
+ *         description: Метрики роста
  */
 router.get('/growth/:id', validate(getGrowthMetricsSchema), getGrowthMetricsController);
 
@@ -94,8 +94,8 @@ router.get('/growth/:id', validate(getGrowthMetricsSchema), getGrowthMetricsCont
  * @swagger
  * /api/stats/achievements/{id}:
  *   get:
- *     summary: Get achievements for company
- *     tags: [Stats]
+ *     summary: Получить достижения компании
+ *     tags: [Статистика]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -107,7 +107,7 @@ router.get('/growth/:id', validate(getGrowthMetricsSchema), getGrowthMetricsCont
  *         description: Company ID
  *     responses:
  *       200:
- *         description: Achievements data
+ *         description: Данные достижений
  */
 router.get('/achievements/:id', validate(getAchievementsSchema), getAchievementsController);
 
@@ -115,8 +115,8 @@ router.get('/achievements/:id', validate(getAchievementsSchema), getAchievements
  * @swagger
  * /api/stats/achievements/{id}/grouped:
  *   get:
- *     summary: Get grouped achievements for company
- *     tags: [Stats]
+ *     summary: Получить сгруппированные достижения компании
+ *     tags: [Статистика]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -128,7 +128,7 @@ router.get('/achievements/:id', validate(getAchievementsSchema), getAchievements
  *         description: Company ID
  *     responses:
  *       200:
- *         description: Grouped achievements data
+ *         description: Данные сгруппированных достижений
  */
 router.get(
   '/achievements/:id/grouped',
@@ -140,13 +140,13 @@ router.get(
  * @swagger
  * /api/stats/platform:
  *   get:
- *     summary: Get platform statistics
- *     tags: [Stats]
+ *     summary: Получить статистику платформы
+ *     tags: [Статистика]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Platform statistics
+ *         description: Статистика платформы
  */
 router.get('/platform', getPlatformStatsController);
 

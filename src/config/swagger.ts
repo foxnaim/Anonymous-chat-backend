@@ -7,15 +7,15 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: 'Anonymous Chat API',
       version: '1.0.0',
-      description: 'API documentation for Anonymous Chat backend',
+      description: 'Документация API для бэкенда Anonymous Chat',
       contact: {
-        name: 'API Support',
+        name: 'Поддержка API',
       },
     },
     servers: [
       {
         url: `http://localhost:${config.port}`,
-        description: 'Development server',
+        description: 'Сервер разработки',
       },
     ],
     components: {

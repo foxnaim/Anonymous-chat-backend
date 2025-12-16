@@ -27,8 +27,8 @@ const router = Router();
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: User login
- *     tags: [Auth]
+ *     summary: Вход пользователя
+ *     tags: [Аутентификация]
  *     requestBody:
  *       required: true
  *       content:
@@ -47,7 +47,7 @@ const router = Router();
  *                 minLength: 6
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Успешный вход
  *         content:
  *           application/json:
  *             schema:
@@ -82,8 +82,8 @@ router.post('/login', validate(loginSchema), login);
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: User registration
- *     tags: [Auth]
+ *     summary: Регистрация пользователя
+ *     tags: [Аутентификация]
  *     requestBody:
  *       required: true
  *       content:
@@ -111,7 +111,7 @@ router.post('/login', validate(loginSchema), login);
  *                 type: string
  *     responses:
  *       201:
- *         description: Registration successful
+ *         description: Успешная регистрация
  *         content:
  *           application/json:
  *             schema:
@@ -135,8 +135,8 @@ router.post('/register', validate(registerSchema), register);
  * @swagger
  * /api/auth/verify-password:
  *   post:
- *     summary: Verify password with company code
- *     tags: [Auth]
+ *     summary: Проверка пароля по коду компании
+ *     tags: [Аутентификация]
  *     requestBody:
  *       required: true
  *       content:
@@ -154,9 +154,9 @@ router.post('/register', validate(registerSchema), register);
  *                 type: string
  *     responses:
  *       200:
- *         description: Password verified
+ *         description: Пароль подтвержден
  *       401:
- *         description: Invalid credentials
+ *         description: Неверные учетные данные
  */
 router.post('/verify-password', validate(verifyPasswordSchema), verifyPassword);
 
@@ -164,8 +164,8 @@ router.post('/verify-password', validate(verifyPasswordSchema), verifyPassword);
  * @swagger
  * /api/auth/forgot-password:
  *   post:
- *     summary: Request password reset
- *     tags: [Auth]
+ *     summary: Запрос сброса пароля
+ *     tags: [Аутентификация]
  *     requestBody:
  *       required: true
  *       content:
@@ -180,9 +180,9 @@ router.post('/verify-password', validate(verifyPasswordSchema), verifyPassword);
  *                 format: email
  *     responses:
  *       200:
- *         description: Password reset email sent
+ *         description: Письмо для сброса пароля отправлено
  *       404:
- *         description: User not found
+ *         description: Пользователь не найден
  */
 router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
 
@@ -190,8 +190,8 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
  * @swagger
  * /api/auth/reset-password:
  *   post:
- *     summary: Reset password with token
- *     tags: [Auth]
+ *     summary: Сброс пароля по токену
+ *     tags: [Аутентификация]
  *     requestBody:
  *       required: true
  *       content:
@@ -209,9 +209,9 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
  *                 minLength: 6
  *     responses:
  *       200:
- *         description: Password reset successful
+ *         description: Пароль успешно сброшен
  *       400:
- *         description: Invalid or expired token
+ *         description: Неверный или истекший токен
  */
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 
@@ -219,8 +219,8 @@ router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
  * @swagger
  * /api/auth/me:
  *   get:
- *     summary: Get current user information
- *     tags: [Auth]
+ *     summary: Получить информацию о текущем пользователе
+ *     tags: [Аутентификация]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -253,8 +253,8 @@ router.get(
  * @swagger
  * /api/auth/change-email:
  *   post:
- *     summary: Change user email
- *     tags: [Auth]
+ *     summary: Изменить email пользователя
+ *     tags: [Аутентификация]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -274,11 +274,11 @@ router.get(
  *                 type: string
  *     responses:
  *       200:
- *         description: Email changed successfully
+ *         description: Email успешно изменен
  *       401:
- *         description: Invalid password or unauthorized
+ *         description: Неверный пароль или не авторизован
  *       400:
- *         description: Bad request (email already in use, invalid format, etc.)
+ *         description: Неверный запрос (email уже используется, неверный формат и т.д.)
  */
 router.post(
   '/change-email',
@@ -293,8 +293,8 @@ router.post(
  * @swagger
  * /api/auth/change-password:
  *   post:
- *     summary: Change user password
- *     tags: [Auth]
+ *     summary: Изменить пароль пользователя
+ *     tags: [Аутентификация]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -314,11 +314,11 @@ router.post(
  *                 minLength: 6
  *     responses:
  *       200:
- *         description: Password changed successfully
+ *         description: Пароль успешно изменен
  *       401:
- *         description: Invalid current password or unauthorized
+ *         description: Неверный текущий пароль или не авторизован
  *       400:
- *         description: Bad request (new password same as current, too short, etc.)
+ *         description: Неверный запрос (новый пароль совпадает с текущим, слишком короткий и т.д.)
  */
 router.post(
   '/change-password',

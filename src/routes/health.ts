@@ -8,11 +8,11 @@ const router = Router();
  * @swagger
  * /api/health:
  *   get:
- *     summary: Health check endpoint
- *     tags: [Health]
+ *     summary: Проверка работоспособности сервиса
+ *     tags: [Здоровье]
  *     responses:
  *       200:
- *         description: Service is healthy
+ *         description: Сервис работает нормально
  *         content:
  *           application/json:
  *             schema:
@@ -37,7 +37,7 @@ const router = Router();
  *                         status:
  *                           type: string
  *       503:
- *         description: Service is unhealthy
+ *         description: Сервис не работает
  */
 router.get(
   '/',
