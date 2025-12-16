@@ -27,11 +27,11 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
   }
 
   // Оптимизация: используем lean() и select для производительности
-  let plans: PlanLean[] = await SubscriptionPlan.find()
+  let plans = (await SubscriptionPlan.find()
     .select('-__v')
     .sort({ price: 1 })
     .lean()
-    .exec();
+    .exec()) as PlanLean[];
 
   // Если планов нет, создаем дефолтные
   if (plans.length === 0) {
@@ -85,7 +85,11 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
     ];
 
     await SubscriptionPlan.insertMany(defaultPlans);
-    plans = await SubscriptionPlan.find().select('-__v').sort({ price: 1 }).lean().exec();
+    plans = (await SubscriptionPlan.find()
+      .select('-__v')
+      .sort({ price: 1 })
+      .lean()
+      .exec()) as PlanLean[];
   }
 
   // Обновляем freePeriodDays для бесплатного плана из текущих настроек
