@@ -28,11 +28,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
 
   // Оптимизация: используем lean() и select для производительности
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let plans: any[] = await SubscriptionPlan.find()
-    .select('-__v')
-    .sort({ price: 1 })
-    .lean()
-    .exec();
+  let plans: any[] = await SubscriptionPlan.find().select('-__v').sort({ price: 1 }).lean().exec();
 
   // Если планов нет, создаем дефолтные
   if (plans.length === 0) {
@@ -92,7 +88,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
 
   // Обновляем freePeriodDays для бесплатного плана из текущих настроек
   // Это гарантирует, что всегда используется актуальное значение из админки
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const freePlanIndex = plans.findIndex((p: any) => p.id === 'free' || p.isFree === true);
   if (freePlanIndex !== -1 && freePlanIndex < plans.length) {
     // Обновляем в базе данных (нужно найти документ, а не lean объект)
