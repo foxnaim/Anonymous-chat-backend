@@ -2,17 +2,33 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { SubscriptionPlan, ISubscriptionPlan } from '../models/SubscriptionPlan';
+import { FreePlanSettings } from '../models/FreePlanSettings';
 import { cache } from '../utils/cache';
 
 // Тип для lean() результата - упрощенный тип для кэширования
 type PlanLean = ISubscriptionPlan;
 
-// Настройки бесплатного плана
-let freePlanSettings = {
-  messagesLimit: 10,
-  storageLimit: 1,
-  freePeriodDays: 60,
-};
+// Функция для получения настроек бесплатного плана из БД
+// Создает дефолтные настройки, если их еще нет
+async function getFreePlanSettingsFromDB() {
+  let settings = await FreePlanSettings.findOne({ settingsId: 'default' });
+  
+  if (!settings) {
+    // Создаем дефолтные настройки при первом запуске
+    settings = await FreePlanSettings.create({
+      settingsId: 'default',
+      messagesLimit: 10,
+      storageLimit: 1,
+      freePeriodDays: 60,
+    });
+  }
+  
+  return {
+    messagesLimit: settings.messagesLimit,
+    storageLimit: settings.storageLimit,
+    freePeriodDays: settings.freePeriodDays,
+  };
+}
 
 export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => {
   // Проверяем кэш
@@ -25,6 +41,9 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
     });
     return;
   }
+
+  // Получаем настройки бесплатного плана из БД
+  const freePlanSettings = await getFreePlanSettingsFromDB();
 
   // Оптимизация: используем lean() и select для производительности
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -160,11 +179,10 @@ export const createPlan = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export const getFreePlanSettings = asyncHandler(async (_req: Request, res: Response) => {
   // Проверяем кэш
   const cacheKey = 'plans:free-settings';
-  const cached = cache.get<typeof freePlanSettings>(cacheKey);
+  const cached = cache.get<{ messagesLimit: number; storageLimit: number; freePeriodDays: number }>(cacheKey);
   if (cached) {
     res.json({
       success: true,
@@ -173,38 +191,74 @@ export const getFreePlanSettings = asyncHandler(async (_req: Request, res: Respo
     return;
   }
 
+  // Получаем настройки из БД
+  const settings = await getFreePlanSettingsFromDB();
+
   // Кэшируем на 1 минуту (настройки могут часто меняться)
-  cache.set(cacheKey, freePlanSettings, 60 * 1000);
+  cache.set(cacheKey, settings, 60 * 1000);
 
   res.json({
     success: true,
-    data: freePlanSettings,
+    data: settings,
   });
 });
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export const updateFreePlanSettings = asyncHandler(async (req: Request, res: Response) => {
   // Только админы могут обновлять настройки
   if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
     throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
   }
 
-  const body = req.body as { messagesLimit?: number; freePeriodDays?: number };
-  const { messagesLimit, freePeriodDays } = body;
+  const body = req.body as { messagesLimit?: number; storageLimit?: number; freePeriodDays?: number };
+  const { messagesLimit, storageLimit, freePeriodDays } = body;
 
-  // Обновляем messagesLimit и freePeriodDays (настраиваются админом), storageLimit остается фиксированным
-  freePlanSettings = {
-    ...freePlanSettings,
-    messagesLimit: messagesLimit !== undefined ? messagesLimit : freePlanSettings.messagesLimit,
-    freePeriodDays: freePeriodDays !== undefined ? freePeriodDays : freePlanSettings.freePeriodDays,
-  };
+  // Получаем текущие настройки из БД
+  let settings = await FreePlanSettings.findOne({ settingsId: 'default' });
+
+  if (!settings) {
+    // Создаем новые настройки, если их еще нет
+    settings = await FreePlanSettings.create({
+      settingsId: 'default',
+      messagesLimit: messagesLimit ?? 10,
+      storageLimit: storageLimit ?? 1,
+      freePeriodDays: freePeriodDays ?? 60,
+    });
+  } else {
+    // Обновляем только переданные поля
+    if (messagesLimit !== undefined) {
+      settings.messagesLimit = messagesLimit;
+    }
+    if (storageLimit !== undefined) {
+      settings.storageLimit = storageLimit;
+    }
+    if (freePeriodDays !== undefined) {
+      settings.freePeriodDays = freePeriodDays;
+    }
+    await settings.save();
+  }
+
+  // Обновляем бесплатный план в SubscriptionPlan, если он существует
+  const freePlan = await SubscriptionPlan.findOne({
+    $or: [{ id: 'free' }, { isFree: true }],
+  });
+  if (freePlan) {
+    freePlan.messagesLimit = settings.messagesLimit;
+    freePlan.freePeriodDays = settings.freePeriodDays;
+    await freePlan.save();
+  }
 
   // Инвалидируем кэш
   cache.delete('plans:free-settings');
   cache.delete('plans:all'); // Также инвалидируем кэш всех планов
 
+  const responseData = {
+    messagesLimit: settings.messagesLimit,
+    storageLimit: settings.storageLimit,
+    freePeriodDays: settings.freePeriodDays,
+  };
+
   res.json({
     success: true,
-    data: freePlanSettings,
+    data: responseData,
   });
 });
