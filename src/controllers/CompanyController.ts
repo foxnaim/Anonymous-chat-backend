@@ -4,6 +4,7 @@ import { AppError, ErrorCode } from '../utils/AppError';
 import { Company } from '../models/Company';
 import { User } from '../models/User';
 import { AdminUser } from '../models/AdminUser';
+import { SubscriptionPlan } from '../models/SubscriptionPlan';
 import { hashPassword } from '../utils/password';
 
 export const getAllCompanies = asyncHandler(async (req: Request, res: Response) => {
@@ -238,6 +239,42 @@ export const updateCompany = asyncHandler(async (req: Request, res: Response) =>
     updates.adminEmail = updates.adminEmail.toLowerCase();
   }
 
+  // Если план обновляется и пользователь - админ, обновляем лимиты
+  if (
+    updates.plan &&
+    typeof updates.plan === 'string' &&
+    (req.user?.role === 'admin' || req.user?.role === 'super_admin')
+  ) {
+    const plan = updates.plan;
+
+    // Проверяем, является ли план пробным (Пробный, Trial, Бесплатный, Free, Тегін)
+    const trialPlanNames = ['Пробный', 'Trial', 'Бесплатный', 'Free', 'Тегін'];
+    const isTrialPlanByName = trialPlanNames.includes(plan);
+
+    // Ищем план в базе данных по имени (проверяем все языковые варианты)
+    const subscriptionPlan = await SubscriptionPlan.findOne({
+      $or: [
+        { 'name.ru': plan },
+        { 'name.en': plan },
+        { 'name.kk': plan },
+        { name: plan }, // На случай, если name - строка
+      ],
+    });
+
+    // Проверяем, является ли план бесплатным (по имени или по флагу isFree)
+    const isTrialPlan = isTrialPlanByName || subscriptionPlan?.isFree === true;
+    if (isTrialPlan) {
+      // Для пробного/бесплатного плана устанавливаем неограниченные лимиты
+      updates.messagesLimit = 999999;
+      updates.storageLimit = 999999;
+    } else if (subscriptionPlan) {
+      // Обновляем лимиты из найденного плана
+      updates.messagesLimit = subscriptionPlan.messagesLimit;
+      updates.storageLimit = subscriptionPlan.storageLimit;
+    }
+    // Если план не найден, оставляем лимиты как есть (или используем переданные значения)
+  }
+
   Object.assign(company, updates);
   await company.save();
 
@@ -302,7 +339,45 @@ export const updateCompanyPlan = asyncHandler(async (req: Request, res: Response
 
   if (plan && typeof plan === 'string') {
     company.plan = plan;
+
+    // Обновляем лимиты на основе нового плана
+    // Проверяем, является ли план пробным (Пробный, Trial, Бесплатный, Free, Тегін)
+    const trialPlanNames = ['Пробный', 'Trial', 'Бесплатный', 'Free', 'Тегін'];
+    const isTrialPlanByName = trialPlanNames.includes(plan);
+
+    // Ищем план в базе данных по имени (проверяем все языковые варианты)
+    const subscriptionPlan = await SubscriptionPlan.findOne({
+      $or: [
+        { 'name.ru': plan },
+        { 'name.en': plan },
+        { 'name.kk': plan },
+        { name: plan }, // На случай, если name - строка
+      ],
+    });
+
+    // Проверяем, является ли план бесплатным (по имени или по флагу isFree)
+    const isTrialPlan = isTrialPlanByName || subscriptionPlan?.isFree === true;
+    if (isTrialPlan) {
+      // Для пробного/бесплатного плана устанавливаем неограниченные лимиты
+      company.messagesLimit = 999999;
+      company.storageLimit = 999999;
+    } else if (subscriptionPlan) {
+      // Обновляем лимиты из найденного плана
+      company.messagesLimit = subscriptionPlan.messagesLimit;
+      company.storageLimit = subscriptionPlan.storageLimit;
+    } else {
+      // Если план не найден, используем дефолтные значения
+      // Это может быть кастомный план или план с другим названием
+      // Оставляем текущие лимиты или устанавливаем дефолтные
+      if (!company.messagesLimit) {
+        company.messagesLimit = 10;
+      }
+      if (!company.storageLimit) {
+        company.storageLimit = 1;
+      }
+    }
   }
+
   if (planEndDate && typeof planEndDate === 'string') {
     company.trialEndDate = planEndDate;
   }
