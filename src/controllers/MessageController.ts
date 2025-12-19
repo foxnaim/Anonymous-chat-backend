@@ -167,6 +167,19 @@ export const updateMessageStatus = asyncHandler(async (req: Request, res: Respon
     }
   }
 
+  // Блокируем изменение статуса и ответа для сообщений, отклоненных админом
+  // (статус "Спам" с previousStatus означает, что сообщение было отклонено админом)
+  const isRejectedByAdmin = message.status === 'Спам' && message.previousStatus;
+  
+  if (isRejectedByAdmin) {
+    if (status) {
+      throw new AppError('Cannot modify status of message rejected by admin', 403, ErrorCode.FORBIDDEN);
+    }
+    if (response !== undefined) {
+      throw new AppError('Cannot modify response for message rejected by admin', 403, ErrorCode.FORBIDDEN);
+    }
+  }
+
   const now = new Date().toISOString().split('T')[0];
   if (status && typeof status === 'string') {
     const validStatuses: Array<'Новое' | 'В работе' | 'Решено' | 'Отклонено' | 'Спам'> = [
@@ -217,12 +230,18 @@ export const moderateMessage = asyncHandler(async (req: Request, res: Response) 
   const now = new Date().toISOString().split('T')[0];
 
   if (action === 'approve') {
-    // При одобрении статус остается как есть или меняется на "Новое" если был отклонен
-    if (message.status === 'Отклонено' || message.status === 'Спам') {
-      message.status = 'Новое';
+    // При одобрении: если был спам и есть previousStatus, возвращаем предыдущий статус
+    if (message.status === 'Спам' && message.previousStatus) {
+      message.status = message.previousStatus;
+      message.previousStatus = undefined;
     }
+    // Иначе статус остается как есть
   } else if (action === 'reject') {
-    // При отклонении помечаем как спам
+    // При отклонении: сохраняем текущий статус в previousStatus (если он не "Спам")
+    // и помечаем как спам
+    if (message.status !== 'Спам') {
+      message.previousStatus = message.status;
+    }
     message.status = 'Спам';
   }
 

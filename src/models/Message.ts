@@ -14,6 +14,7 @@ export interface IMessage extends Document {
   lastUpdate?: string; // ISO date string
   companyResponse?: string;
   adminNotes?: string;
+  previousStatus?: MessageStatus; // Статус до пометки как спам админом
 }
 
 const messageSchema = new Schema<IMessage>(
@@ -66,6 +67,10 @@ const messageSchema = new Schema<IMessage>(
       type: String,
       trim: true,
       maxlength: 1000,
+    },
+    previousStatus: {
+      type: String,
+      enum: ['Новое', 'В работе', 'Решено', 'Отклонено', 'Спам'],
     },
   },
   {
