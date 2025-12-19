@@ -10,9 +10,13 @@ type PlanLean = ISubscriptionPlan;
 
 // Функция для получения настроек бесплатного плана из БД
 // Создает дефолтные настройки, если их еще нет
-async function getFreePlanSettingsFromDB() {
+async function getFreePlanSettingsFromDB(): Promise<{
+  messagesLimit: number;
+  storageLimit: number;
+  freePeriodDays: number;
+}> {
   let settings = await FreePlanSettings.findOne({ settingsId: 'default' });
-  
+
   if (!settings) {
     // Создаем дефолтные настройки при первом запуске
     settings = await FreePlanSettings.create({
@@ -22,7 +26,7 @@ async function getFreePlanSettingsFromDB() {
       freePeriodDays: 60,
     });
   }
-  
+
   return {
     messagesLimit: settings.messagesLimit,
     storageLimit: settings.storageLimit,
@@ -54,7 +58,7 @@ export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => 
     const defaultPlans = [
       {
         id: 'free',
-        name: { ru: 'Бесплатный', en: 'Free', kk: 'Тегін' },
+        name: { ru: 'Пробный', en: 'Trial', kk: 'Сынақ' },
         price: 0,
         messagesLimit: freePlanSettings.messagesLimit,
         storageLimit: freePlanSettings.storageLimit,
@@ -182,7 +186,9 @@ export const createPlan = asyncHandler(async (req: Request, res: Response) => {
 export const getFreePlanSettings = asyncHandler(async (_req: Request, res: Response) => {
   // Проверяем кэш
   const cacheKey = 'plans:free-settings';
-  const cached = cache.get<{ messagesLimit: number; storageLimit: number; freePeriodDays: number }>(cacheKey);
+  const cached = cache.get<{ messagesLimit: number; storageLimit: number; freePeriodDays: number }>(
+    cacheKey
+  );
   if (cached) {
     res.json({
       success: true,
@@ -209,7 +215,11 @@ export const updateFreePlanSettings = asyncHandler(async (req: Request, res: Res
     throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
   }
 
-  const body = req.body as { messagesLimit?: number; storageLimit?: number; freePeriodDays?: number };
+  const body = req.body as {
+    messagesLimit?: number;
+    storageLimit?: number;
+    freePeriodDays?: number;
+  };
   const { messagesLimit, storageLimit, freePeriodDays } = body;
 
   // Получаем текущие настройки из БД

@@ -43,14 +43,20 @@ export const updateCompanySchema = z.object({
     employees: z.number().int().min(0).optional(),
     messagesLimit: z.number().int().min(0).optional(),
     storageLimit: z.number().min(0).optional(),
-    logoUrl: z.string().optional().or(z.literal('')).refine(
-      (val) => {
-        if (!val || val === '') return true;
-        // Проверяем, является ли это base64 строкой или URL
-        return val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://');
-      },
-      { message: 'Logo must be a valid base64 image string or URL' }
-    ),
+    logoUrl: z
+      .string()
+      .optional()
+      .or(z.literal(''))
+      .refine(
+        val => {
+          if (!val || val === '') return true;
+          // Проверяем, является ли это base64 строкой или URL
+          return (
+            val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://')
+          );
+        },
+        { message: 'Logo must be a valid base64 image string or URL' }
+      ),
     fullscreenMode: z.boolean().optional(),
   }),
 });

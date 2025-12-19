@@ -214,7 +214,7 @@ export const verifyPassword = asyncHandler(async (req: Request, res: Response) =
   // Генерируем ежедневный пароль на основе текущей даты (UTC)
   const dailyPassword = generateDailyPassword(10);
   const isDailyPassword = password === dailyPassword;
-  
+
   // Проверяем постоянный пароль из БД
   const isStoredPasswordValid = await comparePassword(String(password), user.password);
 

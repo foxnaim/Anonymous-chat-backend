@@ -170,13 +170,21 @@ export const updateMessageStatus = asyncHandler(async (req: Request, res: Respon
   // Блокируем изменение статуса и ответа для сообщений, отклоненных админом
   // (статус "Спам" с previousStatus означает, что сообщение было отклонено админом)
   const isRejectedByAdmin = message.status === 'Спам' && message.previousStatus;
-  
+
   if (isRejectedByAdmin) {
     if (status) {
-      throw new AppError('Cannot modify status of message rejected by admin', 403, ErrorCode.FORBIDDEN);
+      throw new AppError(
+        'Cannot modify status of message rejected by admin',
+        403,
+        ErrorCode.FORBIDDEN
+      );
     }
     if (response !== undefined) {
-      throw new AppError('Cannot modify response for message rejected by admin', 403, ErrorCode.FORBIDDEN);
+      throw new AppError(
+        'Cannot modify response for message rejected by admin',
+        403,
+        ErrorCode.FORBIDDEN
+      );
     }
   }
 
@@ -254,5 +262,43 @@ export const moderateMessage = asyncHandler(async (req: Request, res: Response) 
     success: true,
     data: message,
     message: action === 'approve' ? 'Message approved' : 'Message rejected',
+  });
+});
+
+export const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  // Только админы могут удалять сообщения
+  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
+    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
+  }
+
+  const message = await Message.findOne({ id });
+  if (!message) {
+    throw new AppError('Message not found', 404, ErrorCode.NOT_FOUND);
+  }
+
+  // Удаляем сообщение
+  await Message.deleteOne({ id });
+
+  // Обновляем счетчик сообщений компании
+  const CompanyModel = (await import('../models/Company')).Company;
+  const company = await CompanyModel.findOne({ code: message.companyCode });
+  if (company) {
+    company.messages = Math.max(0, (company.messages || 0) - 1);
+
+    // Обновляем счетчик сообщений за текущий месяц
+    const currentMonth = new Date().getMonth();
+    const messageMonth = new Date(message.createdAt).getMonth();
+    if (currentMonth === messageMonth) {
+      company.messagesThisMonth = Math.max(0, (company.messagesThisMonth || 0) - 1);
+    }
+
+    await company.save();
+  }
+
+  res.json({
+    success: true,
+    message: 'Message deleted successfully',
   });
 });

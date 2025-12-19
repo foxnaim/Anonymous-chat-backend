@@ -42,4 +42,3 @@ export const FreePlanSettings = model<IFreePlanSettings>(
   'FreePlanSettings',
   freePlanSettingsSchema
 );
-

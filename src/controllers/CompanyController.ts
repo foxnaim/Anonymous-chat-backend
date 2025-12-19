@@ -247,13 +247,9 @@ export const updateCompany = asyncHandler(async (req: Request, res: Response) =>
       // Для изображения 200x200px сжатого до ~500KB, base64 будет ~667KB
       const base64Size = (updates.logoUrl.length * 3) / 4; // Размер в байтах
       const maxSizeBytes = 1024 * 1024; // 1MB максимум для base64 строки
-      
+
       if (base64Size > maxSizeBytes) {
-        throw new AppError(
-          'Logo file is too large. Maximum size: 1MB',
-          400,
-          ErrorCode.BAD_REQUEST
-        );
+        throw new AppError('Logo file is too large. Maximum size: 1MB', 400, ErrorCode.BAD_REQUEST);
       }
     }
   }

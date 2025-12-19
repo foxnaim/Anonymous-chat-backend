@@ -5,6 +5,7 @@ import {
   createMessage,
   updateMessageStatus,
   moderateMessage,
+  deleteMessage,
 } from '../controllers/MessageController';
 import { validate } from '../middleware/validation';
 import {
@@ -217,5 +218,30 @@ router.put('/:id/status', validate(updateMessageStatusSchema), updateMessageStat
  *         description: Сообщение не найдено
  */
 router.post('/:id/moderate', validate(moderateMessageSchema), moderateMessage);
+
+/**
+ * @swagger
+ * /api/messages/{id}:
+ *   delete:
+ *     summary: Удалить сообщение - только для админов
+ *     tags: [Сообщения]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Message ID
+ *     responses:
+ *       200:
+ *         description: Сообщение успешно удалено
+ *       403:
+ *         description: Запрещено (только для админов)
+ *       404:
+ *         description: Сообщение не найдено
+ */
+router.delete('/:id', validate(getMessageByIdSchema), deleteMessage);
 
 export default router;
