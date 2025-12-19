@@ -105,6 +105,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       throw new AppError('Company with this name already exists', 409, ErrorCode.CONFLICT);
     }
 
+    // Проверяем, не существует ли компания с таким email администратора
+    const existingCompanyByEmail = await Company.findOne({ adminEmail: String(email).toLowerCase() });
+    if (existingCompanyByEmail) {
+      throw new AppError('Company with this email already exists', 409, ErrorCode.CONFLICT);
+    }
+
     const registeredDate = new Date().toISOString().split('T')[0];
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 60); // 60 дней пробного периода
