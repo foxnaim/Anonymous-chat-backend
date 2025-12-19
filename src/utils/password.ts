@@ -60,29 +60,77 @@ export const generateSecurePassword = (length: number = 12): string => {
 };
 
 /**
- * Генерирует ежедневный буквенно-цифровой пароль на основе даты
- * Пароль обновляется каждый день автоматически
- * @param length - длина пароля (по умолчанию 10 символов)
- * @returns буквенно-цифровой пароль, который одинаков для всех компаний в один день
+ * Кэш для ежедневного пароля
+ * Хранит пароль и дату, чтобы не генерировать его при каждом запросе
  */
-export const generateDailyPassword = (length: number = 10): string => {
-  const today = new Date();
-  // Используем UTC, чтобы пароль совпадал независимо от часового пояса сервера/клиента
-  const dateStr = `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, '0')}${String(today.getUTCDate()).padStart(2, '0')}`;
+interface DailyPasswordCache {
+  password: string;
+  dateKey: string; // YYYY-MM-DD в UTC
+}
 
-  // Создаем seed на основе даты для детерминированной генерации
-  const seed = dateStr.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+let dailyPasswordCache: DailyPasswordCache | null = null;
 
-  // Используем seed для создания псевдослучайной последовательности
+/**
+ * Генерирует seed для пароля на основе даты
+ */
+const generatePasswordSeed = (dateStr: string): number => {
+  return dateStr.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+};
+
+/**
+ * Генерирует буквенно-цифровой пароль на основе seed
+ */
+const generatePasswordFromSeed = (seed: number, length: number): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let password = '';
   let currentSeed = Math.abs(seed);
 
-  // Генерируем пароль используя seed
   for (let i = 0; i < length; i++) {
     currentSeed = (currentSeed * 1103515245 + 12345) & 0x7fffffff;
     const index = currentSeed % chars.length;
     password += chars[index];
   }
+  return password;
+};
+
+/**
+ * Получает текущую дату в формате YYYY-MM-DD (UTC)
+ */
+const getCurrentDateKey = (): string => {
+  const today = new Date();
+  return `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(today.getUTCDate()).padStart(2, '0')}`;
+};
+
+/**
+ * Генерирует ежедневный буквенно-цифровой пароль на основе даты
+ * Пароль обновляется каждый день автоматически
+ * 
+ * ОПТИМИЗАЦИЯ: Использует кэширование в памяти для снижения нагрузки на сервер
+ * Пароль генерируется один раз в день и кэшируется до смены даты
+ * 
+ * @param length - длина пароля (по умолчанию 10 символов)
+ * @returns буквенно-цифровой пароль, который одинаков для всех компаний в один день
+ */
+export const generateDailyPassword = (length: number = 10): string => {
+  const currentDateKey = getCurrentDateKey();
+
+  // Проверяем кэш: если дата совпадает, возвращаем закэшированный пароль
+  if (dailyPasswordCache && dailyPasswordCache.dateKey === currentDateKey) {
+    return dailyPasswordCache.password;
+  }
+
+  // Если кэш устарел или отсутствует, генерируем новый пароль
+  const today = new Date();
+  const dateStr = `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, '0')}${String(today.getUTCDate()).padStart(2, '0')}`;
+  
+  const seed = generatePasswordSeed(dateStr);
+  const password = generatePasswordFromSeed(seed, length);
+
+  // Обновляем кэш
+  dailyPasswordCache = {
+    password,
+    dateKey: currentDateKey,
+  };
+
   return password;
 };

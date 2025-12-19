@@ -17,6 +17,11 @@ import { logger } from '../utils/logger';
 import { emailService } from '../services/emailService';
 import { config } from '../config/env';
 
+/**
+ * Вход в систему (для доступа в панель управления компанией)
+ * Использует ТОЛЬКО постоянный пароль, установленный пользователем при создании компании
+ * Ежедневный пароль здесь НЕ используется
+ */
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const body = req.body as { email?: string; password?: string };
   const { email, password } = body;
@@ -30,6 +35,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Invalid email or password', 401, ErrorCode.UNAUTHORIZED);
   }
 
+  // Проверяем ТОЛЬКО постоянный пароль из БД (для входа в систему)
   const isPasswordValid = await comparePassword(String(password), user.password);
   if (!isPasswordValid) {
     throw new AppError('Invalid email or password', 401, ErrorCode.UNAUTHORIZED);
@@ -196,12 +202,23 @@ export const verifyPassword = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('Company user not found', 404, ErrorCode.NOT_FOUND);
   }
 
-  // Разрешаем либо постоянный пароль компании, либо ежедневный пароль (UTC)
-  // Ежедневный пароль автоматически обновляется каждый день
+  /**
+   * Проверка пароля для отправки анонимных сообщений
+   * Принимает ДВА типа паролей:
+   * 1. Ежедневный пароль - генерируется автоматически каждый день на основе даты (UTC)
+   *    Используется сотрудниками для отправки анонимных сообщений
+   *    Обновляется автоматически каждый день в полночь UTC
+   * 2. Постоянный пароль - пароль компании из БД
+   *    Может использоваться как альтернатива ежедневному паролю
+   */
+  // Генерируем ежедневный пароль на основе текущей даты (UTC)
   const dailyPassword = generateDailyPassword(10);
   const isDailyPassword = password === dailyPassword;
+  
+  // Проверяем постоянный пароль из БД
   const isStoredPasswordValid = await comparePassword(String(password), user.password);
 
+  // Принимаем любой из двух паролей
   const isPasswordValid = isDailyPassword || isStoredPasswordValid;
 
   res.json({
