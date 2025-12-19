@@ -4,6 +4,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { User } from '../models/User';
 import { Company } from '../models/Company';
+import { AdminUser } from '../models/AdminUser';
 import {
   hashPassword,
   comparePassword,
@@ -74,10 +75,16 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Email and password are required', 400, ErrorCode.BAD_REQUEST);
   }
 
-  // Проверяем, существует ли пользователь
-  const existingUser = await User.findOne({ email });
+  // Проверяем, существует ли пользователь с таким email
+  const existingUser = await User.findOne({ email: String(email).toLowerCase() });
   if (existingUser) {
     throw new AppError('User already exists', 409, ErrorCode.CONFLICT);
+  }
+
+  // Проверяем, не существует ли админ с таким email
+  const existingAdmin = await AdminUser.findOne({ email: String(email).toLowerCase() });
+  if (existingAdmin) {
+    throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
   const hashedPassword = await hashPassword(String(password));
@@ -87,9 +94,15 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   // Если регистрация компании, создаем компанию
   if (role === 'company' && companyName && companyCode) {
     // Проверяем, не существует ли компания с таким кодом
-    const existingCompany = await Company.findOne({ code: String(companyCode).toUpperCase() });
-    if (existingCompany) {
+    const existingCompanyByCode = await Company.findOne({ code: String(companyCode).toUpperCase() });
+    if (existingCompanyByCode) {
       throw new AppError('Company with this code already exists', 409, ErrorCode.CONFLICT);
+    }
+
+    // Проверяем, не существует ли компания с таким именем
+    const existingCompanyByName = await Company.findOne({ name: String(companyName).trim() });
+    if (existingCompanyByName) {
+      throw new AppError('Company with this name already exists', 409, ErrorCode.CONFLICT);
     }
 
     const registeredDate = new Date().toISOString().split('T')[0];
@@ -116,7 +129,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const user = await User.create({
-    email,
+    email: String(email).toLowerCase(),
     password: hashedPassword,
     name: name || companyName,
     role,

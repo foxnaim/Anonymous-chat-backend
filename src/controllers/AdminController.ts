@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { AdminUser } from '../models/AdminUser';
 import { User } from '../models/User';
+import { Company } from '../models/Company';
 import { hashPassword, generateSecurePassword } from '../utils/password';
 import { emailService } from '../services/emailService';
 import { logger } from '../utils/logger';
@@ -57,16 +58,30 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Email is required', 400, ErrorCode.BAD_REQUEST);
   }
 
-  // Проверяем, не существует ли админ
-  const existingAdmin = await AdminUser.findOne({ email: String(email).toLowerCase() });
-  if (existingAdmin) {
+  // Проверяем, не существует ли админ с таким email
+  const existingAdminByEmail = await AdminUser.findOne({ email: String(email).toLowerCase() });
+  if (existingAdminByEmail) {
     throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
-  // Проверяем, не существует ли пользователь
+  // Проверяем, не существует ли админ с таким именем (если имя указано)
+  if (name) {
+    const existingAdminByName = await AdminUser.findOne({ name: String(name).trim() });
+    if (existingAdminByName) {
+      throw new AppError('Admin with this name already exists', 409, ErrorCode.CONFLICT);
+    }
+  }
+
+  // Проверяем, не существует ли пользователь с таким email
   const existingUser = await User.findOne({ email: String(email).toLowerCase() });
   if (existingUser) {
     throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
+  }
+
+  // Проверяем, не существует ли компания с таким email
+  const existingCompany = await Company.findOne({ adminEmail: String(email).toLowerCase() });
+  if (existingCompany) {
+    throw new AppError('Company with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
   const createdAt = new Date().toISOString().split('T')[0];

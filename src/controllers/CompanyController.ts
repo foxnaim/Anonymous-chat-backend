@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { Company } from '../models/Company';
 import { User } from '../models/User';
+import { AdminUser } from '../models/AdminUser';
 import { hashPassword } from '../utils/password';
 
 export const getAllCompanies = asyncHandler(async (req: Request, res: Response) => {
@@ -124,15 +125,27 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
   // Валидация пароля выполняется через Zod schema (createCompanySchema)
 
   // Проверяем, не существует ли компания с таким кодом
-  const existingCompany = await Company.findOne({ code: String(code).toUpperCase() });
-  if (existingCompany) {
+  const existingCompanyByCode = await Company.findOne({ code: String(code).toUpperCase() });
+  if (existingCompanyByCode) {
     throw new AppError('Company with this code already exists', 409, ErrorCode.CONFLICT);
+  }
+
+  // Проверяем, не существует ли компания с таким именем
+  const existingCompanyByName = await Company.findOne({ name: String(name).trim() });
+  if (existingCompanyByName) {
+    throw new AppError('Company with this name already exists', 409, ErrorCode.CONFLICT);
   }
 
   // Проверяем, не существует ли пользователь с таким email
   const existingUser = await User.findOne({ email: String(adminEmail).toLowerCase() });
   if (existingUser) {
     throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
+  }
+
+  // Проверяем, не существует ли админ с таким email
+  const existingAdmin = await AdminUser.findOne({ email: String(adminEmail).toLowerCase() });
+  if (existingAdmin) {
+    throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
   const registeredDate = new Date().toISOString().split('T')[0];
