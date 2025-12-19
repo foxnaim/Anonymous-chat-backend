@@ -20,18 +20,11 @@ export const up = async (): Promise<void> => {
   for (const collectionName of requiredCollections) {
     if (!collectionNames.includes(collectionName)) {
       await db.createCollection(collectionName);
-      // eslint-disable-next-line no-console
-      console.log(`Created collection: ${collectionName}`);
     }
   }
-
-  // eslint-disable-next-line no-console
-  console.log('Initial schema migration completed');
 };
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export const down = async (): Promise<void> => {
   // Откат не требуется для начальной миграции
-  // eslint-disable-next-line no-console
-  console.log('Initial schema migration cannot be rolled back');
 };

@@ -19,27 +19,6 @@ async function main(): Promise<void> {
       case 'status':
         {
           const status = await migrator.status();
-          // eslint-disable-next-line no-console
-          console.log('\n📊 Migration Status:');
-          // eslint-disable-next-line no-console
-          console.log(`\n✅ Applied (${status.applied.length}):`);
-          status.applied.forEach(name => {
-            // eslint-disable-next-line no-console
-            console.log(`   - ${name}`);
-          });
-          // eslint-disable-next-line no-console
-          console.log(`\n⏳ Pending (${status.pending.length}):`);
-          if (status.pending.length === 0) {
-            // eslint-disable-next-line no-console
-            console.log('   No pending migrations');
-          } else {
-            status.pending.forEach(name => {
-              // eslint-disable-next-line no-console
-              console.log(`   - ${name}`);
-            });
-          }
-          // eslint-disable-next-line no-console
-          console.log('');
         }
         break;
 
@@ -47,15 +26,9 @@ async function main(): Promise<void> {
         {
           const migrationName = process.argv[3];
           if (!migrationName) {
-            // eslint-disable-next-line no-console
-            console.error(
-              '❌ Please specify migration name: yarn migrate:rollback <migration-name>'
-            );
             process.exit(1);
           }
           await migrator.rollbackMigration(migrationName);
-          // eslint-disable-next-line no-console
-          console.log(`✅ Migration ${migrationName} rolled back successfully`);
         }
         break;
 
@@ -63,8 +36,6 @@ async function main(): Promise<void> {
       default:
         {
           await migrator.run();
-          // eslint-disable-next-line no-console
-          console.log('✅ All migrations completed');
         }
         break;
     }
