@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { Message, MessageStatus } from '../models/Message';
 import { sanitizeMessageContent } from '../utils/sanitize';
+import { emitNewMessage, emitMessageUpdate, emitMessageDelete } from '../config/socket';
 
 // Генерация ID сообщения в формате FB-YYYY-XXXXXX
 const generateMessageId = (): string => {
@@ -142,6 +143,9 @@ export const createMessage = asyncHandler(async (req: Request, res: Response) =>
   }
   await company.save();
 
+  // Отправляем событие через WebSocket
+  emitNewMessage(JSON.parse(JSON.stringify(message)));
+
   res.status(201).json({
     success: true,
     data: message,
@@ -210,6 +214,9 @@ export const updateMessageStatus = asyncHandler(async (req: Request, res: Respon
 
   await message.save();
 
+  // Отправляем событие через WebSocket
+  emitMessageUpdate(JSON.parse(JSON.stringify(message)));
+
   res.json({
     success: true,
     data: message,
@@ -258,6 +265,9 @@ export const moderateMessage = asyncHandler(async (req: Request, res: Response) 
 
   await message.save();
 
+  // Отправляем событие через WebSocket
+  emitMessageUpdate(JSON.parse(JSON.stringify(message)));
+
   res.json({
     success: true,
     data: message,
@@ -296,6 +306,9 @@ export const deleteMessage = asyncHandler(async (req: Request, res: Response) =>
 
     await company.save();
   }
+
+  // Отправляем событие через WebSocket
+  emitMessageDelete(id, message.companyCode);
 
   res.json({
     success: true,

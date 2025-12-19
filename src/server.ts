@@ -1,7 +1,9 @@
+import { createServer } from 'http';
 import app from './app';
 import { config } from './config/env';
 import { connectDatabase } from './config/database';
 import { logger } from './utils/logger';
+import { initializeSocket } from './config/socket';
 
 const startServer = async (): Promise<void> => {
   const startTime = Date.now();
@@ -12,7 +14,12 @@ const startServer = async (): Promise<void> => {
     const dbTime = Date.now() - dbStartTime;
     logger.info(`Database connected in ${dbTime}ms`);
 
-    app.listen(config.port, () => {
+    const httpServer = createServer(app);
+    
+    // Инициализируем Socket.IO
+    initializeSocket(httpServer);
+
+    httpServer.listen(config.port, () => {
       const totalTime = Date.now() - startTime;
       logger.info(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
       logger.info(`API Documentation: http://localhost:${config.port}/api-docs`);
