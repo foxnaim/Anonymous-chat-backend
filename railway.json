@@ -1,7 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
+    "builder": "METAL",
+    "builderName": "builder-xhjzts",
     "buildCommand": "yarn build"
   },
   "deploy": {
