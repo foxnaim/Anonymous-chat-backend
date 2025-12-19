@@ -19,6 +19,12 @@ async function main(): Promise<void> {
       case 'status':
         {
           const status = await migrator.status();
+          logger.info('Migration status:', {
+            applied: status.applied.length,
+            pending: status.pending.length,
+            appliedMigrations: status.applied,
+            pendingMigrations: status.pending,
+          });
         }
         break;
 
