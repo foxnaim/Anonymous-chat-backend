@@ -34,6 +34,14 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Invalid email or password', 401, ErrorCode.UNAUTHORIZED);
   }
 
+  // Проверяем, заблокирована ли компания (для пользователей с ролью company)
+  if (user.role === 'company' && user.companyId) {
+    const company = await Company.findById(user.companyId);
+    if (company && company.status === 'Заблокирована') {
+      throw new AppError('COMPANY_BLOCKED', 403, ErrorCode.FORBIDDEN);
+    }
+  }
+
   // Обновляем lastLogin
   user.lastLogin = new Date();
   await user.save();
@@ -119,7 +127,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       name: String(companyName),
       code: String(companyCode).toUpperCase(),
       adminEmail: String(email).toLowerCase(),
-      status: 'Пробная',
+      status: 'Активна',
       plan: 'Пробный',
       registered: registeredDate,
       trialEndDate: trialEndDate.toISOString().split('T')[0],

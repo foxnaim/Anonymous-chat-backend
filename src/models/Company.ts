@@ -50,7 +50,7 @@ const companySchema = new Schema<ICompany>(
       type: String,
       enum: ['Активна', 'Пробная', 'Заблокирована'],
       required: true,
-      default: 'Пробная',
+      default: 'Активна',
     },
     plan: {
       type: String,

@@ -169,7 +169,7 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
     name: String(name),
     code: String(code).toUpperCase(),
     adminEmail: String(adminEmail).toLowerCase(),
-    status: isTrialPlan ? 'Пробная' : 'Активна',
+    status: 'Активна',
     plan: selectedPlan,
     registered: registeredDate,
     trialEndDate,
