@@ -136,6 +136,12 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
     throw new AppError('Company with this name already exists', 409, ErrorCode.CONFLICT);
   }
 
+  // Проверяем, не существует ли компания с таким email администратора
+  const existingCompanyByEmail = await Company.findOne({ adminEmail: String(adminEmail).toLowerCase() });
+  if (existingCompanyByEmail) {
+    throw new AppError('Company with this email already exists', 409, ErrorCode.CONFLICT);
+  }
+
   // Проверяем, не существует ли пользователь с таким email
   const existingUser = await User.findOne({ email: String(adminEmail).toLowerCase() });
   if (existingUser) {
