@@ -102,7 +102,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   // Если регистрация компании, создаем компанию
   if (role === 'company' && companyName && companyCode) {
     // Проверяем, не существует ли компания с таким кодом
-    const existingCompanyByCode = await Company.findOne({ code: String(companyCode).toUpperCase() });
+    const existingCompanyByCode = await Company.findOne({
+      code: String(companyCode).toUpperCase(),
+    });
     if (existingCompanyByCode) {
       throw new AppError('Company with this code already exists', 409, ErrorCode.CONFLICT);
     }
@@ -114,7 +116,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     }
 
     // Проверяем, не существует ли компания с таким email администратора
-    const existingCompanyByEmail = await Company.findOne({ adminEmail: String(email).toLowerCase() });
+    const existingCompanyByEmail = await Company.findOne({
+      adminEmail: String(email).toLowerCase(),
+    });
     if (existingCompanyByEmail) {
       throw new AppError('Company with this email already exists', 409, ErrorCode.CONFLICT);
     }
