@@ -137,7 +137,9 @@ export const createCompany = asyncHandler(async (req: Request, res: Response) =>
   }
 
   // Проверяем, не существует ли компания с таким email администратора
-  const existingCompanyByEmail = await Company.findOne({ adminEmail: String(adminEmail).toLowerCase() });
+  const existingCompanyByEmail = await Company.findOne({
+    adminEmail: String(adminEmail).toLowerCase(),
+  });
   if (existingCompanyByEmail) {
     throw new AppError('Company with this email already exists', 409, ErrorCode.CONFLICT);
   }

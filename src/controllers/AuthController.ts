@@ -196,11 +196,11 @@ export const verifyPassword = asyncHandler(async (req: Request, res: Response) =
   }
 
   // Разрешаем либо постоянный пароль компании, либо ежедневный пароль (UTC)
-  const generateDailyPassword = () => {
+  const generateDailyPassword = (): string => {
     const today = new Date();
     // Используем UTC, чтобы пароль совпадал независимо от часового пояса сервера/клиента
     const dateStr = `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, '0')}${String(today.getUTCDate()).padStart(2, '0')}`;
-    const hash = dateStr.split('').reduce((acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0);
+    const hash = dateStr.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
     return Math.abs(hash).toString().padStart(10, '0').slice(0, 10);
   };
 
