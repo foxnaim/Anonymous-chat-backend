@@ -3,12 +3,21 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { config } from './env';
 import { logger } from '../utils/logger';
+import type { IMessage } from '../models/Message';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
   userRole?: 'admin' | 'super_admin' | 'company';
   companyId?: string;
   companyCode?: string;
+}
+
+interface SocketHandshakeAuth {
+  token?: string;
+}
+
+interface SocketHandshakeHeaders {
+  authorization?: string;
 }
 
 export let io: SocketIOServer | null = null;
@@ -24,42 +33,47 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
   });
 
   // Middleware для аутентификации
-  io.use(async (socket: AuthenticatedSocket, next) => {
-    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+  io.use((socket: AuthenticatedSocket, next) => {
+    void (async (): Promise<void> => {
+      const auth = socket.handshake.auth as SocketHandshakeAuth | undefined;
+      const headers = socket.handshake.headers as SocketHandshakeHeaders | undefined;
+      const token = auth?.token || headers?.authorization?.replace('Bearer ', '') || '';
 
-    if (!token) {
-      // Разрешаем подключение без токена (для публичных событий)
-      // Но пользователь не будет иметь доступа к защищенным комнатам
-      return next();
-    }
-
-    try {
-      const decoded = jwt.verify(token, config.jwtSecret) as {
-        userId: string;
-        email: string;
-        role: 'admin' | 'super_admin' | 'company';
-        companyId?: string;
-      };
-
-      socket.userId = decoded.userId;
-      socket.userRole = decoded.role;
-      socket.companyId = decoded.companyId;
-
-      // Если пользователь - компания, получаем код компании из БД
-      if (decoded.role === 'company' && decoded.companyId) {
-        const CompanyModel = (await import('../models/Company')).Company;
-        const company = await CompanyModel.findById(decoded.companyId);
-        if (company) {
-          socket.companyCode = company.code;
-        }
+      if (!token) {
+        // Разрешаем подключение без токена (для публичных событий)
+        // Но пользователь не будет иметь доступа к защищенным комнатам
+        next();
+        return;
       }
 
-      next();
-    } catch (error) {
-      logger.warn('Socket authentication failed:', error);
-      // Разрешаем подключение, но без аутентификации
-      next();
-    }
+      try {
+        const decoded = jwt.verify(token, config.jwtSecret) as {
+          userId: string;
+          email: string;
+          role: 'admin' | 'super_admin' | 'company';
+          companyId?: string;
+        };
+
+        socket.userId = decoded.userId;
+        socket.userRole = decoded.role;
+        socket.companyId = decoded.companyId;
+
+        // Если пользователь - компания, получаем код компании из БД
+        if (decoded.role === 'company' && decoded.companyId) {
+          const CompanyModel = (await import('../models/Company')).Company;
+          const company = await CompanyModel.findById(decoded.companyId);
+          if (company) {
+            socket.companyCode = company.code;
+          }
+        }
+
+        next();
+      } catch (error) {
+        logger.warn('Socket authentication failed:', error);
+        // Разрешаем подключение, но без аутентификации
+        next();
+      }
+    })();
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
@@ -72,19 +86,35 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
     // Подключаем пользователя к соответствующим комнатам
     if (socket.userRole === 'admin' || socket.userRole === 'super_admin') {
       // Админы подключаются к комнате всех сообщений
-      socket.join('admin:messages');
-      logger.info(`Admin ${socket.userId} joined admin:messages room`);
+      void (async (): Promise<void> => {
+        try {
+          await socket.join('admin:messages');
+          logger.info(`Admin ${socket.userId} joined admin:messages room`);
+        } catch (error: unknown) {
+          logger.error('Failed to join admin:messages room:', {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
     } else if (socket.userRole === 'company' && socket.companyCode) {
       // Компании подключаются к комнате своих сообщений
-      socket.join(`company:${socket.companyCode}`);
-      logger.info(`Company ${socket.companyCode} joined company:${socket.companyCode} room`);
+      void (async (): Promise<void> => {
+        try {
+          await socket.join(`company:${socket.companyCode}`);
+          logger.info(`Company ${socket.companyCode} joined company:${socket.companyCode} room`);
+        } catch (error: unknown) {
+          logger.error(`Failed to join company:${socket.companyCode} room:`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
     }
 
     socket.on('disconnect', () => {
       logger.info(`Socket disconnected: ${socket.id}`);
     });
 
-    socket.on('error', (error) => {
+    socket.on('error', (error: Error) => {
       logger.error('Socket error:', error);
     });
   });
@@ -96,7 +126,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
 /**
  * Отправить событие о новом сообщении
  */
-export const emitNewMessage = (message: any) => {
+export const emitNewMessage = (message: IMessage): void => {
   if (!io) return;
 
   // Отправляем всем админам
@@ -113,7 +143,7 @@ export const emitNewMessage = (message: any) => {
 /**
  * Отправить событие об обновлении сообщения
  */
-export const emitMessageUpdate = (message: any) => {
+export const emitMessageUpdate = (message: IMessage): void => {
   if (!io) return;
 
   // Отправляем всем админам
@@ -130,7 +160,7 @@ export const emitMessageUpdate = (message: any) => {
 /**
  * Отправить событие об удалении сообщения
  */
-export const emitMessageDelete = (messageId: string, companyCode: string) => {
+export const emitMessageDelete = (messageId: string, companyCode: string): void => {
   if (!io) return;
 
   // Отправляем всем админам
@@ -143,4 +173,3 @@ export const emitMessageDelete = (messageId: string, companyCode: string) => {
 
   logger.info(`Emitted message:deleted event for message ${messageId}`);
 };
-

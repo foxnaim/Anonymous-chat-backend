@@ -15,7 +15,7 @@ const startServer = async (): Promise<void> => {
     logger.info(`Database connected in ${dbTime}ms`);
 
     const httpServer = createServer(app);
-    
+
     // Инициализируем Socket.IO
     initializeSocket(httpServer);
 

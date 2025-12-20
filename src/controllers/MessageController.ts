@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
-import { Message, MessageStatus } from '../models/Message';
+import { Message, MessageStatus, type IMessage } from '../models/Message';
 import { sanitizeMessageContent } from '../utils/sanitize';
 import { emitNewMessage, emitMessageUpdate, emitMessageDelete } from '../config/socket';
 
@@ -144,7 +144,7 @@ export const createMessage = asyncHandler(async (req: Request, res: Response) =>
   await company.save();
 
   // Отправляем событие через WebSocket
-  emitNewMessage(JSON.parse(JSON.stringify(message)));
+  emitNewMessage(JSON.parse(JSON.stringify(message)) as IMessage);
 
   res.status(201).json({
     success: true,
@@ -215,7 +215,7 @@ export const updateMessageStatus = asyncHandler(async (req: Request, res: Respon
   await message.save();
 
   // Отправляем событие через WebSocket
-  emitMessageUpdate(JSON.parse(JSON.stringify(message)));
+  emitMessageUpdate(JSON.parse(JSON.stringify(message)) as IMessage);
 
   res.json({
     success: true,
@@ -266,7 +266,7 @@ export const moderateMessage = asyncHandler(async (req: Request, res: Response) 
   await message.save();
 
   // Отправляем событие через WebSocket
-  emitMessageUpdate(JSON.parse(JSON.stringify(message)));
+  emitMessageUpdate(JSON.parse(JSON.stringify(message)) as IMessage);
 
   res.json({
     success: true,
