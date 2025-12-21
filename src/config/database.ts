@@ -9,6 +9,10 @@ export const connectDatabase = async (): Promise<void> => {
       serverSelectionTimeoutMS: 5000, // Таймаут выбора сервера 5 секунд
       socketTimeoutMS: 45000, // Таймаут сокета 45 секунд
       connectTimeoutMS: 10000, // Таймаут подключения 10 секунд
+      // Connection pooling оптимизация
+      maxPoolSize: 10, // Максимум соединений в пуле
+      minPoolSize: 2, // Минимум соединений в пуле
+      maxIdleTimeMS: 30000, // Закрывать неиспользуемые соединения через 30 секунд
       // Отключаем SSL для локального MongoDB
       ssl: false,
       // Для локального MongoDB не нужна проверка сертификата

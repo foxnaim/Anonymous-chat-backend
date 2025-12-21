@@ -1,11 +1,13 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config/env';
 import { swaggerSpec } from './config/swagger';
 import { morganMiddleware } from './middleware/morgan';
 import { apiLimiter } from './middleware/rateLimiter';
+import { cacheHeaders } from './middleware/cacheHeaders';
 import { errorHandler } from './middleware/errorHandler';
 import { initializeSentry, setupSentryErrorHandler } from './config/sentry';
 import routes from './routes';
@@ -15,8 +17,26 @@ const app: Application = express();
 // Initialize Sentry if DSN is provided
 initializeSentry(app);
 
+// Compression middleware (должен быть одним из первых для максимальной эффективности)
+// Используем максимальный уровень сжатия для лучшей производительности
+app.use(compression({
+  level: 9, // Максимальное сжатие (было 6) - лучше для production
+  threshold: 1024, // Сжимать только файлы больше 1KB
+  filter: (req: Request, res: Response) => {
+    // Не сжимаем если клиент не поддерживает или уже сжато
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Сжимаем только текстовые типы контента
+    return compression.filter(req, res);
+  },
+}));
+
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // Управляется через next.config.mjs
+}));
+
 app.use(
   cors({
     origin: config.frontendUrl,
@@ -30,6 +50,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
 app.use(morganMiddleware);
+
+// Cache headers (до rate limiting для оптимизации)
+app.use(cacheHeaders);
 
 // Rate limiting
 app.use('/api', apiLimiter);

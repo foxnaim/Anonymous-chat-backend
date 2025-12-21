@@ -206,9 +206,17 @@ class CacheManager {
 
   /**
    * Получить TTL для разных типов данных
+   * Увеличены TTL для более агрессивного кэширования
    */
-  static getTTL(type: 'company' | 'stats' | 'messages' | 'default'): number {
-    return SimpleCache.getTTL(type);
+  static getTTL(type: 'company' | 'stats' | 'messages' | 'default' | 'long'): number {
+    const ttlMap: Record<string, number> = {
+      company: 30 * 60 * 1000, // 30 минут (было 10) - данные компании редко меняются
+      stats: 5 * 60 * 1000, // 5 минут (было 2) - статистика обновляется не так часто
+      messages: 2 * 60 * 1000, // 2 минуты (было 1) - сообщения могут обновляться
+      long: 60 * 60 * 1000, // 1 час для очень стабильных данных
+      default: 10 * 60 * 1000, // 10 минут (было 5) - общий кэш
+    };
+    return ttlMap[type] || ttlMap.default;
   }
 
   /**
@@ -222,6 +230,9 @@ class CacheManager {
     }
   }
 }
+
+// Экспортируем класс для использования статических методов
+export { CacheManager };
 
 // Создаем singleton экземпляр
 export const cache = new CacheManager();
