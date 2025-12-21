@@ -5,7 +5,7 @@
 
 import { Company } from '../models/Company';
 import { Message } from '../models/Message';
-import type { Stats, MessageDistribution, GrowthMetrics } from './statsService';
+import type { Stats, MessageDistribution } from './statsService';
 
 /**
  * Получить статистику компании с использованием aggregation pipeline

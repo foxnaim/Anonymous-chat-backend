@@ -21,8 +21,8 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  // Используем условный setup в зависимости от типа теста
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup-conditional.ts'],
   testTimeout: 10000,
   verbose: true,
 };
-

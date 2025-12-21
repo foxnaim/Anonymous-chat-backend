@@ -4,13 +4,26 @@ import dotenv from 'dotenv';
 // Загружаем переменные окружения из .env файла
 dotenv.config();
 
-// Увеличиваем таймаут для Jest
-jest.setTimeout(30000);
+// Увеличиваем таймаут для Jest (MongoDB подключение может занять время)
+jest.setTimeout(60000); // Увеличено до 60 секунд
 
 // Подключение к тестовой БД перед всеми тестами
 beforeAll(async () => {
   const testDbUri = process.env.TEST_MONGODB_URI || 'mongodb://localhost:27017/anonymous-chat-test';
-  await mongoose.connect(testDbUri);
+  
+  // Проверяем, не подключены ли уже
+  if (mongoose.connection.readyState === 0) {
+    try {
+      await mongoose.connect(testDbUri, {
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
+    } catch (error) {
+      console.warn('⚠️  MongoDB не доступен. Integration/E2E тесты требуют запущенный MongoDB.');
+      console.warn('   Запустите MongoDB или установите TEST_MONGODB_URI');
+      throw error;
+    }
+  }
 });
 
 // Очистка БД после каждого теста
@@ -23,8 +36,15 @@ afterEach(async () => {
 
 // Отключение от БД после всех тестов
 afterAll(async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
+  if (mongoose.connection.readyState !== 0) {
+    try {
+      await mongoose.connection.dropDatabase();
+      await mongoose.connection.close();
+    } catch (error) {
+      // Игнорируем ошибки при закрытии, если БД уже закрыта
+      console.warn('Ошибка при закрытии MongoDB:', error);
+    }
+  }
 });
 
 // Мокаем Sentry для тестов
