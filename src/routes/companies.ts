@@ -3,6 +3,7 @@ import {
   getAllCompanies,
   getCompanyById,
   getCompanyByCode,
+  getPublicCompanies,
   createCompany,
   updateCompany,
   updateCompanyStatus,
@@ -43,6 +44,43 @@ const router = Router();
  *         description: Компания не найдена
  */
 router.get('/code/:code', validate(getCompanyByCodeSchema), getCompanyByCode);
+
+/**
+ * @swagger
+ * /api/companies/public:
+ *   get:
+ *     summary: Получить список публичных компаний (для sitemap и SEO)
+ *     tags: [Компании]
+ *     description: Возвращает только публичные поля (code, name, status) активных компаний
+ *     responses:
+ *       200:
+ *         description: Список публичных компаний
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       updatedAt:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ */
+router.get('/public', getPublicCompanies);
 
 // Остальные роуты требуют аутентификации
 router.use((req, res, next) => {

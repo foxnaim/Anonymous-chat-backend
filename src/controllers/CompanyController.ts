@@ -97,6 +97,34 @@ export const getCompanyByCode = asyncHandler(async (req: Request, res: Response)
   });
 });
 
+/**
+ * Получить список публичных компаний для sitemap и SEO
+ * Возвращает только публичные поля: code, name, status, updatedAt
+ */
+export const getPublicCompanies = asyncHandler(async (req: Request, res: Response) => {
+  // Получаем только активные компании (не заблокированные)
+  const companies = await Company.find({ status: { $ne: 'Заблокирована' } })
+    .select('code name status updatedAt createdAt')
+    .sort({ createdAt: -1 })
+    .lean()
+    .exec();
+
+  // Преобразуем в формат фронтенда
+  const companiesData = companies.map(company => ({
+    id: company._id.toString(),
+    code: company.code,
+    name: company.name,
+    status: company.status,
+    updatedAt: company.updatedAt,
+    createdAt: company.createdAt,
+  }));
+
+  res.json({
+    success: true,
+    data: companiesData,
+  });
+});
+
 export const createCompany = asyncHandler(async (req: Request, res: Response) => {
   // Только админы могут создавать компании
   if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
