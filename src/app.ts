@@ -22,16 +22,16 @@ initializeSentry(app);
 app.use(compression({
   level: 9, // Максимальное сжатие (было 6) - лучше для production
   threshold: 1024, // Сжимать только файлы больше 1KB
-  filter: (req, res) => {
+  filter: (req: any, res: any) => {
     // Не сжимаем если клиент не поддерживает или уже сжато
     if (req.headers['x-no-compression']) {
       return false;
     }
     // Сжимаем только текстовые типы контента
-    // Используем стандартный filter из compression
-    return compression.filter(req, res);
+    const contentType = res.getHeader('content-type') || '';
+    return /text|json|javascript|css|xml|html|svg/i.test(contentType);
   },
-}) as unknown as express.RequestHandler);
+}) as express.RequestHandler);
 
 // Security middleware
 app.use(helmet({
