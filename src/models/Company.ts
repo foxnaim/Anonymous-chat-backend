@@ -112,5 +112,7 @@ companySchema.index({ adminEmail: 1 });
 companySchema.index({ status: 1 });
 companySchema.index({ createdAt: -1 }); // Для сортировки по дате создания
 companySchema.index({ name: 1 }); // Для поиска по имени
+// Составной индекс для частых запросов: фильтрация по статусу с сортировкой по дате
+companySchema.index({ status: 1, createdAt: -1 });
 
 export const Company = model<ICompany>('Company', companySchema);

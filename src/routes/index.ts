@@ -1,22 +1,14 @@
 import { Router } from 'express';
-import healthRoutes from './health';
-import authRoutes from './auth';
-import messageRoutes from './messages';
-import companyRoutes from './companies';
-import statsRoutes from './stats';
-import planRoutes from './plans';
-import adminRoutes from './admins';
-import adminSettingsRoutes from './adminSettings';
+import v1Routes from './v1';
 
 const router = Router();
 
-router.use('/health', healthRoutes);
-router.use('/auth', authRoutes);
-router.use('/messages', messageRoutes);
-router.use('/companies', companyRoutes);
-router.use('/stats', statsRoutes);
-router.use('/plans', planRoutes);
-router.use('/admins', adminRoutes);
-router.use('/admin-settings', adminSettingsRoutes);
+// API версионирование
+// Все маршруты теперь доступны через /api/v1/...
+router.use('/v1', v1Routes);
+
+// Обратная совместимость: старые маршруты без версии перенаправляются на v1
+// Это можно удалить после миграции всех клиентов на v1
+router.use('/', v1Routes);
 
 export default router;

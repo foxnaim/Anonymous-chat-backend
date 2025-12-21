@@ -62,5 +62,7 @@ const userSchema = new Schema<IUser>(
 // email уже имеет индекс через unique: true, не дублируем
 userSchema.index({ role: 1 });
 userSchema.index({ companyId: 1 });
+// Составной индекс для частых запросов: найти пользователей компании с определенной ролью
+userSchema.index({ companyId: 1, role: 1 });
 
 export const User = model<IUser>('User', userSchema);

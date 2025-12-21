@@ -1,6 +1,5 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import jwt from 'jsonwebtoken';
 import { config } from './env';
 import { logger } from '../utils/logger';
 import type { IMessage } from '../models/Message';
@@ -47,15 +46,11 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       }
 
       try {
-        const decoded = jwt.verify(token, config.jwtSecret) as {
-          userId: string;
-          email: string;
-          role: 'admin' | 'super_admin' | 'company';
-          companyId?: string;
-        };
+        const { verifyToken } = await import('../utils/jwt');
+        const decoded = verifyToken(token);
 
         socket.userId = decoded.userId;
-        socket.userRole = decoded.role;
+        socket.userRole = decoded.role as 'admin' | 'super_admin' | 'company';
         socket.companyId = decoded.companyId;
 
         // Если пользователь - компания, получаем код компании из БД
@@ -69,7 +64,10 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
 
         next();
       } catch (error) {
-        logger.warn('Socket authentication failed:', error);
+        // Логируем только некритичные ошибки (expired/invalid токены - норма для публичных подключений)
+        if (error instanceof Error && error.name !== 'TokenError') {
+          logger.warn('Socket authentication error:', error);
+        }
         // Разрешаем подключение, но без аутентификации
         next();
       }

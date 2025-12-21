@@ -3,7 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, ErrorCode } from '../utils/AppError';
 import { SubscriptionPlan, ISubscriptionPlan } from '../models/SubscriptionPlan';
 import { FreePlanSettings } from '../models/FreePlanSettings';
-import { cache } from '../utils/cache';
+import { cache } from '../utils/cacheRedis';
 
 // Тип для lean() результата - упрощенный тип для кэширования
 type PlanLean = ISubscriptionPlan;
@@ -37,7 +37,7 @@ async function getFreePlanSettingsFromDB(): Promise<{
 export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => {
   // Проверяем кэш
   const cacheKey = 'plans:all';
-  const cachedPlans = cache.get<PlanLean[]>(cacheKey);
+  const cachedPlans = await cache.get<PlanLean[]>(cacheKey);
   if (cachedPlans) {
     res.json({
       success: true,
@@ -201,7 +201,7 @@ export const getFreePlanSettings = asyncHandler(async (_req: Request, res: Respo
   const settings = await getFreePlanSettingsFromDB();
 
   // Кэшируем на 1 минуту (настройки могут часто меняться)
-  cache.set(cacheKey, settings, 60 * 1000);
+  await cache.set(cacheKey, settings, 60 * 1000);
 
   res.json({
     success: true,

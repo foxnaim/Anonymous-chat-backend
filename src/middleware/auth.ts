@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../utils/jwt';
+import { verifyToken, JWTPayload, TokenError } from '../utils/jwt';
 import { AppError, ErrorCode } from '../utils/AppError';
 
 // Расширяем Request для добавления user
@@ -27,10 +27,19 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction): 
     req.user = decoded;
     next();
   } catch (error) {
+    if (error instanceof TokenError) {
+      const message =
+        error.code === 'EXPIRED'
+          ? 'Token has expired. Please login again'
+          : error.code === 'MALFORMED'
+          ? 'Invalid token format'
+          : 'Invalid token';
+      return next(new AppError(message, 401, ErrorCode.UNAUTHORIZED));
+    }
     if (error instanceof AppError) {
       next(error);
     } else {
-      next(new AppError('Invalid token', 401, ErrorCode.UNAUTHORIZED));
+      next(new AppError('Authentication failed', 401, ErrorCode.UNAUTHORIZED));
     }
   }
 };
