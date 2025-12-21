@@ -31,7 +31,7 @@ app.use(compression({
     const contentType = res.getHeader('content-type') || '';
     return /text|json|javascript|css|xml|html|svg/i.test(contentType);
   },
-}) as express.RequestHandler);
+}) as unknown as express.RequestHandler);
 
 // Security middleware
 app.use(helmet({
