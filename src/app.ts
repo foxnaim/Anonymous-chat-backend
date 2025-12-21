@@ -28,9 +28,10 @@ app.use(compression({
       return false;
     }
     // Сжимаем только текстовые типы контента
+    // Используем стандартный filter из compression
     return compression.filter(req, res);
   },
-}));
+}) as unknown as express.RequestHandler);
 
 // Security middleware
 app.use(helmet({
