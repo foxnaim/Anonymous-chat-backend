@@ -22,7 +22,7 @@ initializeSentry(app);
 app.use(compression({
   level: 9, // Максимальное сжатие (было 6) - лучше для production
   threshold: 1024, // Сжимать только файлы больше 1KB
-  filter: (req: Request, res: Response) => {
+  filter: (req, res) => {
     // Не сжимаем если клиент не поддерживает или уже сжато
     if (req.headers['x-no-compression']) {
       return false;
