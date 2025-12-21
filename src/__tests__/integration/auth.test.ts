@@ -1,9 +1,7 @@
 import request from 'supertest';
 import app from '../../app';
-import { User } from '../../models/User';
-import { Company } from '../../models/Company';
 import { hashPassword } from '../../utils/password';
-import { createTestUser, createTestCompany } from '../helpers/testHelpers';
+import { createTestUser } from '../helpers/testHelpers';
 
 describe('Auth API', () => {
   describe('POST /api/auth/register', () => {
