@@ -86,6 +86,7 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   const createdAt = new Date().toISOString().split('T')[0];
 
+  // Создаем админа
   const admin = await AdminUser.create({
     email: String(email).toLowerCase(),
     name: name ? String(name) : undefined,
@@ -97,12 +98,26 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
   const generatedPassword = generateSecurePassword(16);
   const hashedPassword = await hashPassword(generatedPassword);
 
-  await User.create({
-    email: String(email).toLowerCase(),
-    password: hashedPassword,
-    role: role === 'super_admin' ? 'super_admin' : 'admin',
-    name,
-  });
+  // Создаем пользователя - если это падает, удаляем созданного админа
+  try {
+    await User.create({
+      email: String(email).toLowerCase(),
+      password: hashedPassword,
+      role: role === 'super_admin' ? 'super_admin' : 'admin',
+      name,
+    });
+  } catch (userError: any) {
+    // Если создание User падает, удаляем созданного AdminUser
+    await AdminUser.findByIdAndDelete(admin._id);
+    
+    // Проверяем, это ошибка дубликата email
+    if (userError?.code === 11000 || userError?.message?.includes('duplicate')) {
+      throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
+    }
+    
+    // Другие ошибки пробрасываем дальше
+    throw userError;
+  }
 
   // Отправляем пароль администратору по email
   try {
