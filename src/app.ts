@@ -19,8 +19,8 @@ initializeSentry(app);
 
 // Compression middleware (должен быть одним из первых для максимальной эффективности)
 // Используем максимальный уровень сжатия для лучшей производительности
-// @ts-ignore - compression types conflict with express types due to nested dependencies
-app.use(compression({
+// compression types conflict with express types due to nested dependencies
+const compressionConfig = {
   level: 9, // Максимальное сжатие (было 6) - лучше для production
   threshold: 1024, // Сжимать только файлы больше 1KB
   filter: (req: any, res: any) => {
@@ -32,7 +32,10 @@ app.use(compression({
     const contentType = res.getHeader('content-type') || '';
     return /text|json|javascript|css|xml|html|svg/i.test(contentType);
   },
-}));
+};
+// Workaround for compression types conflict with express types
+const compressionMiddleware = compression(compressionConfig);
+(app as any).use(compressionMiddleware);
 
 // Security middleware
 app.use(helmet({
