@@ -101,14 +101,25 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
   const createdAt = new Date().toISOString().split('T')[0];
 
   // Создаем админа (только после всех проверок)
-  const admin = await AdminUser.create({
-    email: normalizedEmail,
-    name: normalizedName,
-    role: String(role),
-    createdAt,
-  });
-  
-  logger.info(`AdminUser created: ${admin._id} for email: ${normalizedEmail}`);
+  // Используем try-catch для обработки возможной race condition (если два запроса пришли одновременно)
+  let admin;
+  try {
+    admin = await AdminUser.create({
+      email: normalizedEmail,
+      name: normalizedName,
+      role: String(role),
+      createdAt,
+    });
+    logger.info(`AdminUser created: ${admin._id} for email: ${normalizedEmail}`);
+  } catch (createError: any) {
+    // Если это ошибка дубликата (race condition - два запроса одновременно)
+    if (createError?.code === 11000 || createError?.message?.includes('duplicate') || createError?.message?.includes('E11000')) {
+      logger.warn(`Race condition detected: Admin with email ${normalizedEmail} was created by another request`);
+      throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
+    }
+    // Другие ошибки пробрасываем дальше
+    throw createError;
+  }
 
   // Генерируем безопасный случайный пароль
   const generatedPassword = generateSecurePassword(16);
