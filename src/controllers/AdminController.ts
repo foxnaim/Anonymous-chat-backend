@@ -68,30 +68,14 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Name is required', 400, ErrorCode.BAD_REQUEST);
   }
 
-  // Проверяем, не существует ли админ с таким email (ПЕРВАЯ проверка - самая важная)
-  const existingAdminByEmail = await AdminUser.findOne({ email: normalizedEmail });
-  if (existingAdminByEmail) {
-    logger.warn(`Attempt to create admin with existing email: ${normalizedEmail}`);
-    throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
-  }
-
-  // Проверяем, не существует ли админ с таким именем (если имя указано)
-  if (normalizedName) {
-    const existingAdminByName = await AdminUser.findOne({ name: normalizedName });
-    if (existingAdminByName) {
-      logger.warn(`Attempt to create admin with existing name: ${normalizedName}`);
-      throw new AppError('Admin with this name already exists', 409, ErrorCode.CONFLICT);
-    }
-  }
-
-  // Проверяем, не существует ли пользователь с таким email
+  // Проверяем, не существует ли пользователь с таким email (проверка до создания AdminUser)
   const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
     logger.warn(`Attempt to create admin with existing user email: ${normalizedEmail}`);
     throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
-  // Проверяем, не существует ли компания с таким email
+  // Проверяем, не существует ли компания с таким email (проверка до создания AdminUser)
   const existingCompany = await Company.findOne({ adminEmail: normalizedEmail });
   if (existingCompany) {
     logger.warn(`Attempt to create admin with existing company email: ${normalizedEmail}`);
@@ -100,8 +84,8 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   const createdAt = new Date().toISOString().split('T')[0];
 
-  // Создаем админа (только после всех проверок)
-  // Используем try-catch для обработки возможной race condition (если два запроса пришли одновременно)
+  // Создаем админа - полагаемся на уникальный индекс MongoDB для предотвращения дубликатов
+  // Это атомарная операция, которая предотвращает race condition
   let admin;
   try {
     admin = await AdminUser.create({
@@ -112,9 +96,16 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     });
     logger.info(`AdminUser created: ${admin._id} for email: ${normalizedEmail}`);
   } catch (createError: any) {
-    // Если это ошибка дубликата (race condition - два запроса одновременно)
+    // Если это ошибка дубликата (уникальный индекс на email предотвратил создание)
     if (createError?.code === 11000 || createError?.message?.includes('duplicate') || createError?.message?.includes('E11000')) {
-      logger.warn(`Race condition detected: Admin with email ${normalizedEmail} was created by another request`);
+      // Проверяем, действительно ли админ существует (может быть создан другим запросом)
+      const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
+      if (existingAdmin) {
+        logger.warn(`Admin with email ${normalizedEmail} already exists (race condition or duplicate request)`);
+        throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
+      }
+      // Если админа нет, но была ошибка дубликата - это странно, но обрабатываем
+      logger.error(`Unexpected duplicate key error for email ${normalizedEmail}, but admin not found`);
       throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
     }
     // Другие ошибки пробрасываем дальше
