@@ -126,17 +126,37 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     });
     logger.info(`User created for admin: ${admin._id} with email: ${normalizedEmail}`);
   } catch (userError: any) {
-    // Если создание User падает, удаляем созданного AdminUser (rollback)
-    logger.error(`Failed to create User for admin ${admin._id}, rolling back AdminUser creation`, userError);
-    await AdminUser.findByIdAndDelete(admin._id);
-    logger.info(`AdminUser ${admin._id} deleted due to User creation failure`);
+    // Если создание User падает, проверяем причину
+    const isDuplicateError = userError?.code === 11000 || userError?.message?.includes('duplicate') || userError?.message?.includes('already exists');
     
-    // Проверяем, это ошибка дубликата email
-    if (userError?.code === 11000 || userError?.message?.includes('duplicate') || userError?.message?.includes('already exists')) {
+    if (isDuplicateError) {
+      // Проверяем, не был ли User создан другим запросом (race condition)
+      const existingUser = await User.findOne({ email: normalizedEmail });
+      if (existingUser) {
+        // User уже существует - это race condition
+        // Проверяем, не был ли AdminUser создан другим запросом
+        const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
+        if (existingAdmin && existingAdmin._id.toString() !== admin._id.toString()) {
+          // AdminUser был создан другим запросом - удаляем наш
+          logger.warn(`AdminUser ${admin._id} was created, but User already exists from another request. Deleting our AdminUser.`);
+          await AdminUser.findByIdAndDelete(admin._id);
+          throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
+        }
+        // Если это тот же AdminUser, значит User был создан между проверкой и созданием
+        // Удаляем AdminUser и выбрасываем ошибку
+        logger.error(`Failed to create User for admin ${admin._id}, User already exists. Rolling back AdminUser creation.`, userError);
+        await AdminUser.findByIdAndDelete(admin._id);
+        throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
+      }
+      // Если User не существует, но была ошибка дубликата - странно, но обрабатываем
+      logger.error(`Unexpected duplicate key error for User with email ${normalizedEmail}, but User not found. Rolling back AdminUser.`);
+      await AdminUser.findByIdAndDelete(admin._id);
       throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
     }
     
-    // Другие ошибки пробрасываем дальше
+    // Другие ошибки - удаляем AdminUser и пробрасываем дальше
+    logger.error(`Failed to create User for admin ${admin._id}, rolling back AdminUser creation`, userError);
+    await AdminUser.findByIdAndDelete(admin._id);
     throw userError;
   }
 
