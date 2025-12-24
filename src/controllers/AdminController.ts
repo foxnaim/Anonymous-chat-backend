@@ -137,15 +137,20 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
         // Проверяем, не был ли AdminUser создан другим запросом
         const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
         if (existingAdmin && existingAdmin._id.toString() !== admin._id.toString()) {
-          // AdminUser был создан другим запросом - удаляем наш
+          // AdminUser был создан другим запросом - это означает, что другой запрос успешно создал и AdminUser, и User
+          // Удаляем наш AdminUser (который был создан позже из-за race condition)
           logger.warn(`AdminUser ${admin._id} was created, but User already exists from another request. Deleting our AdminUser.`);
           await AdminUser.findByIdAndDelete(admin._id);
           throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
         }
-        // Если это тот же AdminUser, значит User был создан между проверкой и созданием
-        // Удаляем AdminUser и выбрасываем ошибку
-        logger.error(`Failed to create User for admin ${admin._id}, User already exists. Rolling back AdminUser creation.`, userError);
-        await AdminUser.findByIdAndDelete(admin._id);
+        // Если это тот же AdminUser, значит User был создан между проверкой User (строка 72) и попыткой создания
+        // Это означает, что другой запрос успешно создал User для того же AdminUser
+        // В этом случае НЕ удаляем AdminUser, так как он уже связан с существующим User через другой запрос
+        // Это успешный случай - админ создан, просто другим запросом
+        logger.info(`User already exists for admin ${admin._id} (same AdminUser). This is a race condition - another request created the User. Keeping AdminUser.`);
+        // НЕ удаляем AdminUser, так как он уже связан с существующим User
+        // Возвращаем успех, так как админ фактически создан (другим запросом)
+        // Но выбрасываем ошибку, чтобы фронтенд мог обработать race condition
         throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
       }
       // Если User не существует, но была ошибка дубликата - странно, но обрабатываем
