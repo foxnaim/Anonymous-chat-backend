@@ -58,41 +58,51 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Email is required', 400, ErrorCode.BAD_REQUEST);
   }
 
-  // Проверяем, не существует ли админ с таким email
-  const existingAdminByEmail = await AdminUser.findOne({ email: String(email).toLowerCase() });
+  // Нормализуем email для проверки
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const normalizedName = name ? String(name).trim() : undefined;
+
+  // Проверяем, не существует ли админ с таким email (ПЕРВАЯ проверка - самая важная)
+  const existingAdminByEmail = await AdminUser.findOne({ email: normalizedEmail });
   if (existingAdminByEmail) {
+    logger.warn(`Attempt to create admin with existing email: ${normalizedEmail}`);
     throw new AppError('Admin with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
   // Проверяем, не существует ли админ с таким именем (если имя указано)
-  if (name) {
-    const existingAdminByName = await AdminUser.findOne({ name: String(name).trim() });
+  if (normalizedName) {
+    const existingAdminByName = await AdminUser.findOne({ name: normalizedName });
     if (existingAdminByName) {
+      logger.warn(`Attempt to create admin with existing name: ${normalizedName}`);
       throw new AppError('Admin with this name already exists', 409, ErrorCode.CONFLICT);
     }
   }
 
   // Проверяем, не существует ли пользователь с таким email
-  const existingUser = await User.findOne({ email: String(email).toLowerCase() });
+  const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
+    logger.warn(`Attempt to create admin with existing user email: ${normalizedEmail}`);
     throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
   // Проверяем, не существует ли компания с таким email
-  const existingCompany = await Company.findOne({ adminEmail: String(email).toLowerCase() });
+  const existingCompany = await Company.findOne({ adminEmail: normalizedEmail });
   if (existingCompany) {
+    logger.warn(`Attempt to create admin with existing company email: ${normalizedEmail}`);
     throw new AppError('Company with this email already exists', 409, ErrorCode.CONFLICT);
   }
 
   const createdAt = new Date().toISOString().split('T')[0];
 
-  // Создаем админа
+  // Создаем админа (только после всех проверок)
   const admin = await AdminUser.create({
-    email: String(email).toLowerCase(),
-    name: name ? String(name) : undefined,
+    email: normalizedEmail,
+    name: normalizedName,
     role: String(role),
     createdAt,
   });
+  
+  logger.info(`AdminUser created: ${admin._id} for email: ${normalizedEmail}`);
 
   // Генерируем безопасный случайный пароль
   const generatedPassword = generateSecurePassword(16);
@@ -101,17 +111,20 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
   // Создаем пользователя - если это падает, удаляем созданного админа
   try {
     await User.create({
-      email: String(email).toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
       role: role === 'super_admin' ? 'super_admin' : 'admin',
-      name,
+      name: normalizedName,
     });
+    logger.info(`User created for admin: ${admin._id} with email: ${normalizedEmail}`);
   } catch (userError: any) {
-    // Если создание User падает, удаляем созданного AdminUser
+    // Если создание User падает, удаляем созданного AdminUser (rollback)
+    logger.error(`Failed to create User for admin ${admin._id}, rolling back AdminUser creation`, userError);
     await AdminUser.findByIdAndDelete(admin._id);
+    logger.info(`AdminUser ${admin._id} deleted due to User creation failure`);
     
     // Проверяем, это ошибка дубликата email
-    if (userError?.code === 11000 || userError?.message?.includes('duplicate')) {
+    if (userError?.code === 11000 || userError?.message?.includes('duplicate') || userError?.message?.includes('already exists')) {
       throw new AppError('User with this email already exists', 409, ErrorCode.CONFLICT);
     }
     
