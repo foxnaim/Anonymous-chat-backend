@@ -60,7 +60,13 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   // Нормализуем email для проверки
   const normalizedEmail = String(email).toLowerCase().trim();
-  const normalizedName = name ? String(name).trim() : undefined;
+  // name обязателен в модели, поэтому если не передан, используем email как имя
+  const normalizedName = name ? String(name).trim() : normalizedEmail.split('@')[0];
+  
+  // Проверяем, что имя не пустое после trim
+  if (!normalizedName || normalizedName.length === 0) {
+    throw new AppError('Name is required', 400, ErrorCode.BAD_REQUEST);
+  }
 
   // Проверяем, не существует ли админ с таким email (ПЕРВАЯ проверка - самая важная)
   const existingAdminByEmail = await AdminUser.findOne({ email: normalizedEmail });
