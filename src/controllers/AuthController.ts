@@ -370,7 +370,8 @@ export const forgotPassword = asyncHandler(
         config.nodeEnv === "development" ||
         errorMessage.includes("timeout") ||
         errorMessage.includes("TIMEOUT") ||
-        errorMessage.includes("RESEND_TEST_DOMAIN_LIMIT")
+        errorMessage.includes("RESEND_TEST_DOMAIN_LIMIT") ||
+        errorMessage.includes("RESEND_DOMAIN_NOT_VERIFIED")
       ) {
         logger.warn(`Password reset token for ${email}: ${resetToken}`);
         
@@ -380,6 +381,9 @@ export const forgotPassword = asyncHandler(
           if (errorMessage.includes("RESEND_TEST_DOMAIN_LIMIT")) {
             warningMessage =
               "Resend test domain ограничивает отправку только на зарегистрированный email. Верифицируйте свой домен на https://resend.com/domains или используйте токен ниже для тестирования.";
+          } else if (errorMessage.includes("RESEND_DOMAIN_NOT_VERIFIED")) {
+            warningMessage =
+              "Домен не верифицирован в Resend. Верифицируйте свой домен на https://resend.com/domains или используйте токен ниже для тестирования.";
           } else {
             warningMessage =
               "SMTP connection failed. Token provided for testing. Please configure an external SMTP service.";

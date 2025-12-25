@@ -123,6 +123,11 @@ class EmailService {
           throw new Error("RESEND_TEST_DOMAIN_LIMIT");
         }
         
+        // Если это ошибка 403 из-за неверифицированного домена, выбрасываем специальную ошибку
+        if (response.status === 403 && errorMessage.includes("domain is not verified")) {
+          throw new Error("RESEND_DOMAIN_NOT_VERIFIED");
+        }
+        
         throw new Error(
           `Resend API error: ${response.status} ${JSON.stringify(errorData)}`,
         );
