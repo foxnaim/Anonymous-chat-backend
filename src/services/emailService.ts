@@ -3,6 +3,7 @@
  */
 
 import nodemailer, { Transporter } from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 
@@ -36,7 +37,7 @@ class EmailService {
     } else {
       // Настроенный SMTP
       // Добавляем таймауты, чтобы не висеть на SMTP-соединении
-      this.transporter = nodemailer.createTransport({
+      const transportOptions: SMTPTransport.Options = {
         host: config.smtpHost,
         port: config.smtpPort,
         secure: config.smtpSecure, // true для 465, false для других портов (587 – STARTTLS)
@@ -47,11 +48,12 @@ class EmailService {
         connectionTimeout: 15000, // 15s
         socketTimeout: 15000, // 15s
         greetingTimeout: 10000, // 10s
-        pool: false,
         tls: {
           rejectUnauthorized: false, // Для самоподписанных сертификатов / Gmail ok
         },
-      });
+      };
+
+      this.transporter = nodemailer.createTransport(transportOptions);
     }
   }
 
