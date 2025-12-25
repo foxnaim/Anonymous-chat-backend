@@ -166,7 +166,12 @@ export const createCompany = asyncHandler(
       storageLimit,
     } = body;
 
-    if (!name || !code || !adminEmail || !password) {
+    const normalizedName = name ? String(name).trim() : "";
+    const normalizedCode = code ? String(code).toUpperCase() : "";
+    const normalizedEmail = adminEmail ? String(adminEmail).toLowerCase().trim() : "";
+    const normalizedPassword = password ? String(password) : "";
+
+    if (!normalizedName || !normalizedCode || !normalizedEmail || !normalizedPassword) {
       throw new AppError(
         "Name, code, adminEmail, and password are required",
         400,
@@ -176,47 +181,30 @@ export const createCompany = asyncHandler(
 
     // Валидация пароля выполняется через Zod schema (createCompanySchema)
 
-    // Проверяем, не существует ли компания с таким кодом
-    const existingCompanyByCode = await Company.findOne({
-      code: String(code).toUpperCase(),
-    });
-    if (existingCompanyByCode) {
-      throw new AppError(
-        "Company with this code already exists",
-        409,
-        ErrorCode.CONFLICT,
-      );
+    // Проверяем, не существует ли компания уже (код, email, имя) — делаем создание идемпотентным
+    const existingCompany =
+      (await Company.findOne({ code: normalizedCode })) ||
+      (await Company.findOne({ adminEmail: normalizedEmail })) ||
+      (await Company.findOne({ name: normalizedName }));
+
+    if (existingCompany) {
+      const companyData = {
+        id: existingCompany._id.toString(),
+        ...existingCompany.toObject(),
+        _id: undefined,
+      };
+      return res.json({
+        success: true,
+        data: companyData,
+        message: "Company already exists. Returning existing company (idempotent create).",
+      });
     }
 
-    // Проверяем, не существует ли компания с таким именем
-    const existingCompanyByName = await Company.findOne({
-      name: String(name).trim(),
-    });
-    if (existingCompanyByName) {
-      throw new AppError(
-        "Company with this name already exists",
-        409,
-        ErrorCode.CONFLICT,
-      );
-    }
-
-    // Проверяем, не существует ли компания с таким email администратора
-    const existingCompanyByEmail = await Company.findOne({
-      adminEmail: String(adminEmail).toLowerCase(),
-    });
-    if (existingCompanyByEmail) {
-      throw new AppError(
-        "Company with this email already exists",
-        409,
-        ErrorCode.CONFLICT,
-      );
-    }
-
-    // Проверяем, не существует ли пользователь с таким email
+    // Проверяем, не существует ли пользователь с таким email — если есть и привязан к другой компании, отдаем конфликт
     const existingUser = await User.findOne({
-      email: String(adminEmail).toLowerCase(),
+      email: normalizedEmail,
     });
-    if (existingUser) {
+    if (existingUser && existingUser.companyId && existingUser.companyId.toString() !== "") {
       throw new AppError(
         "User with this email already exists",
         409,
@@ -226,7 +214,7 @@ export const createCompany = asyncHandler(
 
     // Проверяем, не существует ли админ с таким email
     const existingAdmin = await AdminUser.findOne({
-      email: String(adminEmail).toLowerCase(),
+      email: normalizedEmail,
     });
     if (existingAdmin) {
       throw new AppError(
@@ -247,32 +235,83 @@ export const createCompany = asyncHandler(
       trialEndDate = endDate.toISOString().split("T")[0];
     }
 
-    const company = await Company.create({
-      name: String(name),
-      code: String(code).toUpperCase(),
-      adminEmail: String(adminEmail).toLowerCase(),
-      status: "Активна",
-      plan: selectedPlan,
-      registered: registeredDate,
-      trialEndDate,
-      employees: employees || 0,
-      messages: 0,
-      messagesThisMonth: 0,
-      messagesLimit: isTrialPlan ? 999999 : messagesLimit || 10,
-      storageUsed: 0,
-      storageLimit: isTrialPlan ? 999999 : storageLimit || 1,
-    });
+    let company;
+    try {
+      company = await Company.create({
+        name: normalizedName,
+        code: normalizedCode,
+        adminEmail: normalizedEmail,
+        status: "Активна",
+        plan: selectedPlan,
+        registered: registeredDate,
+        trialEndDate,
+        employees: employees || 0,
+        messages: 0,
+        messagesThisMonth: 0,
+        messagesLimit: isTrialPlan ? 999999 : messagesLimit || 10,
+        storageUsed: 0,
+        storageLimit: isTrialPlan ? 999999 : storageLimit || 1,
+      });
+    } catch (createError: unknown) {
+      const error = createError as { code?: number; message?: string };
+      if (
+        error?.code === 11000 ||
+        (error?.message && error.message.includes("duplicate")) ||
+        (error?.message && error.message.includes("E11000"))
+      ) {
+        const dupCompany =
+          (await Company.findOne({ code: normalizedCode })) ||
+          (await Company.findOne({ adminEmail: normalizedEmail })) ||
+          (await Company.findOne({ name: normalizedName }));
+
+        if (dupCompany) {
+          const companyData = {
+            id: dupCompany._id.toString(),
+            ...dupCompany.toObject(),
+            _id: undefined,
+          };
+          return res.json({
+            success: true,
+            data: companyData,
+            message: "Company already exists (race condition). Returning existing.",
+          });
+        }
+      }
+      throw createError;
+    }
 
     // Создаем пользователя для компании с указанным паролем
-    const hashedPassword = await hashPassword(String(password));
+    const hashedPassword = await hashPassword(normalizedPassword);
 
-    await User.create({
-      email: adminEmail.toLowerCase(),
-      password: hashedPassword,
-      role: "company",
-      companyId: company._id,
-      name: `${name} Admin`,
-    });
+    // Создаем или обновляем пользователя под эту компанию (идемпотентно)
+    const user = await User.findOne({ email: normalizedEmail });
+    if (user) {
+      let shouldSave = false;
+      if (!user.companyId || user.companyId.toString() !== company._id.toString()) {
+        user.companyId = company._id;
+        shouldSave = true;
+      }
+      if (user.role !== "company") {
+        user.role = "company";
+        shouldSave = true;
+      }
+      const desiredName = `${normalizedName} Admin`;
+      if (desiredName && user.name !== desiredName) {
+        user.name = desiredName;
+        shouldSave = true;
+      }
+      if (shouldSave) {
+        await user.save();
+      }
+    } else {
+      await User.create({
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: "company",
+        companyId: company._id,
+        name: `${normalizedName} Admin`,
+      });
+    }
 
     const companyData = {
       id: company._id.toString(),

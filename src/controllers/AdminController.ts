@@ -61,30 +61,26 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   // Нормализуем email для проверки
   const normalizedEmail = String(email).toLowerCase().trim();
-  // name обязателен в модели, поэтому если не передан, используем email как имя
-  const normalizedName = name
-    ? String(name).trim()
-    : normalizedEmail.split("@")[0];
+  // name опционален: если не передан, используем email как имя; если пустой после trim — fallback на email
+  const normalizedNameCandidate = name ? String(name).trim() : "";
+  const normalizedName =
+    normalizedNameCandidate && normalizedNameCandidate.length > 0
+      ? normalizedNameCandidate
+      : normalizedEmail.split("@")[0];
 
-  // Проверяем, что имя не пустое после trim
-  if (!normalizedName || normalizedName.length === 0) {
-    throw new AppError("Name is required", 400, ErrorCode.BAD_REQUEST);
+  // Если админ уже есть — возвращаем его (идемпотентность создания)
+  const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
+  if (existingAdmin) {
+    logger.info(
+      `Admin with email ${normalizedEmail} already exists. Returning existing admin (idempotent create).`,
+    );
+    return res.json({
+      success: true,
+      data: existingAdmin,
+    });
   }
 
-  // Проверяем, не существует ли пользователь с таким email (проверка до создания AdminUser)
-  const existingUser = await User.findOne({ email: normalizedEmail });
-  if (existingUser) {
-    logger.warn(
-      `Attempt to create admin with existing user email: ${normalizedEmail}`,
-    );
-    throw new AppError(
-      "User with this email already exists",
-      409,
-      ErrorCode.CONFLICT,
-    );
-  }
-
-  // Проверяем, не существует ли компания с таким email (проверка до создания AdminUser)
+  // Проверяем, не существует ли компания с таким email (оставляем как конфликт)
   const existingCompany = await Company.findOne({
     adminEmail: normalizedEmail,
   });
@@ -125,16 +121,15 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
       // Проверяем, действительно ли админ существует (может быть создан другим запросом)
       const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
       if (existingAdmin) {
-        logger.warn(
-          `Admin with email ${normalizedEmail} already exists (race condition or duplicate request)`,
+        logger.info(
+          `Admin with email ${normalizedEmail} already exists (race condition or duplicate request) — returning existing.`,
         );
-        throw new AppError(
-          "Admin with this email already exists",
-          409,
-          ErrorCode.CONFLICT,
-        );
+        return res.json({
+          success: true,
+          data: existingAdmin,
+        });
       }
-      // Если админа нет, но была ошибка дубликата - это странно, но обрабатываем
+      // Если админа нет, но была ошибка дубликата - это странно, пробрасываем как конфликт
       logger.error(
         `Unexpected duplicate key error for email ${normalizedEmail}, but admin not found`,
       );
@@ -152,82 +147,45 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
   const generatedPassword = generateSecurePassword(16);
   const hashedPassword = await hashPassword(generatedPassword);
 
-  // Создаем пользователя - если это падает, удаляем созданного админа
+  // Создаем или обновляем пользователя под этого админа (идемпотентно)
   try {
-    await User.create({
-      email: normalizedEmail,
-      password: hashedPassword,
-      role: role === "super_admin" ? "super_admin" : "admin",
-      name: normalizedName,
-    });
-    logger.info(
-      `User created for admin: ${String(admin._id)} with email: ${normalizedEmail}`,
-    );
-  } catch (userError: unknown) {
-    // Если создание User падает, проверяем причину
-    const error = userError as { code?: number; message?: string };
-    const isDuplicateError =
-      error?.code === 11000 ||
-      (error?.message && error.message.includes("duplicate")) ||
-      (error?.message && error.message.includes("already exists"));
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
-    if (isDuplicateError) {
-      // Проверяем, не был ли User создан другим запросом (race condition)
-      const existingUser = await User.findOne({ email: normalizedEmail });
-      if (existingUser) {
-        // User уже существует - это race condition
-        // Проверяем, не был ли AdminUser создан другим запросом
-        const existingAdmin = await AdminUser.findOne({
-          email: normalizedEmail,
-        });
-        if (
-          existingAdmin &&
-          existingAdmin._id.toString() !== admin._id.toString()
-        ) {
-          // AdminUser был создан другим запросом - это означает, что другой запрос успешно создал и AdminUser, и User
-          // Удаляем наш AdminUser (который был создан позже из-за race condition)
-          logger.warn(
-            `AdminUser ${String(admin._id)} was created, but User already exists from another request. Deleting our AdminUser.`,
-          );
-          await AdminUser.findByIdAndDelete(admin._id);
-          throw new AppError(
-            "User with this email already exists",
-            409,
-            ErrorCode.CONFLICT,
-          );
-        }
-        // Если это тот же AdminUser, значит User был создан между проверкой User (строка 72) и попыткой создания
-        // Это означает, что другой запрос успешно создал User для того же AdminUser
-        // В этом случае НЕ удаляем AdminUser, так как он уже связан с существующим User через другой запрос
-        // Это успешный случай - админ создан, просто другим запросом
-        logger.info(
-          `User already exists for admin ${String(admin._id)} (same AdminUser). This is a race condition - another request created the User. Keeping AdminUser.`,
-        );
-        // НЕ удаляем AdminUser, так как он уже связан с существующим User
-        // Возвращаем успех, так как админ фактически создан (другим запросом)
-        // Но выбрасываем ошибку, чтобы фронтенд мог обработать race condition
-        throw new AppError(
-          "User with this email already exists",
-          409,
-          ErrorCode.CONFLICT,
-        );
+    if (existingUser) {
+      // Обновляем роль/имя при необходимости
+      let shouldSave = false;
+      const desiredRole = role === "super_admin" ? "super_admin" : "admin";
+      if (existingUser.role !== desiredRole) {
+        existingUser.role = desiredRole;
+        shouldSave = true;
       }
-      // Если User не существует, но была ошибка дубликата - странно, но обрабатываем
-      logger.error(
-        `Unexpected duplicate key error for User with email ${normalizedEmail}, but User not found. Rolling back AdminUser.`,
+      if (normalizedName && existingUser.name !== normalizedName) {
+        existingUser.name = normalizedName;
+        shouldSave = true;
+      }
+      if (shouldSave) {
+        await existingUser.save();
+      }
+      logger.info(
+        `User already exists for admin ${String(admin._id)}. Updated role/name if needed.`,
       );
-      await AdminUser.findByIdAndDelete(admin._id);
-      throw new AppError(
-        "User with this email already exists",
-        409,
-        ErrorCode.CONFLICT,
+    } else {
+      await User.create({
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: role === "super_admin" ? "super_admin" : "admin",
+        name: normalizedName,
+      });
+      logger.info(
+        `User created for admin: ${String(admin._id)} with email: ${normalizedEmail}`,
       );
     }
-
-    // Другие ошибки - удаляем AdminUser и пробрасываем дальше
+  } catch (userError: unknown) {
+    // Если при создании/обновлении пользователя произошла ошибка — пробуем откатить созданного админа
     logger.error(
-      `Failed to create User for admin ${String(admin._id)}, rolling back AdminUser creation`,
-      userError,
+      `Failed to ensure user for admin ${String(admin._id)} (${normalizedEmail}): ${
+        (userError as Error)?.message || userError
+      }`,
     );
     await AdminUser.findByIdAndDelete(admin._id);
     throw userError;
@@ -258,7 +216,7 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  res.status(201).json({
+  return res.status(201).json({
     success: true,
     data: admin,
     message:
