@@ -59,9 +59,55 @@ class EmailService {
   }
 
   /**
+   * Отправляет email через Resend API (HTTP, не блокируется Railway)
+   */
+  private async sendEmailViaResend(options: EmailOptions): Promise<void> {
+    if (!config.resendApiKey) {
+      throw new Error("RESEND_API_KEY не настроен");
+    }
+
+    const fromEmail = config.smtpFrom?.match(/<(.+)>/)?.[1] || config.smtpFrom || config.smtpUser || "noreply@feedbackhub.com";
+    const fromName = config.smtpFrom?.match(/(.+?)\s*</)?.[1]?.trim() || "FeedbackHub";
+
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${config.resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: `${fromName} <${fromEmail}>`,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text || options.html.replace(/<[^>]*>/g, ""),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Resend API error: ${response.status} ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      logger.info(`Email отправлен через Resend API на ${options.to}: ${data.id || "unknown"}`);
+    } catch (error) {
+      logger.error(`Ошибка отправки email через Resend API на ${options.to}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Отправляет email
    */
   async sendEmail(options: EmailOptions): Promise<void> {
+    // Приоритет: Resend API (работает через HTTP, не блокируется Railway)
+    if (config.resendApiKey) {
+      return this.sendEmailViaResend(options);
+    }
+
+    // Fallback: SMTP (может быть заблокирован на Railway)
     if (!this.transporter) {
       // В development режиме без SMTP просто логируем
       if (config.nodeEnv === "development") {
@@ -71,7 +117,7 @@ class EmailService {
         });
         return;
       }
-      throw new Error("Email transporter не инициализирован");
+      throw new Error("Email transporter не инициализирован и RESEND_API_KEY не настроен");
     }
 
     try {

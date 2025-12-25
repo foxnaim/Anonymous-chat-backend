@@ -21,6 +21,8 @@ interface EnvConfig {
   smtpPassword: string | undefined;
   smtpFrom: string | undefined;
   smtpSecure: boolean;
+  // Resend API (альтернатива SMTP, работает через HTTP, не блокируется Railway)
+  resendApiKey: string | undefined;
   // Redis настройки
   redisHost: string;
   redisPort: number;
@@ -77,6 +79,8 @@ export const config: EnvConfig = {
   smtpPassword: process.env.SMTP_PASSWORD,
   smtpFrom: process.env.SMTP_FROM,
   smtpSecure: getEnvVar("SMTP_SECURE", "false") === "true",
+  // Resend API (альтернатива SMTP, работает через HTTP, не блокируется Railway)
+  resendApiKey: process.env.RESEND_API_KEY,
   // Redis настройки
   redisHost: getEnvVar("REDIS_HOST", "localhost"),
   redisPort: parseInt(getEnvVar("REDIS_PORT", "6379"), 10),
