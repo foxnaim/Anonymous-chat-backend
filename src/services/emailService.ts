@@ -41,6 +41,7 @@ class EmailService {
         host: config.smtpHost,
         port: config.smtpPort,
         secure: config.smtpSecure, // true для 465, false для других портов (587 – STARTTLS)
+        requireTLS: !config.smtpSecure && config.smtpPort === 587, // Требуем TLS для порта 587
         auth: {
           user: config.smtpUser,
           pass: config.smtpPassword,
