@@ -66,11 +66,32 @@ class EmailService {
       throw new Error("RESEND_API_KEY не настроен");
     }
 
-    const fromEmail =
+    // Извлекаем email из SMTP_FROM или используем тестовый домен Resend
+    let fromEmail =
       config.smtpFrom?.match(/<(.+)>/)?.[1] ||
       config.smtpFrom ||
       config.smtpUser ||
-      "noreply@feedbackhub.com";
+      "onboarding@resend.dev";
+    
+    // Сохраняем оригинальный email для логирования
+    const originalEmail = fromEmail;
+    
+    // Если используется Gmail или другой неверифицированный домен, используем тестовый домен Resend
+    // Resend не позволяет отправлять с неверифицированных доменов
+    if (
+      fromEmail.includes("@gmail.com") ||
+      fromEmail.includes("@yahoo.com") ||
+      fromEmail.includes("@mail.ru") ||
+      fromEmail.includes("@yandex.ru") ||
+      fromEmail.includes("@hotmail.com") ||
+      fromEmail.includes("@outlook.com")
+    ) {
+      fromEmail = "onboarding@resend.dev";
+      logger.warn(
+        `Используется тестовый домен Resend (${fromEmail}) вместо ${originalEmail}. Настройте свой домен на https://resend.com/domains`,
+      );
+    }
+    
     const fromName =
       config.smtpFrom?.match(/(.+?)\s*</)?.[1]?.trim() || "FeedbackHub";
 
