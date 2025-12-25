@@ -91,7 +91,7 @@ class EmailService {
         `Используется тестовый домен Resend (${fromEmail}) вместо ${originalEmail}. Настройте свой домен на https://resend.com/domains`,
       );
     }
-    
+
     const fromName =
       config.smtpFrom?.match(/(.+?)\s*</)?.[1]?.trim() || "FeedbackHub";
 
