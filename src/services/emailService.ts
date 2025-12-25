@@ -91,13 +91,14 @@ class EmailService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = (await response.json().catch(() => ({}))) as unknown;
         throw new Error(
           `Resend API error: ${response.status} ${JSON.stringify(errorData)}`,
         );
       }
 
-      const data = (await response.json()) as { id?: string };
+      const responseData = await response.json();
+      const data = responseData as { id?: string };
       const messageId = data?.id || "unknown";
       logger.info(
         `Email отправлен через Resend API на ${options.to}: ${messageId}`,
