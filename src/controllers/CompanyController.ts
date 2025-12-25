@@ -319,7 +319,7 @@ export const createCompany = asyncHandler(
       _id: undefined,
     };
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: companyData,
     });
