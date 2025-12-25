@@ -343,35 +343,34 @@ export const forgotPassword = asyncHandler(
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 час
     await user.save();
 
+    // Ограничиваем ожидание отправки письма, чтобы не блокировать запрос
+    const emailTimeoutMs = 10000; // 10 секунд достаточно для SMTP, иначе возвращаем успех
+    const emailPromise = emailService.sendPasswordResetEmail(String(email), resetToken);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("EMAIL_SEND_TIMEOUT")), emailTimeoutMs),
+    );
+
     try {
-      // Отправляем email с ссылкой для восстановления пароля
-      await emailService.sendPasswordResetEmail(String(email), resetToken);
+      await Promise.race([emailPromise, timeoutPromise]);
       logger.info(`Password reset email sent to ${email}`);
-
-      res.json({
-        success: true,
-        message: "If the email exists, a password reset link has been sent",
-      });
     } catch (error) {
-      // Логируем ошибку, но не прерываем процесс
+      // Логируем, но не падаем — фронту всегда отвечаем успехом
       logger.error(`Failed to send password reset email to ${email}:`, error);
-
-      // В development режиме все еще возвращаем токен для тестирования
       if (config.nodeEnv === "development") {
         logger.warn(`Password reset token for ${email}: ${resetToken}`);
-        res.json({
+        return res.json({
           success: true,
           message: "If the email exists, a password reset link has been sent",
           resetToken, // Только в development для тестирования
         });
-      } else {
-        // В production возвращаем успешный ответ, но без токена
-        res.json({
-          success: true,
-          message: "If the email exists, a password reset link has been sent",
-        });
       }
     }
+
+    // Всегда возвращаем успешный ответ (для безопасности не раскрываем детали)
+    return res.json({
+      success: true,
+      message: "If the email exists, a password reset link has been sent",
+    });
   },
 );
 
