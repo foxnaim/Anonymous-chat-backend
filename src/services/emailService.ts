@@ -66,14 +66,19 @@ class EmailService {
       throw new Error("RESEND_API_KEY не настроен");
     }
 
-    const fromEmail = config.smtpFrom?.match(/<(.+)>/)?.[1] || config.smtpFrom || config.smtpUser || "noreply@feedbackhub.com";
-    const fromName = config.smtpFrom?.match(/(.+?)\s*</)?.[1]?.trim() || "FeedbackHub";
+    const fromEmail =
+      config.smtpFrom?.match(/<(.+)>/)?.[1] ||
+      config.smtpFrom ||
+      config.smtpUser ||
+      "noreply@feedbackhub.com";
+    const fromName =
+      config.smtpFrom?.match(/(.+?)\s*</)?.[1]?.trim() || "FeedbackHub";
 
     try {
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${config.resendApiKey}`,
+          Authorization: `Bearer ${config.resendApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -87,14 +92,21 @@ class EmailService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Resend API error: ${response.status} ${JSON.stringify(errorData)}`);
+        throw new Error(
+          `Resend API error: ${response.status} ${JSON.stringify(errorData)}`,
+        );
       }
 
-      const data: { id?: string } = await response.json();
+      const data = (await response.json()) as { id?: string };
       const messageId = data?.id || "unknown";
-      logger.info(`Email отправлен через Resend API на ${options.to}: ${messageId}`);
+      logger.info(
+        `Email отправлен через Resend API на ${options.to}: ${messageId}`,
+      );
     } catch (error) {
-      logger.error(`Ошибка отправки email через Resend API на ${options.to}:`, error);
+      logger.error(
+        `Ошибка отправки email через Resend API на ${options.to}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -118,7 +130,9 @@ class EmailService {
         });
         return;
       }
-      throw new Error("Email transporter не инициализирован и RESEND_API_KEY не настроен");
+      throw new Error(
+        "Email transporter не инициализирован и RESEND_API_KEY не настроен",
+      );
     }
 
     try {
@@ -138,8 +152,12 @@ class EmailService {
       logger.info(`Email отправлен на ${options.to}: ${messageId}`);
     } catch (error) {
       // Детальное логирование ошибок SMTP
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorCode = error && typeof error === "object" && "code" in error ? String(error.code) : "UNKNOWN";
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorCode =
+        error && typeof error === "object" && "code" in error
+          ? String(error.code)
+          : "UNKNOWN";
       logger.error(`Ошибка отправки email на ${options.to}:`, {
         error: errorMessage,
         code: errorCode,

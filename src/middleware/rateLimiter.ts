@@ -20,7 +20,7 @@ export const apiLimiter = rateLimit({
   // Настраиваем keyGenerator для правильной работы с trust proxy
   keyGenerator: (req) => {
     // Используем IP из X-Forwarded-For, если доступен (через trust proxy)
-    return (req.ip || req.socket.remoteAddress || 'unknown') as string;
+    return req.ip || req.socket.remoteAddress || "unknown";
   },
   // Отключаем валидацию trust proxy, так как мы уже настроили его правильно
   validate: {
