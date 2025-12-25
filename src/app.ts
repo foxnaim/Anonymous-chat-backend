@@ -14,13 +14,14 @@ import routes from "./routes";
 
 const app: Application = express();
 
+app.set('trust proxy', true);
+
 // Initialize Sentry if DSN is provided
 initializeSentry(app);
 
 // Compression middleware (должен быть одним из первых для максимальной эффективности)
 // Используем максимальный уровень сжатия для лучшей производительности
 // compression types conflict with express types due to nested dependencies
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const compressionConfig: any = {
   level: 9, // Максимальное сжатие (было 6) - лучше для production
   threshold: 1024, // Сжимать только файлы больше 1KB
