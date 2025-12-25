@@ -365,21 +365,32 @@ export const forgotPassword = asyncHandler(
         note: "Railway may be blocking outbound SMTP connections. Consider using an external SMTP service (SendGrid, Mailgun, Resend, etc.)",
       });
 
-      // В development или если SMTP не работает, возвращаем токен для тестирования
+      // В development, если SMTP не работает, или если Resend ограничивает тестовый домен, возвращаем токен для тестирования
       if (
         config.nodeEnv === "development" ||
         errorMessage.includes("timeout") ||
-        errorMessage.includes("TIMEOUT")
+        errorMessage.includes("TIMEOUT") ||
+        errorMessage.includes("RESEND_TEST_DOMAIN_LIMIT")
       ) {
         logger.warn(`Password reset token for ${email}: ${resetToken}`);
+        
+        // Определяем причину для более информативного сообщения
+        let warningMessage: string | undefined;
+        if (config.nodeEnv === "production") {
+          if (errorMessage.includes("RESEND_TEST_DOMAIN_LIMIT")) {
+            warningMessage =
+              "Resend test domain ограничивает отправку только на зарегистрированный email. Верифицируйте свой домен на https://resend.com/domains или используйте токен ниже для тестирования.";
+          } else {
+            warningMessage =
+              "SMTP connection failed. Token provided for testing. Please configure an external SMTP service.";
+          }
+        }
+        
         return res.json({
           success: true,
           message: "If the email exists, a password reset link has been sent",
           resetToken, // Для тестирования, если SMTP не работает
-          warning:
-            config.nodeEnv === "production"
-              ? "SMTP connection failed. Token provided for testing. Please configure an external SMTP service."
-              : undefined,
+          warning: warningMessage,
         });
       }
     }

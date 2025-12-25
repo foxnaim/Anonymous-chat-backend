@@ -112,7 +112,17 @@ class EmailService {
       });
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as unknown;
+        const errorData = (await response.json().catch(() => ({}))) as {
+          message?: string;
+          name?: string;
+        };
+        const errorMessage = errorData?.message || "Unknown error";
+        
+        // Если это ошибка 403 из-за ограничений тестового домена, выбрасываем специальную ошибку
+        if (response.status === 403 && errorMessage.includes("testing emails")) {
+          throw new Error("RESEND_TEST_DOMAIN_LIMIT");
+        }
+        
         throw new Error(
           `Resend API error: ${response.status} ${JSON.stringify(errorData)}`,
         );
