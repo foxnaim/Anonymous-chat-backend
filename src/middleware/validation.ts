@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
-import { AppError, ErrorCode } from '../utils/AppError';
+import { Request, Response, NextFunction } from "express";
+import { ZodSchema, ZodError } from "zod";
+import { AppError, ErrorCode } from "../utils/AppError";
 
 export const validate = (schema: ZodSchema) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -13,16 +13,16 @@ export const validate = (schema: ZodSchema) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errorMessages = error.errors.map(err => ({
-          path: err.path.join('.'),
+        const errorMessages = error.errors.map((err) => ({
+          path: err.path.join("."),
           message: err.message,
         }));
 
         const validationError = new AppError(
-          'Validation error',
+          "Validation error",
           400,
           ErrorCode.VALIDATION_ERROR,
-          true
+          true,
         );
         Object.assign(validationError, { details: errorMessages });
         throw validationError;

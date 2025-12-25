@@ -1,8 +1,8 @@
-import { Types } from 'mongoose';
-import { User } from '../../models/User';
-import { Company } from '../../models/Company';
-import { generateToken } from '../../utils/jwt';
-import type { UserRole } from '../../models/User';
+import { Types } from "mongoose";
+import { User } from "../../models/User";
+import { Company } from "../../models/Company";
+import { generateToken } from "../../utils/jwt";
+import type { UserRole } from "../../models/User";
 
 export interface TestUser {
   _id: Types.ObjectId;
@@ -17,7 +17,7 @@ export interface TestCompany {
   code: string;
   name: string;
   adminEmail: string;
-  status: 'Активна' | 'Пробная' | 'Заблокирована';
+  status: "Активна" | "Пробная" | "Заблокирована";
   plan: string;
 }
 
@@ -25,12 +25,12 @@ export interface TestCompany {
  * Создать тестового пользователя
  */
 export async function createTestUser(
-  overrides: Partial<TestUser> = {}
+  overrides: Partial<TestUser> = {},
 ): Promise<TestUser> {
   const defaultUser = {
     email: `test${Date.now()}@example.com`,
-    password: 'TestPassword123!',
-    role: 'user' as UserRole,
+    password: "TestPassword123!",
+    role: "user" as UserRole,
     ...overrides,
   };
 
@@ -50,15 +50,15 @@ export async function createTestUser(
  * Создать тестовую компанию
  */
 export async function createTestCompany(
-  overrides: Partial<TestCompany> = {}
+  overrides: Partial<TestCompany> = {},
 ): Promise<TestCompany> {
   const randomCode = Math.random().toString(36).substring(2, 10).toUpperCase();
   const defaultCompany = {
     code: randomCode,
     name: `Test Company ${Date.now()}`,
     adminEmail: `admin${Date.now()}@example.com`,
-    status: 'Активна' as const,
-    plan: 'Бесплатный',
+    status: "Активна" as const,
+    plan: "Бесплатный",
     registered: new Date().toISOString(),
     employees: 0,
     messages: 0,
@@ -95,12 +95,12 @@ export function createTestToken(user: TestUser): string {
  */
 export async function createTestCompanyUser(
   companyOverrides: Partial<TestCompany> = {},
-  userOverrides: Partial<TestUser> = {}
+  userOverrides: Partial<TestUser> = {},
 ): Promise<{ user: TestUser; company: TestCompany; token: string }> {
   const company = await createTestCompany(companyOverrides);
   const user = await createTestUser({
     ...userOverrides,
-    role: 'company',
+    role: "company",
     companyId: company._id,
     email: company.adminEmail,
   });
@@ -108,4 +108,3 @@ export async function createTestCompanyUser(
 
   return { user, company, token };
 }
-

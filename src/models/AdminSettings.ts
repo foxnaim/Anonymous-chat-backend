@@ -1,5 +1,5 @@
-import { Schema, model, Types } from 'mongoose';
-import { BaseDocument, baseSchemaOptions } from './BaseModel';
+import { Schema, model, Types } from "mongoose";
+import { BaseDocument, baseSchemaOptions } from "./BaseModel";
 
 export interface IAdminSettings extends BaseDocument {
   adminId: Types.ObjectId; // ID админа (ссылка на User)
@@ -15,7 +15,7 @@ const adminSettingsSchema = new Schema<IAdminSettings>(
   {
     adminId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       unique: true,
     },
@@ -25,13 +25,13 @@ const adminSettingsSchema = new Schema<IAdminSettings>(
     },
     language: {
       type: String,
-      enum: ['ru', 'en', 'kk'],
-      default: 'ru',
+      enum: ["ru", "en", "kk"],
+      default: "ru",
     },
     theme: {
       type: String,
-      enum: ['light', 'dark', 'system'],
-      default: 'system',
+      enum: ["light", "dark", "system"],
+      default: "system",
     },
     itemsPerPage: {
       type: Number,
@@ -48,10 +48,13 @@ const adminSettingsSchema = new Schema<IAdminSettings>(
       default: true,
     },
   },
-  baseSchemaOptions
+  baseSchemaOptions,
 );
 
 // Индекс на adminId уже создается автоматически через unique: true в определении поля
 // adminSettingsSchema.index({ adminId: 1 }); // Удалено - дублирует unique: true
 
-export const AdminSettings = model<IAdminSettings>('AdminSettings', adminSettingsSchema);
+export const AdminSettings = model<IAdminSettings>(
+  "AdminSettings",
+  adminSettingsSchema,
+);

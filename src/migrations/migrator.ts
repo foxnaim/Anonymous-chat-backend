@@ -1,7 +1,7 @@
-import { Migration } from './Migration';
-import { logger } from '../utils/logger';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Migration } from "./Migration";
+import { logger } from "../utils/logger";
+import * as fs from "fs";
+import * as path from "path";
 
 export interface MigrationFile {
   name: string;
@@ -13,7 +13,7 @@ export class Migrator {
   private migrationsPath: string;
 
   constructor() {
-    this.migrationsPath = path.join(__dirname, 'files');
+    this.migrationsPath = path.join(__dirname, "files");
   }
 
   /**
@@ -27,7 +27,7 @@ export class Migrator {
 
     return fs
       .readdirSync(this.migrationsPath)
-      .filter(file => file.endsWith('.ts') || file.endsWith('.js'))
+      .filter((file) => file.endsWith(".ts") || file.endsWith(".js"))
       .sort();
   }
 
@@ -39,7 +39,7 @@ export class Migrator {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const migration = await import(filePath);
     return {
-      name: fileName.replace(/\.(ts|js)$/, ''),
+      name: fileName.replace(/\.(ts|js)$/, ""),
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       up: migration.up as () => Promise<void>,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
@@ -52,7 +52,7 @@ export class Migrator {
    */
   private async getAppliedMigrations(): Promise<string[]> {
     const migrations = await Migration.find().sort({ timestamp: 1 });
-    return migrations.map(m => m.name);
+    return migrations.map((m) => m.name);
   }
 
   /**
@@ -82,7 +82,9 @@ export class Migrator {
 
     const migrationFile = await this.loadMigration(`${migrationName}.ts`);
     if (!migrationFile.down) {
-      throw new Error(`Migration ${migrationName} does not have a down function`);
+      throw new Error(
+        `Migration ${migrationName} does not have a down function`,
+      );
     }
 
     logger.info(`Rolling back migration: ${migrationName}`);
@@ -99,13 +101,13 @@ export class Migrator {
       const files = this.getMigrationFiles();
       const applied = await this.getAppliedMigrations();
 
-      const pending = files.filter(file => {
-        const name = file.replace(/\.(ts|js)$/, '');
+      const pending = files.filter((file) => {
+        const name = file.replace(/\.(ts|js)$/, "");
         return !applied.includes(name);
       });
 
       if (pending.length === 0) {
-        logger.info('No pending migrations');
+        logger.info("No pending migrations");
         return;
       }
 
@@ -116,9 +118,9 @@ export class Migrator {
         await this.applyMigration(migration);
       }
 
-      logger.info('All migrations completed successfully');
+      logger.info("All migrations completed successfully");
     } catch (error) {
-      logger.error('Migration error:', error);
+      logger.error("Migration error:", error);
       throw error;
     }
   }
@@ -133,8 +135,8 @@ export class Migrator {
     const files = this.getMigrationFiles();
     const applied = await this.getAppliedMigrations();
 
-    const fileNames = files.map(file => file.replace(/\.(ts|js)$/, ''));
-    const pending = fileNames.filter(name => !applied.includes(name));
+    const fileNames = files.map((file) => file.replace(/\.(ts|js)$/, ""));
+    const pending = fileNames.filter((name) => !applied.includes(name));
 
     return {
       applied,

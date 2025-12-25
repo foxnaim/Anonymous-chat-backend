@@ -1,5 +1,5 @@
 // Setup файл для UNIT тестов (не требуют MongoDB)
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 // Загружаем переменные окружения
 dotenv.config();
@@ -8,13 +8,13 @@ dotenv.config();
 jest.setTimeout(10000);
 
 // Мокаем Sentry для тестов
-jest.mock('../../config/sentry', () => ({
+jest.mock("../../config/sentry", () => ({
   initializeSentry: jest.fn(),
   setupSentryErrorHandler: jest.fn(),
 }));
 
 // Мокаем logger для чистоты тестов
-jest.mock('../../utils/logger', () => ({
+jest.mock("../../utils/logger", () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -22,6 +22,3 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-
-

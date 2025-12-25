@@ -1,12 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../utils/AppError';
-import { logger } from '../utils/logger';
+import { Request, Response, NextFunction } from "express";
+import { AppError } from "../utils/AppError";
+import { logger } from "../utils/logger";
 
 export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ): void => {
   if (err instanceof AppError) {
     logger.warn(`AppError: ${err.message}`, {
@@ -35,12 +35,12 @@ export const errorHandler = (
     };
 
     // Add validation details if present
-    if ('details' in err && err.details) {
+    if ("details" in err && err.details) {
       errorResponse.error.details = err.details;
     }
 
     // Add stack trace in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       errorResponse.error.stack = err.stack;
     }
 
@@ -48,7 +48,7 @@ export const errorHandler = (
     return;
   }
 
-  logger.error('Unhandled error:', {
+  logger.error("Unhandled error:", {
     error: err.message,
     stack: err.stack,
     path: req.path,
@@ -58,8 +58,8 @@ export const errorHandler = (
   res.status(500).json({
     success: false,
     error: {
-      message: 'Internal server error',
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+      message: "Internal server error",
+      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
     },
   });
 };

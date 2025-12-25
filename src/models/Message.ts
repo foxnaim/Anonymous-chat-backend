@@ -1,7 +1,12 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document } from "mongoose";
 
-export type MessageType = 'complaint' | 'praise' | 'suggestion';
-export type MessageStatus = 'Новое' | 'В работе' | 'Решено' | 'Отклонено' | 'Спам';
+export type MessageType = "complaint" | "praise" | "suggestion";
+export type MessageStatus =
+  | "Новое"
+  | "В работе"
+  | "Решено"
+  | "Отклонено"
+  | "Спам";
 
 export interface IMessage extends Document {
   id: string; // Кастомный ID в формате FB-YYYY-XXXXXX
@@ -32,7 +37,7 @@ const messageSchema = new Schema<IMessage>(
     },
     type: {
       type: String,
-      enum: ['complaint', 'praise', 'suggestion'],
+      enum: ["complaint", "praise", "suggestion"],
       required: true,
     },
     content: {
@@ -43,9 +48,9 @@ const messageSchema = new Schema<IMessage>(
     },
     status: {
       type: String,
-      enum: ['Новое', 'В работе', 'Решено', 'Отклонено', 'Спам'],
+      enum: ["Новое", "В работе", "Решено", "Отклонено", "Спам"],
       required: true,
-      default: 'Новое',
+      default: "Новое",
     },
     createdAt: {
       type: String,
@@ -70,13 +75,13 @@ const messageSchema = new Schema<IMessage>(
     },
     previousStatus: {
       type: String,
-      enum: ['Новое', 'В работе', 'Решено', 'Отклонено', 'Спам'],
+      enum: ["Новое", "В работе", "Решено", "Отклонено", "Спам"],
     },
   },
   {
     timestamps: false,
     versionKey: false,
-  }
+  },
 );
 
 // Индексы для оптимизации запросов
@@ -85,4 +90,4 @@ messageSchema.index({ companyCode: 1, type: 1 });
 messageSchema.index({ companyCode: 1, createdAt: -1 });
 // id уже имеет индекс через unique: true, не дублируем
 
-export const Message = model<IMessage>('Message', messageSchema);
+export const Message = model<IMessage>("Message", messageSchema);

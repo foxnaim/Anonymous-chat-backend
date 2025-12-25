@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import mongoose from 'mongoose';
-import { config } from '../config/env';
-import { Migrator } from './migrator';
-import { logger } from '../utils/logger';
+import mongoose from "mongoose";
+import { config } from "../config/env";
+import { Migrator } from "./migrator";
+import { logger } from "../utils/logger";
 
 const command = process.argv[2];
 
@@ -11,15 +11,15 @@ async function main(): Promise<void> {
   try {
     // Подключаемся к БД
     await mongoose.connect(config.mongodbUri);
-    logger.info('Connected to database');
+    logger.info("Connected to database");
 
     const migrator = new Migrator();
 
     switch (command) {
-      case 'status':
+      case "status":
         {
           const status = await migrator.status();
-          logger.info('Migration status:', {
+          logger.info("Migration status:", {
             applied: status.applied.length,
             pending: status.pending.length,
             appliedMigrations: status.applied,
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
         }
         break;
 
-      case 'rollback':
+      case "rollback":
         {
           const migrationName = process.argv[3];
           if (!migrationName) {
@@ -38,7 +38,7 @@ async function main(): Promise<void> {
         }
         break;
 
-      case 'run':
+      case "run":
       default:
         {
           await migrator.run();
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     await mongoose.connection.close();
     process.exit(0);
   } catch (error) {
-    logger.error('Migration CLI error:', error);
+    logger.error("Migration CLI error:", error);
     await mongoose.connection.close();
     process.exit(1);
   }

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   login,
   register,
@@ -8,8 +8,8 @@ import {
   resetPassword,
   changeEmail,
   changePassword,
-} from '../controllers/AuthController';
-import { validate } from '../middleware/validation';
+} from "../controllers/AuthController";
+import { validate } from "../middleware/validation";
 import {
   loginSchema,
   registerSchema,
@@ -18,8 +18,8 @@ import {
   resetPasswordSchema,
   changeEmailSchema,
   changePasswordSchema,
-} from '../validators/authValidator';
-import { authenticate } from '../middleware/auth';
+} from "../validators/authValidator";
+import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
@@ -76,7 +76,7 @@ const router = Router();
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', validate(loginSchema), login);
+router.post("/login", validate(loginSchema), login);
 
 /**
  * @swagger
@@ -129,7 +129,7 @@ router.post('/login', validate(loginSchema), login);
  *       400:
  *         description: Bad request
  */
-router.post('/register', validate(registerSchema), register);
+router.post("/register", validate(registerSchema), register);
 
 /**
  * @swagger
@@ -158,7 +158,7 @@ router.post('/register', validate(registerSchema), register);
  *       401:
  *         description: Неверные учетные данные
  */
-router.post('/verify-password', validate(verifyPasswordSchema), verifyPassword);
+router.post("/verify-password", validate(verifyPasswordSchema), verifyPassword);
 
 /**
  * @swagger
@@ -184,7 +184,7 @@ router.post('/verify-password', validate(verifyPasswordSchema), verifyPassword);
  *       404:
  *         description: Пользователь не найден
  */
-router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+router.post("/forgot-password", validate(forgotPasswordSchema), forgotPassword);
 
 /**
  * @swagger
@@ -213,7 +213,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
  *       400:
  *         description: Неверный или истекший токен
  */
-router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
 
 /**
  * @swagger
@@ -242,11 +242,11 @@ router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
  *         description: Unauthorized
  */
 router.get(
-  '/me',
+  "/me",
   (req, res, next) => {
     authenticate(req, res, next);
   },
-  getMe
+  getMe,
 );
 
 /**
@@ -281,12 +281,12 @@ router.get(
  *         description: Неверный запрос (email уже используется, неверный формат и т.д.)
  */
 router.post(
-  '/change-email',
+  "/change-email",
   (req, res, next) => {
     authenticate(req, res, next);
   },
   validate(changeEmailSchema),
-  changeEmail
+  changeEmail,
 );
 
 /**
@@ -321,12 +321,12 @@ router.post(
  *         description: Неверный запрос (новый пароль совпадает с текущим, слишком короткий и т.д.)
  */
 router.post(
-  '/change-password',
+  "/change-password",
   (req, res, next) => {
     authenticate(req, res, next);
   },
   validate(changePasswordSchema),
-  changePassword
+  changePassword,
 );
 
 export default router;

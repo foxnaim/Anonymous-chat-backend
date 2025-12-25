@@ -1,5 +1,5 @@
-import { Schema, model } from 'mongoose';
-import { BaseDocument, baseSchemaOptions } from './BaseModel';
+import { Schema, model } from "mongoose";
+import { BaseDocument, baseSchemaOptions } from "./BaseModel";
 
 export interface IFreePlanSettings extends BaseDocument {
   settingsId: string; // Фиксированный ID для единственной записи
@@ -14,7 +14,7 @@ const freePlanSettingsSchema = new Schema<IFreePlanSettings>(
       type: String,
       required: true,
       unique: true,
-      default: 'default',
+      default: "default",
     },
     messagesLimit: {
       type: Number,
@@ -35,10 +35,10 @@ const freePlanSettingsSchema = new Schema<IFreePlanSettings>(
       min: 0,
     },
   },
-  baseSchemaOptions
+  baseSchemaOptions,
 );
 
 export const FreePlanSettings = model<IFreePlanSettings>(
-  'FreePlanSettings',
-  freePlanSettingsSchema
+  "FreePlanSettings",
+  freePlanSettingsSchema,
 );

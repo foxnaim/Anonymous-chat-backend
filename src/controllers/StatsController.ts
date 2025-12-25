@@ -1,34 +1,42 @@
-import { Request, Response } from 'express';
-import { asyncHandler } from '../middleware/asyncHandler';
-import { AppError, ErrorCode } from '../utils/AppError';
-import { Company } from '../models/Company';
+import { Request, Response } from "express";
+import { asyncHandler } from "../middleware/asyncHandler";
+import { AppError, ErrorCode } from "../utils/AppError";
+import { Company } from "../models/Company";
 import {
   getCompanyStats,
   getMessageDistribution,
   getGrowthMetrics,
-} from '../services/statsService';
-import { getCompanyAchievements, getGroupedAchievements } from '../services/achievementsService';
+} from "../services/statsService";
+import {
+  getCompanyAchievements,
+  getGroupedAchievements,
+} from "../services/achievementsService";
 
-export const getCompanyStatsController = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const getCompanyStatsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
 
-  const company = await Company.findById(id);
-  if (!company) {
-    throw new AppError('Company not found', 404, ErrorCode.NOT_FOUND);
-  }
+    const company = await Company.findById(id);
+    if (!company) {
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
 
-  // Проверка доступа
-  if (req.user?.role === 'company' && req.user.companyId?.toString() !== company._id.toString()) {
-    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
-  }
+    // Проверка доступа
+    if (
+      req.user?.role === "company" &&
+      req.user.companyId?.toString() !== company._id.toString()
+    ) {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
 
-  const stats = await getCompanyStats(id);
+    const stats = await getCompanyStats(id);
 
-  res.json({
-    success: true,
-    data: stats,
-  });
-});
+    res.json({
+      success: true,
+      data: stats,
+    });
+  },
+);
 
 export const getMessageDistributionController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -36,12 +44,15 @@ export const getMessageDistributionController = asyncHandler(
 
     const company = await Company.findById(id);
     if (!company) {
-      throw new AppError('Company not found', 404, ErrorCode.NOT_FOUND);
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
     }
 
     // Проверка доступа
-    if (req.user?.role === 'company' && req.user.companyId?.toString() !== company._id.toString()) {
-      throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
+    if (
+      req.user?.role === "company" &&
+      req.user.companyId?.toString() !== company._id.toString()
+    ) {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
     }
 
     const distribution = await getMessageDistribution(id);
@@ -50,50 +61,60 @@ export const getMessageDistributionController = asyncHandler(
       success: true,
       data: distribution,
     });
-  }
+  },
 );
 
-export const getGrowthMetricsController = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const getGrowthMetricsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
 
-  const company = await Company.findById(id);
-  if (!company) {
-    throw new AppError('Company not found', 404, ErrorCode.NOT_FOUND);
-  }
+    const company = await Company.findById(id);
+    if (!company) {
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
 
-  // Проверка доступа
-  if (req.user?.role === 'company' && req.user.companyId?.toString() !== company._id.toString()) {
-    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
-  }
+    // Проверка доступа
+    if (
+      req.user?.role === "company" &&
+      req.user.companyId?.toString() !== company._id.toString()
+    ) {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
 
-  const metrics = await getGrowthMetrics(id);
+    const metrics = await getGrowthMetrics(id);
 
-  res.json({
-    success: true,
-    data: metrics,
-  });
-});
+    res.json({
+      success: true,
+      data: metrics,
+    });
+  },
+);
 
-export const getAchievementsController = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const getAchievementsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
 
-  const company = await Company.findById(id);
-  if (!company) {
-    throw new AppError('Company not found', 404, ErrorCode.NOT_FOUND);
-  }
+    const company = await Company.findById(id);
+    if (!company) {
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
 
-  // Проверка доступа
-  if (req.user?.role === 'company' && req.user.companyId?.toString() !== company._id.toString()) {
-    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
-  }
+    // Проверка доступа
+    if (
+      req.user?.role === "company" &&
+      req.user.companyId?.toString() !== company._id.toString()
+    ) {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
 
-  const achievements = await getCompanyAchievements(id);
+    const achievements = await getCompanyAchievements(id);
 
-  res.json({
-    success: true,
-    data: achievements,
-  });
-});
+    res.json({
+      success: true,
+      data: achievements,
+    });
+  },
+);
 
 export const getGroupedAchievementsController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -101,12 +122,15 @@ export const getGroupedAchievementsController = asyncHandler(
 
     const company = await Company.findById(id);
     if (!company) {
-      throw new AppError('Company not found', 404, ErrorCode.NOT_FOUND);
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
     }
 
     // Проверка доступа
-    if (req.user?.role === 'company' && req.user.companyId?.toString() !== company._id.toString()) {
-      throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
+    if (
+      req.user?.role === "company" &&
+      req.user.companyId?.toString() !== company._id.toString()
+    ) {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
     }
 
     const groupedAchievements = await getGroupedAchievements(id);
@@ -115,27 +139,29 @@ export const getGroupedAchievementsController = asyncHandler(
       success: true,
       data: groupedAchievements,
     });
-  }
+  },
 );
 
-export const getPlatformStatsController = asyncHandler(async (req: Request, res: Response) => {
-  // Только админы могут видеть статистику платформы
-  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
-    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
-  }
+export const getPlatformStatsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    // Только админы могут видеть статистику платформы
+    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
 
-  // Подсчитываем статистику платформы
-  const totalCompanies = await Company.countDocuments();
+    // Подсчитываем статистику платформы
+    const totalCompanies = await Company.countDocuments();
 
-  // Упрощенная версия - можно улучшить с реальными метриками
-  const stats = {
-    rooms: totalCompanies,
-    latency: '54ms',
-    retention: '92%',
-  };
+    // Упрощенная версия - можно улучшить с реальными метриками
+    const stats = {
+      rooms: totalCompanies,
+      latency: "54ms",
+      retention: "92%",
+    };
 
-  res.json({
-    success: true,
-    data: stats,
-  });
-});
+    res.json({
+      success: true,
+      data: stats,
+    });
+  },
+);

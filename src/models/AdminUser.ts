@@ -1,6 +1,6 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document } from "mongoose";
 
-export type AdminRole = 'admin' | 'super_admin';
+export type AdminRole = "admin" | "super_admin";
 
 export interface IAdminUser extends Document {
   email: string;
@@ -26,9 +26,9 @@ const adminUserSchema = new Schema<IAdminUser>(
     },
     role: {
       type: String,
-      enum: ['admin', 'super_admin'],
+      enum: ["admin", "super_admin"],
       required: true,
-      default: 'admin',
+      default: "admin",
     },
     createdAt: {
       type: String,
@@ -42,7 +42,7 @@ const adminUserSchema = new Schema<IAdminUser>(
   {
     timestamps: false,
     versionKey: false,
-  }
+  },
 );
 
 // Индексы для оптимизации запросов
@@ -50,4 +50,4 @@ const adminUserSchema = new Schema<IAdminUser>(
 adminUserSchema.index({ role: 1 });
 adminUserSchema.index({ createdAt: -1 }); // Для сортировки по дате создания
 
-export const AdminUser = model<IAdminUser>('AdminUser', adminUserSchema);
+export const AdminUser = model<IAdminUser>("AdminUser", adminUserSchema);

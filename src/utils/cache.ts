@@ -135,7 +135,7 @@ export class SimpleCache {
   /**
    * Получить TTL для разных типов данных
    */
-  static getTTL(type: 'company' | 'stats' | 'messages' | 'default'): number {
+  static getTTL(type: "company" | "stats" | "messages" | "default"): number {
     const ttlMap: Record<string, number> = {
       company: 10 * 60 * 1000, // 10 минут для данных компании
       stats: 2 * 60 * 1000, // 2 минуты для статистики
@@ -151,11 +151,11 @@ export class SimpleCache {
 export const cache = new SimpleCache();
 
 // Периодическая очистка устаревших записей (каждые 10 минут)
-if (typeof setInterval !== 'undefined') {
+if (typeof setInterval !== "undefined") {
   setInterval(
     () => {
       cache.cleanup();
     },
-    10 * 60 * 1000
+    10 * 60 * 1000,
   );
 }

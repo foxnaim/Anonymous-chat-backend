@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 /**
  * Initial schema migration
@@ -7,15 +7,21 @@ import mongoose from 'mongoose';
 export const up = async (): Promise<void> => {
   const db = mongoose.connection.db;
   if (!db) {
-    throw new Error('Database connection not available');
+    throw new Error("Database connection not available");
   }
 
   // Создаем коллекции если их нет
   const collections = await db.listCollections().toArray();
-  const collectionNames = collections.map(c => c.name);
+  const collectionNames = collections.map((c) => c.name);
 
   // Убеждаемся, что все коллекции существуют
-  const requiredCollections = ['users', 'companies', 'messages', 'subscriptionplans', 'adminusers'];
+  const requiredCollections = [
+    "users",
+    "companies",
+    "messages",
+    "subscriptionplans",
+    "adminusers",
+  ];
 
   for (const collectionName of requiredCollections) {
     if (!collectionNames.includes(collectionName)) {

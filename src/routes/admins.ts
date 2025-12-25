@@ -1,8 +1,16 @@
-import { Router } from 'express';
-import { getAdmins, createAdmin, updateAdmin, deleteAdmin } from '../controllers/AdminController';
-import { validate } from '../middleware/validation';
-import { createAdminSchema, updateAdminSchema } from '../validators/adminValidator';
-import { authenticate, authorize } from '../middleware/auth';
+import { Router } from "express";
+import {
+  getAdmins,
+  createAdmin,
+  updateAdmin,
+  deleteAdmin,
+} from "../controllers/AdminController";
+import { validate } from "../middleware/validation";
+import {
+  createAdminSchema,
+  updateAdminSchema,
+} from "../validators/adminValidator";
+import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
 
@@ -10,7 +18,7 @@ const router = Router();
 router.use((req, res, next) => {
   authenticate(req, res, next);
 });
-router.use(authorize('super_admin'));
+router.use(authorize("super_admin"));
 
 /**
  * @swagger
@@ -64,7 +72,7 @@ router.use(authorize('super_admin'));
  *       403:
  *         description: Запрещено
  */
-router.get('/', getAdmins);
+router.get("/", getAdmins);
 
 /**
  * @swagger
@@ -98,7 +106,7 @@ router.get('/', getAdmins);
  *       403:
  *         description: Запрещено
  */
-router.post('/', validate(createAdminSchema), createAdmin);
+router.post("/", validate(createAdminSchema), createAdmin);
 
 /**
  * @swagger
@@ -135,7 +143,7 @@ router.post('/', validate(createAdminSchema), createAdmin);
  *       404:
  *         description: Администратор не найден
  */
-router.put('/:id', validate(updateAdminSchema), updateAdmin);
+router.put("/:id", validate(updateAdminSchema), updateAdmin);
 
 /**
  * @swagger
@@ -160,6 +168,6 @@ router.put('/:id', validate(updateAdminSchema), updateAdmin);
  *       404:
  *         description: Администратор не найден
  */
-router.delete('/:id', deleteAdmin);
+router.delete("/:id", deleteAdmin);
 
 export default router;

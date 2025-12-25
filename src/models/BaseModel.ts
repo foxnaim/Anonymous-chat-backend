@@ -1,4 +1,4 @@
-import { Document } from 'mongoose';
+import { Document } from "mongoose";
 
 /**
  * Базовый интерфейс для всех документов MongoDB
@@ -17,4 +17,3 @@ export const baseSchemaOptions = {
   timestamps: true, // Автоматически добавляет createdAt и updatedAt
   versionKey: false, // Отключает поле __v
 } as const;
-

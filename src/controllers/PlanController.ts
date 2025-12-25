@@ -1,9 +1,12 @@
-import { Request, Response } from 'express';
-import { asyncHandler } from '../middleware/asyncHandler';
-import { AppError, ErrorCode } from '../utils/AppError';
-import { SubscriptionPlan, ISubscriptionPlan } from '../models/SubscriptionPlan';
-import { FreePlanSettings } from '../models/FreePlanSettings';
-import { cache, CacheManager } from '../utils/cacheRedis';
+import { Request, Response } from "express";
+import { asyncHandler } from "../middleware/asyncHandler";
+import { AppError, ErrorCode } from "../utils/AppError";
+import {
+  SubscriptionPlan,
+  ISubscriptionPlan,
+} from "../models/SubscriptionPlan";
+import { FreePlanSettings } from "../models/FreePlanSettings";
+import { cache, CacheManager } from "../utils/cacheRedis";
 
 // Тип для lean() результата - упрощенный тип для кэширования
 type PlanLean = ISubscriptionPlan;
@@ -15,12 +18,12 @@ async function getFreePlanSettingsFromDB(): Promise<{
   storageLimit: number;
   freePeriodDays: number;
 }> {
-  let settings = await FreePlanSettings.findOne({ settingsId: 'default' });
+  let settings = await FreePlanSettings.findOne({ settingsId: "default" });
 
   if (!settings) {
     // Создаем дефолтные настройки при первом запуске
     settings = await FreePlanSettings.create({
-      settingsId: 'default',
+      settingsId: "default",
       messagesLimit: 10,
       storageLimit: 1,
       freePeriodDays: 60,
@@ -34,120 +37,139 @@ async function getFreePlanSettingsFromDB(): Promise<{
   };
 }
 
-export const getAllPlans = asyncHandler(async (_req: Request, res: Response) => {
-  // Проверяем кэш
-  const cacheKey = 'plans:all';
-  const cachedPlans = await cache.get<PlanLean[]>(cacheKey);
-  if (cachedPlans) {
-    res.json({
-      success: true,
-      data: cachedPlans,
-    });
-    return;
-  }
+export const getAllPlans = asyncHandler(
+  async (_req: Request, res: Response) => {
+    // Проверяем кэш
+    const cacheKey = "plans:all";
+    const cachedPlans = await cache.get<PlanLean[]>(cacheKey);
+    if (cachedPlans) {
+      res.json({
+        success: true,
+        data: cachedPlans,
+      });
+      return;
+    }
 
-  // Получаем настройки бесплатного плана из БД
-  const freePlanSettings = await getFreePlanSettingsFromDB();
+    // Получаем настройки бесплатного плана из БД
+    const freePlanSettings = await getFreePlanSettingsFromDB();
 
-  // Оптимизация: используем lean() и select для производительности
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let plans: any[] = await SubscriptionPlan.find().select('-__v').sort({ price: 1 }).lean().exec();
-
-  // Если планов нет, создаем дефолтные
-  if (plans.length === 0) {
-    const defaultPlans = [
-      {
-        id: 'free',
-        name: { ru: 'Пробный', en: 'Trial', kk: 'Сынақ' },
-        price: 0,
-        messagesLimit: freePlanSettings.messagesLimit,
-        storageLimit: freePlanSettings.storageLimit,
-        isFree: true,
-        freePeriodDays: freePlanSettings.freePeriodDays,
-        features: [
-          {
-            ru: `До ${freePlanSettings.messagesLimit} сообщений в месяц`,
-            en: `Up to ${freePlanSettings.messagesLimit} messages per month`,
-            kk: `Айына ${freePlanSettings.messagesLimit} хабарламаға дейін`,
-          },
-          { ru: 'Приём сообщений', en: 'Receive messages', kk: 'Хабарламаларды қабылдау' },
-          { ru: 'Просмотр сообщений', en: 'View messages', kk: 'Хабарламаларды көру' },
-        ],
-      },
-      {
-        id: 'standard',
-        name: { ru: 'Стандарт', en: 'Standard', kk: 'Стандарт' },
-        price: 2999,
-        messagesLimit: 100,
-        storageLimit: 10,
-        features: [
-          {
-            ru: 'До 100 сообщений в месяц',
-            en: 'Up to 100 messages per month',
-            kk: 'Айына 100 хабарламаға дейін',
-          },
-        ],
-      },
-      {
-        id: 'pro',
-        name: { ru: 'Про', en: 'Pro', kk: 'Про' },
-        price: 9999,
-        messagesLimit: 500,
-        storageLimit: 50,
-        features: [
-          {
-            ru: 'До 500 сообщений в месяц',
-            en: 'Up to 500 messages per month',
-            kk: 'Айына 500 хабарламаға дейін',
-          },
-        ],
-      },
-    ];
-
-    await SubscriptionPlan.insertMany(defaultPlans);
+    // Оптимизация: используем lean() и select для производительности
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    plans = await SubscriptionPlan.find().select('-__v').sort({ price: 1 }).lean().exec();
-  }
+    let plans: any[] = await SubscriptionPlan.find()
+      .select("-__v")
+      .sort({ price: 1 })
+      .lean()
+      .exec();
 
-  // Обновляем freePeriodDays для бесплатного плана из текущих настроек
-  // Это гарантирует, что всегда используется актуальное значение из админки
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  const freePlanIndex = plans.findIndex((p: any) => p.id === 'free' || p.isFree === true);
-  if (freePlanIndex !== -1 && freePlanIndex < plans.length) {
-    // Обновляем в базе данных (нужно найти документ, а не lean объект)
-    const freePlanDoc = await SubscriptionPlan.findOne({
-      $or: [{ id: 'free' }, { isFree: true }],
-    });
-    if (freePlanDoc) {
-      freePlanDoc.freePeriodDays = freePlanSettings.freePeriodDays;
-      freePlanDoc.messagesLimit = freePlanSettings.messagesLimit;
-      await freePlanDoc.save();
+    // Если планов нет, создаем дефолтные
+    if (plans.length === 0) {
+      const defaultPlans = [
+        {
+          id: "free",
+          name: { ru: "Пробный", en: "Trial", kk: "Сынақ" },
+          price: 0,
+          messagesLimit: freePlanSettings.messagesLimit,
+          storageLimit: freePlanSettings.storageLimit,
+          isFree: true,
+          freePeriodDays: freePlanSettings.freePeriodDays,
+          features: [
+            {
+              ru: `До ${freePlanSettings.messagesLimit} сообщений в месяц`,
+              en: `Up to ${freePlanSettings.messagesLimit} messages per month`,
+              kk: `Айына ${freePlanSettings.messagesLimit} хабарламаға дейін`,
+            },
+            {
+              ru: "Приём сообщений",
+              en: "Receive messages",
+              kk: "Хабарламаларды қабылдау",
+            },
+            {
+              ru: "Просмотр сообщений",
+              en: "View messages",
+              kk: "Хабарламаларды көру",
+            },
+          ],
+        },
+        {
+          id: "standard",
+          name: { ru: "Стандарт", en: "Standard", kk: "Стандарт" },
+          price: 2999,
+          messagesLimit: 100,
+          storageLimit: 10,
+          features: [
+            {
+              ru: "До 100 сообщений в месяц",
+              en: "Up to 100 messages per month",
+              kk: "Айына 100 хабарламаға дейін",
+            },
+          ],
+        },
+        {
+          id: "pro",
+          name: { ru: "Про", en: "Pro", kk: "Про" },
+          price: 9999,
+          messagesLimit: 500,
+          storageLimit: 50,
+          features: [
+            {
+              ru: "До 500 сообщений в месяц",
+              en: "Up to 500 messages per month",
+              kk: "Айына 500 хабарламаға дейін",
+            },
+          ],
+        },
+      ];
 
-      // Обновляем в массиве для ответа
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      const planToUpdate = plans[freePlanIndex];
-      if (planToUpdate) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        planToUpdate.freePeriodDays = freePlanSettings.freePeriodDays;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        planToUpdate.messagesLimit = freePlanSettings.messagesLimit;
+      await SubscriptionPlan.insertMany(defaultPlans);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      plans = await SubscriptionPlan.find()
+        .select("-__v")
+        .sort({ price: 1 })
+        .lean()
+        .exec();
+    }
+
+    // Обновляем freePeriodDays для бесплатного плана из текущих настроек
+    // Это гарантирует, что всегда используется актуальное значение из админки
+    const freePlanIndex = plans.findIndex(
+      (p: PlanLean) => p.id === "free" || p.isFree === true,
+    );
+    if (freePlanIndex !== -1 && freePlanIndex < plans.length) {
+      // Обновляем в базе данных (нужно найти документ, а не lean объект)
+      const freePlanDoc = await SubscriptionPlan.findOne({
+        $or: [{ id: "free" }, { isFree: true }],
+      });
+      if (freePlanDoc) {
+        freePlanDoc.freePeriodDays = freePlanSettings.freePeriodDays;
+        freePlanDoc.messagesLimit = freePlanSettings.messagesLimit;
+        await freePlanDoc.save();
+
+        // Обновляем в массиве для ответа
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+        const planToUpdate = plans[freePlanIndex];
+        if (planToUpdate) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          planToUpdate.freePeriodDays = freePlanSettings.freePeriodDays;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          planToUpdate.messagesLimit = freePlanSettings.messagesLimit;
+        }
       }
     }
-  }
 
-  // Кэшируем на 30 минут (планы меняются редко)
-  await cache.set(cacheKey, plans, CacheManager.getTTL('company'));
+    // Кэшируем на 30 минут (планы меняются редко)
+    await cache.set(cacheKey, plans, CacheManager.getTTL("company"));
 
-  res.json({
-    success: true,
-    data: plans,
-  });
-});
+    res.json({
+      success: true,
+      data: plans,
+    });
+  },
+);
 
 export const createPlan = asyncHandler(async (req: Request, res: Response) => {
   // Только админы могут создавать планы
-  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
-    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
+  if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
+    throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
   }
 
   const body = req.body as {
@@ -159,7 +181,15 @@ export const createPlan = asyncHandler(async (req: Request, res: Response) => {
     isFree?: boolean;
     freePeriodDays?: number;
   };
-  const { name, price, messagesLimit, storageLimit, features, isFree, freePeriodDays } = body;
+  const {
+    name,
+    price,
+    messagesLimit,
+    storageLimit,
+    features,
+    isFree,
+    freePeriodDays,
+  } = body;
 
   const planId = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -175,7 +205,7 @@ export const createPlan = asyncHandler(async (req: Request, res: Response) => {
   });
 
   // Инвалидируем кэш планов
-  cache.delete('plans:all');
+  void cache.delete("plans:all");
 
   res.status(201).json({
     success: true,
@@ -183,92 +213,98 @@ export const createPlan = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-export const getFreePlanSettings = asyncHandler(async (_req: Request, res: Response) => {
-  // Проверяем кэш
-  const cacheKey = 'plans:free-settings';
-  const cached = cache.get<{ messagesLimit: number; storageLimit: number; freePeriodDays: number }>(
-    cacheKey
-  );
-  if (cached) {
+export const getFreePlanSettings = asyncHandler(
+  async (_req: Request, res: Response) => {
+    // Проверяем кэш
+    const cacheKey = "plans:free-settings";
+    const cached = await cache.get<{
+      messagesLimit: number;
+      storageLimit: number;
+      freePeriodDays: number;
+    }>(cacheKey);
+    if (cached) {
+      res.json({
+        success: true,
+        data: cached,
+      });
+      return;
+    }
+
+    // Получаем настройки из БД
+    const settings = await getFreePlanSettingsFromDB();
+
+    // Кэшируем на 5 минут (статистика)
+    await cache.set(cacheKey, settings, CacheManager.getTTL("stats"));
+
     res.json({
       success: true,
-      data: cached,
+      data: settings,
     });
-    return;
-  }
+  },
+);
 
-  // Получаем настройки из БД
-  const settings = await getFreePlanSettingsFromDB();
+export const updateFreePlanSettings = asyncHandler(
+  async (req: Request, res: Response) => {
+    // Только админы могут обновлять настройки
+    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
 
-  // Кэшируем на 5 минут (статистика)
-  await cache.set(cacheKey, settings, CacheManager.getTTL('stats'));
+    const body = req.body as {
+      messagesLimit?: number;
+      storageLimit?: number;
+      freePeriodDays?: number;
+    };
+    const { messagesLimit, storageLimit, freePeriodDays } = body;
 
-  res.json({
-    success: true,
-    data: settings,
-  });
-});
+    // Получаем текущие настройки из БД
+    let settings = await FreePlanSettings.findOne({ settingsId: "default" });
 
-export const updateFreePlanSettings = asyncHandler(async (req: Request, res: Response) => {
-  // Только админы могут обновлять настройки
-  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
-    throw new AppError('Access denied', 403, ErrorCode.FORBIDDEN);
-  }
+    if (!settings) {
+      // Создаем новые настройки, если их еще нет
+      settings = await FreePlanSettings.create({
+        settingsId: "default",
+        messagesLimit: messagesLimit ?? 10,
+        storageLimit: storageLimit ?? 1,
+        freePeriodDays: freePeriodDays ?? 60,
+      });
+    } else {
+      // Обновляем только переданные поля
+      if (messagesLimit !== undefined) {
+        settings.messagesLimit = messagesLimit;
+      }
+      if (storageLimit !== undefined) {
+        settings.storageLimit = storageLimit;
+      }
+      if (freePeriodDays !== undefined) {
+        settings.freePeriodDays = freePeriodDays;
+      }
+      await settings.save();
+    }
 
-  const body = req.body as {
-    messagesLimit?: number;
-    storageLimit?: number;
-    freePeriodDays?: number;
-  };
-  const { messagesLimit, storageLimit, freePeriodDays } = body;
-
-  // Получаем текущие настройки из БД
-  let settings = await FreePlanSettings.findOne({ settingsId: 'default' });
-
-  if (!settings) {
-    // Создаем новые настройки, если их еще нет
-    settings = await FreePlanSettings.create({
-      settingsId: 'default',
-      messagesLimit: messagesLimit ?? 10,
-      storageLimit: storageLimit ?? 1,
-      freePeriodDays: freePeriodDays ?? 60,
+    // Обновляем бесплатный план в SubscriptionPlan, если он существует
+    const freePlan = await SubscriptionPlan.findOne({
+      $or: [{ id: "free" }, { isFree: true }],
     });
-  } else {
-    // Обновляем только переданные поля
-    if (messagesLimit !== undefined) {
-      settings.messagesLimit = messagesLimit;
+    if (freePlan) {
+      freePlan.messagesLimit = settings.messagesLimit;
+      freePlan.freePeriodDays = settings.freePeriodDays;
+      await freePlan.save();
     }
-    if (storageLimit !== undefined) {
-      settings.storageLimit = storageLimit;
-    }
-    if (freePeriodDays !== undefined) {
-      settings.freePeriodDays = freePeriodDays;
-    }
-    await settings.save();
-  }
 
-  // Обновляем бесплатный план в SubscriptionPlan, если он существует
-  const freePlan = await SubscriptionPlan.findOne({
-    $or: [{ id: 'free' }, { isFree: true }],
-  });
-  if (freePlan) {
-    freePlan.messagesLimit = settings.messagesLimit;
-    freePlan.freePeriodDays = settings.freePeriodDays;
-    await freePlan.save();
-  }
+    // Инвалидируем кэш
+    void cache.delete("plans:free-settings");
+    void cache.delete("plans:all"); // Также инвалидируем кэш всех планов
 
-  // Инвалидируем кэш
-  cache.delete('plans:free-settings');
-  cache.delete('plans:all'); // Также инвалидируем кэш всех планов
+    const responseData = {
+      messagesLimit: settings.messagesLimit,
+      storageLimit: settings.storageLimit,
+      freePeriodDays: settings.freePeriodDays,
+    };
 
-  const responseData = {
-    messagesLimit: settings.messagesLimit,
-    storageLimit: settings.storageLimit,
-    freePeriodDays: settings.freePeriodDays,
-  };
-
-  res.json({
-    success: true,
-    data: responseData,
-  });
-});
+    res.json({
+      success: true,
+      data: responseData,
+    });
+  },
+);

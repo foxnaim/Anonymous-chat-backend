@@ -7,7 +7,7 @@ export class AppError extends Error {
     message: string,
     statusCode: number = 500,
     code?: string,
-    isOperational: boolean = true
+    isOperational: boolean = true,
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -19,11 +19,11 @@ export class AppError extends Error {
 }
 
 export enum ErrorCode {
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  NOT_FOUND = 'NOT_FOUND',
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  FORBIDDEN = 'FORBIDDEN',
-  CONFLICT = 'CONFLICT',
-  INTERNAL_ERROR = 'INTERNAL_ERROR',
-  BAD_REQUEST = 'BAD_REQUEST',
+  VALIDATION_ERROR = "VALIDATION_ERROR",
+  NOT_FOUND = "NOT_FOUND",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  CONFLICT = "CONFLICT",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+  BAD_REQUEST = "BAD_REQUEST",
 }

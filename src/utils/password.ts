@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 const SALT_ROUNDS = 10;
 
@@ -9,7 +9,7 @@ export const hashPassword = async (password: string): Promise<string> => {
 
 export const comparePassword = async (
   password: string,
-  hashedPassword: string
+  hashedPassword: string,
 ): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
 };
@@ -18,14 +18,14 @@ export const comparePassword = async (
  * Генерирует случайный токен для сброса пароля
  */
 export const generateResetToken = (): string => {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 };
 
 /**
  * Хеширует токен сброса пароля для безопасного хранения
  */
 export const hashResetToken = (token: string): string => {
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto.createHash("sha256").update(token).digest("hex");
 };
 
 /**
@@ -34,14 +34,14 @@ export const hashResetToken = (token: string): string => {
  * @returns случайный пароль, содержащий буквы (верхний и нижний регистр), цифры и специальные символы
  */
 export const generateSecurePassword = (length: number = 12): string => {
-  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-  const numbers = '0123456789';
-  const symbols = '!@#$%^&*';
+  const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const lowercase = "abcdefghijklmnopqrstuvwxyz";
+  const numbers = "0123456789";
+  const symbols = "!@#$%^&*";
   const allChars = uppercase + lowercase + numbers + symbols;
 
   // Гарантируем наличие хотя бы одного символа каждого типа
-  let password = '';
+  let password = "";
   password += uppercase[Math.floor(Math.random() * uppercase.length)];
   password += lowercase[Math.floor(Math.random() * lowercase.length)];
   password += numbers[Math.floor(Math.random() * numbers.length)];
@@ -54,9 +54,9 @@ export const generateSecurePassword = (length: number = 12): string => {
 
   // Перемешиваем символы для большей случайности
   return password
-    .split('')
+    .split("")
     .sort(() => Math.random() - 0.5)
-    .join('');
+    .join("");
 };
 
 /**
@@ -74,15 +74,17 @@ let dailyPasswordCache: DailyPasswordCache | null = null;
  * Генерирует seed для пароля на основе даты
  */
 const generatePasswordSeed = (dateStr: string): number => {
-  return dateStr.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+  return dateStr
+    .split("")
+    .reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
 };
 
 /**
  * Генерирует буквенно-цифровой пароль на основе seed
  */
 const generatePasswordFromSeed = (seed: number, length: number): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let password = '';
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let password = "";
   let currentSeed = Math.abs(seed);
 
   for (let i = 0; i < length; i++) {
@@ -98,7 +100,7 @@ const generatePasswordFromSeed = (seed: number, length: number): string => {
  */
 const getCurrentDateKey = (): string => {
   const today = new Date();
-  return `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(today.getUTCDate()).padStart(2, '0')}`;
+  return `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`;
 };
 
 /**
@@ -121,7 +123,7 @@ export const generateDailyPassword = (length: number = 10): string => {
 
   // Если кэш устарел или отсутствует, генерируем новый пароль
   const today = new Date();
-  const dateStr = `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, '0')}${String(today.getUTCDate()).padStart(2, '0')}`;
+  const dateStr = `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, "0")}${String(today.getUTCDate()).padStart(2, "0")}`;
 
   const seed = generatePasswordSeed(dateStr);
   const password = generatePasswordFromSeed(seed, length);

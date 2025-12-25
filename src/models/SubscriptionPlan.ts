@@ -1,5 +1,5 @@
-import { Schema, model } from 'mongoose';
-import { BaseDocument, baseSchemaOptions } from './BaseModel';
+import { Schema, model } from "mongoose";
+import { BaseDocument, baseSchemaOptions } from "./BaseModel";
 
 export interface TranslatedString {
   ru: string;
@@ -57,10 +57,10 @@ const subscriptionPlanSchema = new Schema<ISubscriptionPlan>(
       min: 0,
     },
   },
-  baseSchemaOptions
+  baseSchemaOptions,
 );
 
 export const SubscriptionPlan = model<ISubscriptionPlan>(
-  'SubscriptionPlan',
-  subscriptionPlanSchema
+  "SubscriptionPlan",
+  subscriptionPlanSchema,
 );

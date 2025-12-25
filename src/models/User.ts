@@ -1,7 +1,7 @@
-import { Schema, model, Types } from 'mongoose';
-import { BaseDocument, baseSchemaOptions } from './BaseModel';
+import { Schema, model, Types } from "mongoose";
+import { BaseDocument, baseSchemaOptions } from "./BaseModel";
 
-export type UserRole = 'user' | 'company' | 'admin' | 'super_admin';
+export type UserRole = "user" | "company" | "admin" | "super_admin";
 
 export interface IUser extends BaseDocument {
   _id: Types.ObjectId;
@@ -31,13 +31,13 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['user', 'company', 'admin', 'super_admin'],
+      enum: ["user", "company", "admin", "super_admin"],
       required: true,
-      default: 'user',
+      default: "user",
     },
     companyId: {
       type: Schema.Types.ObjectId,
-      ref: 'Company',
+      ref: "Company",
     },
     name: {
       type: String,
@@ -55,7 +55,7 @@ const userSchema = new Schema<IUser>(
       select: false,
     },
   },
-  baseSchemaOptions
+  baseSchemaOptions,
 );
 
 // Индексы для оптимизации запросов
@@ -65,4 +65,4 @@ userSchema.index({ companyId: 1 });
 // Составной индекс для частых запросов: найти пользователей компании с определенной ролью
 userSchema.index({ companyId: 1, role: 1 });
 
-export const User = model<IUser>('User', userSchema);
+export const User = model<IUser>("User", userSchema);

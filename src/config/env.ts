@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -33,43 +33,53 @@ const getEnvVar = (key: string, defaultValue?: string): string => {
   if (!value && !defaultValue) {
     throw new Error(`Environment variable ${key} is not set`);
   }
-  return value || defaultValue || '';
+  return value || defaultValue || "";
 };
 
 // Проверка критичных переменных окружения в production
-const nodeEnv = getEnvVar('NODE_ENV', 'development');
-if (nodeEnv === 'production') {
+const nodeEnv = getEnvVar("NODE_ENV", "development");
+if (nodeEnv === "production") {
   const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret || jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < 32) {
+  if (
+    !jwtSecret ||
+    jwtSecret === "your-secret-key-change-in-production" ||
+    jwtSecret.length < 32
+  ) {
     throw new Error(
-      '❌ КРИТИЧЕСКАЯ ОШИБКА БЕЗОПАСНОСТИ: JWT_SECRET должен быть установлен и содержать минимум 32 символа в production режиме!\n' +
-        "Сгенерируйте безопасный секрет: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\""
+      "❌ КРИТИЧЕСКАЯ ОШИБКА БЕЗОПАСНОСТИ: JWT_SECRET должен быть установлен и содержать минимум 32 символа в production режиме!\n" +
+        "Сгенерируйте безопасный секрет: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"",
     );
   }
 }
 
 export const config: EnvConfig = {
   nodeEnv,
-  port: parseInt(getEnvVar('PORT', '3001'), 10),
-  mongodbUri: getEnvVar('MONGODB_URI', 'mongodb://localhost:27017/anonymous-chat'),
-  frontendUrl: getEnvVar('FRONTEND_URL', 'http://localhost:3000'),
-  rateLimitWindowMs: parseInt(getEnvVar('RATE_LIMIT_WINDOW_MS', '900000'), 10),
-  rateLimitMaxRequests: parseInt(getEnvVar('RATE_LIMIT_MAX_REQUESTS', '100'), 10),
+  port: parseInt(getEnvVar("PORT", "3001"), 10),
+  mongodbUri: getEnvVar(
+    "MONGODB_URI",
+    "mongodb://localhost:27017/anonymous-chat",
+  ),
+  frontendUrl: getEnvVar("FRONTEND_URL", "http://localhost:3000"),
+  rateLimitWindowMs: parseInt(getEnvVar("RATE_LIMIT_WINDOW_MS", "900000"), 10),
+  rateLimitMaxRequests: parseInt(
+    getEnvVar("RATE_LIMIT_MAX_REQUESTS", "100"),
+    10,
+  ),
   sentryDsn: process.env.SENTRY_DSN,
-  sentryEnvironment: getEnvVar('SENTRY_ENVIRONMENT', 'development'),
-  logLevel: getEnvVar('LOG_LEVEL', 'info'),
-  jwtSecret: getEnvVar('JWT_SECRET', 'your-secret-key-change-in-production'),
-  jwtExpiresIn: getEnvVar('JWT_EXPIRES_IN', '7d'),
+  sentryEnvironment: getEnvVar("SENTRY_ENVIRONMENT", "development"),
+  logLevel: getEnvVar("LOG_LEVEL", "info"),
+  jwtSecret: getEnvVar("JWT_SECRET", "your-secret-key-change-in-production"),
+  jwtExpiresIn: getEnvVar("JWT_EXPIRES_IN", "7d"),
   // Email/SMTP настройки
   smtpHost: process.env.SMTP_HOST,
-  smtpPort: parseInt(getEnvVar('SMTP_PORT', '587'), 10),
+  smtpPort: parseInt(getEnvVar("SMTP_PORT", "587"), 10),
   smtpUser: process.env.SMTP_USER,
   smtpPassword: process.env.SMTP_PASSWORD,
   smtpFrom: process.env.SMTP_FROM,
-  smtpSecure: getEnvVar('SMTP_SECURE', 'false') === 'true',
+  smtpSecure: getEnvVar("SMTP_SECURE", "false") === "true",
   // Redis настройки
-  redisHost: getEnvVar('REDIS_HOST', 'localhost'),
-  redisPort: parseInt(getEnvVar('REDIS_PORT', '6379'), 10),
+  redisHost: getEnvVar("REDIS_HOST", "localhost"),
+  redisPort: parseInt(getEnvVar("REDIS_PORT", "6379"), 10),
   redisPassword: process.env.REDIS_PASSWORD,
-  redisEnabled: getEnvVar('REDIS_ENABLED', 'false') === 'true',
+  redisEnabled: getEnvVar("REDIS_ENABLED", "false") === "true",
 };

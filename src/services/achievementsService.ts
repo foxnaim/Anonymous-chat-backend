@@ -1,16 +1,16 @@
-import { Message } from '../models/Message';
-import { Company } from '../models/Company';
-import { IMessage } from '../models/Message';
-import { ICompany } from '../models/Company';
+import { Message } from "../models/Message";
+import { Company } from "../models/Company";
+import { IMessage } from "../models/Message";
+import { ICompany } from "../models/Company";
 
 // Типы для достижений (адаптированы из фронтенда)
 export type AchievementCategory =
-  | 'reviews'
-  | 'resolved'
-  | 'response_speed'
-  | 'activity'
-  | 'quality'
-  | 'longevity';
+  | "reviews"
+  | "resolved"
+  | "response_speed"
+  | "activity"
+  | "quality"
+  | "longevity";
 
 export interface Achievement {
   id: string;
@@ -95,7 +95,7 @@ const LONGEVITY_LEVELS = [
 function createAchievementsFromLevels(
   category: AchievementCategory,
   levels: Array<{ level: number; target: number }>,
-  baseOrder: number
+  baseOrder: number,
 ): Achievement[] {
   return levels.map((level, index) => ({
     id: `${category}_level_${level.level}`,
@@ -109,12 +109,12 @@ function createAchievementsFromLevels(
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  ...createAchievementsFromLevels('reviews', REVIEWS_LEVELS, 1),
-  ...createAchievementsFromLevels('resolved', RESOLVED_LEVELS, 100),
-  ...createAchievementsFromLevels('response_speed', RESPONSE_SPEED_LEVELS, 200),
-  ...createAchievementsFromLevels('activity', ACTIVITY_LEVELS, 300),
-  ...createAchievementsFromLevels('quality', QUALITY_LEVELS, 400),
-  ...createAchievementsFromLevels('longevity', LONGEVITY_LEVELS, 500),
+  ...createAchievementsFromLevels("reviews", REVIEWS_LEVELS, 1),
+  ...createAchievementsFromLevels("resolved", RESOLVED_LEVELS, 100),
+  ...createAchievementsFromLevels("response_speed", RESPONSE_SPEED_LEVELS, 200),
+  ...createAchievementsFromLevels("activity", ACTIVITY_LEVELS, 300),
+  ...createAchievementsFromLevels("quality", QUALITY_LEVELS, 400),
+  ...createAchievementsFromLevels("longevity", LONGEVITY_LEVELS, 500),
 ];
 
 interface CompanyAchievementData {
@@ -142,21 +142,26 @@ interface CompanyAchievementData {
   longevityMonths: number;
 }
 
-function calculateCompanyStats(messages: IMessage[], company: ICompany): CompanyAchievementData {
+function calculateCompanyStats(
+  messages: IMessage[],
+  company: ICompany,
+): CompanyAchievementData {
   const now = new Date();
   const totalMessages = messages.length;
-  const resolvedMessages = messages.filter(m => m.status === 'Решено').length;
+  const resolvedMessages = messages.filter((m) => m.status === "Решено").length;
 
   // Расчет скорости ответа
   let fast = 0;
   let medium = 0;
   let normal = 0;
 
-  messages.forEach(msg => {
+  messages.forEach((msg) => {
     if (msg.companyResponse && msg.updatedAt) {
       const created = new Date(msg.createdAt);
       const updated = new Date(msg.updatedAt);
-      const daysDiff = Math.floor((updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.floor(
+        (updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24),
+      );
       if (daysDiff <= 1) fast++;
       else if (daysDiff <= 3) medium++;
       else if (daysDiff <= 7) normal++;
@@ -168,35 +173,43 @@ function calculateCompanyStats(messages: IMessage[], company: ICompany): Company
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
 
-  const messagesThisMonth = messages.filter(m => new Date(m.createdAt) >= thisMonth).length;
+  const messagesThisMonth = messages.filter(
+    (m) => new Date(m.createdAt) >= thisMonth,
+  ).length;
   const messagesLastMonth = messages.filter(
-    m => new Date(m.createdAt) >= lastMonth && new Date(m.createdAt) < thisMonth
+    (m) =>
+      new Date(m.createdAt) >= lastMonth && new Date(m.createdAt) < thisMonth,
   ).length;
   const messagesTwoMonthsAgo = messages.filter(
-    m => new Date(m.createdAt) >= twoMonthsAgo && new Date(m.createdAt) < lastMonth
+    (m) =>
+      new Date(m.createdAt) >= twoMonthsAgo &&
+      new Date(m.createdAt) < lastMonth,
   ).length;
 
   const complaintsThisMonth = messages.filter(
-    m => m.type === 'complaint' && new Date(m.createdAt) >= thisMonth
+    (m) => m.type === "complaint" && new Date(m.createdAt) >= thisMonth,
   ).length;
   const complaintsLastMonth = messages.filter(
-    m =>
-      m.type === 'complaint' &&
+    (m) =>
+      m.type === "complaint" &&
       new Date(m.createdAt) >= lastMonth &&
-      new Date(m.createdAt) < thisMonth
+      new Date(m.createdAt) < thisMonth,
   ).length;
 
   // Расчет качества
-  const complaints = messages.filter(m => m.type === 'complaint').length;
+  const complaints = messages.filter((m) => m.type === "complaint").length;
   const resolvedComplaints = messages.filter(
-    m => m.type === 'complaint' && m.status === 'Решено'
+    (m) => m.type === "complaint" && m.status === "Решено",
   ).length;
-  const resolutionRate = complaints > 0 ? Math.round((resolvedComplaints / complaints) * 100) : 0;
+  const resolutionRate =
+    complaints > 0 ? Math.round((resolvedComplaints / complaints) * 100) : 0;
 
-  const praisesCount = messages.filter(m => m.type === 'praise').length;
-  const suggestions = messages.filter(m => m.type === 'suggestion').length;
+  const praisesCount = messages.filter((m) => m.type === "praise").length;
+  const suggestions = messages.filter((m) => m.type === "suggestion").length;
   const positiveRatio =
-    totalMessages > 0 ? Math.round(((praisesCount + suggestions) / totalMessages) * 100) : 0;
+    totalMessages > 0
+      ? Math.round(((praisesCount + suggestions) / totalMessages) * 100)
+      : 0;
 
   // Расчет долгосрочности
   const registeredDate = new Date(company.registered);
@@ -229,41 +242,43 @@ function calculateCompanyStats(messages: IMessage[], company: ICompany): Company
 
 function calculateAchievementProgress(
   achievement: Achievement,
-  data: CompanyAchievementData
+  data: CompanyAchievementData,
 ): AchievementProgress {
   let current = 0;
   let completed = false;
 
   switch (achievement.category) {
-    case 'reviews':
+    case "reviews":
       current = data.totalMessages;
       completed = current >= achievement.target;
       break;
 
-    case 'resolved':
+    case "resolved":
       current = data.resolvedMessages;
       completed = current >= achievement.target;
       break;
 
-    case 'response_speed':
+    case "response_speed":
       current = data.responseSpeedStats.fast;
       completed = current >= achievement.target;
       break;
 
-    case 'activity':
-      if (achievement.id === 'activity_level_1') {
+    case "activity":
+      if (achievement.id === "activity_level_1") {
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-        const messagesThisWeek = data.messages.filter(m => new Date(m.createdAt) >= weekAgo).length;
+        const messagesThisWeek = data.messages.filter(
+          (m) => new Date(m.createdAt) >= weekAgo,
+        ).length;
         current = messagesThisWeek >= 5 ? 1 : 0;
         completed = current >= achievement.target;
-      } else if (achievement.id === 'activity_level_2') {
+      } else if (achievement.id === "activity_level_2") {
         current = data.activityStats.messagesThisMonth >= 10 ? 1 : 0;
         completed = current >= achievement.target;
-      } else if (achievement.id === 'activity_level_3') {
+      } else if (achievement.id === "activity_level_3") {
         current = data.activityStats.complaintsThisMonth === 0 ? 1 : 0;
         completed = current >= achievement.target;
-      } else if (achievement.id === 'activity_level_4') {
+      } else if (achievement.id === "activity_level_4") {
         const hasThisMonth = data.activityStats.messagesThisMonth >= 5;
         const hasLastMonth = data.activityStats.messagesLastMonth >= 5;
         const hasTwoMonthsAgo = data.activityStats.messagesTwoMonthsAgo >= 5;
@@ -272,30 +287,30 @@ function calculateAchievementProgress(
       }
       break;
 
-    case 'quality':
+    case "quality":
       if (
-        achievement.id?.startsWith('quality_level_1') ||
-        achievement.id?.startsWith('quality_level_2') ||
-        achievement.id?.startsWith('quality_level_3')
+        achievement.id?.startsWith("quality_level_1") ||
+        achievement.id?.startsWith("quality_level_2") ||
+        achievement.id?.startsWith("quality_level_3")
       ) {
         current = data.qualityStats.praisesCount;
         completed = current >= achievement.target;
       } else if (
-        achievement.id?.startsWith('quality_level_4') ||
-        achievement.id?.startsWith('quality_level_5')
+        achievement.id?.startsWith("quality_level_4") ||
+        achievement.id?.startsWith("quality_level_5")
       ) {
         current = data.qualityStats.positiveRatio;
         completed = current >= achievement.target;
-      } else if (achievement.id?.startsWith('quality_level_6')) {
+      } else if (achievement.id?.startsWith("quality_level_6")) {
         current = data.qualityStats.resolutionRate;
         completed = current >= achievement.target;
-      } else if (achievement.id?.startsWith('quality_level_7')) {
+      } else if (achievement.id?.startsWith("quality_level_7")) {
         current = data.qualityStats.resolutionRate;
         completed = current >= achievement.target;
       }
       break;
 
-    case 'longevity':
+    case "longevity":
       current = data.longevityMonths;
       completed = current >= achievement.target;
       break;
@@ -312,11 +327,13 @@ function calculateAchievementProgress(
     current,
     progress,
     completed,
-    completedAt: completed ? new Date().toISOString().split('T')[0] : undefined,
+    completedAt: completed ? new Date().toISOString().split("T")[0] : undefined,
   };
 }
 
-export async function getCompanyAchievements(companyId: string): Promise<AchievementProgress[]> {
+export async function getCompanyAchievements(
+  companyId: string,
+): Promise<AchievementProgress[]> {
   const company = await Company.findById(companyId);
   if (!company) {
     return [];
@@ -325,17 +342,17 @@ export async function getCompanyAchievements(companyId: string): Promise<Achieve
   const messages = await Message.find({ companyCode: company.code });
   const stats = calculateCompanyStats(messages, company);
 
-  return ACHIEVEMENTS.map(achievement => calculateAchievementProgress(achievement, stats)).sort(
-    (a, b) => {
-      if (a.completed !== b.completed) {
-        return a.completed ? -1 : 1;
-      }
-      if (a.progress !== b.progress) {
-        return b.progress - a.progress;
-      }
-      return a.achievement.order - b.achievement.order;
+  return ACHIEVEMENTS.map((achievement) =>
+    calculateAchievementProgress(achievement, stats),
+  ).sort((a, b) => {
+    if (a.completed !== b.completed) {
+      return a.completed ? -1 : 1;
     }
-  );
+    if (a.progress !== b.progress) {
+      return b.progress - a.progress;
+    }
+    return a.achievement.order - b.achievement.order;
+  });
 }
 
 export interface GroupedAchievements {
@@ -346,7 +363,9 @@ export interface GroupedAchievements {
   maxLevel: number;
 }
 
-export async function getGroupedAchievements(companyId: string): Promise<GroupedAchievements[]> {
+export async function getGroupedAchievements(
+  companyId: string,
+): Promise<GroupedAchievements[]> {
   const company = await Company.findById(companyId);
   if (!company) {
     return [];
@@ -354,12 +373,12 @@ export async function getGroupedAchievements(companyId: string): Promise<Grouped
 
   const messages = await Message.find({ companyCode: company.code });
   const stats = calculateCompanyStats(messages, company);
-  const allProgress = ACHIEVEMENTS.map(achievement =>
-    calculateAchievementProgress(achievement, stats)
+  const allProgress = ACHIEVEMENTS.map((achievement) =>
+    calculateAchievementProgress(achievement, stats),
   );
 
   const grouped: Record<string, AchievementProgress[]> = {};
-  allProgress.forEach(progress => {
+  allProgress.forEach((progress) => {
     const category = progress.achievement.category;
     if (!grouped[category]) {
       grouped[category] = [];
@@ -368,12 +387,12 @@ export async function getGroupedAchievements(companyId: string): Promise<Grouped
   });
 
   const categoryTitles: Record<string, string> = {
-    reviews: 'company.achievement.category.reviews',
-    resolved: 'company.achievement.category.resolved',
-    response_speed: 'company.achievement.category.responseSpeed',
-    activity: 'company.achievement.category.activity',
-    quality: 'company.achievement.category.quality',
-    longevity: 'company.achievement.category.longevity',
+    reviews: "company.achievement.category.reviews",
+    resolved: "company.achievement.category.resolved",
+    response_speed: "company.achievement.category.responseSpeed",
+    activity: "company.achievement.category.activity",
+    quality: "company.achievement.category.quality",
+    longevity: "company.achievement.category.longevity",
   };
 
   return Object.entries(grouped)
@@ -390,12 +409,17 @@ export async function getGroupedAchievements(companyId: string): Promise<Grouped
           currentLevel = Math.max(currentLevel, ach.achievement.level || 0);
         }
       }
-      const nextIncomplete = achievements.find(a => !a.completed);
+      const nextIncomplete = achievements.find((a) => !a.completed);
       if (nextIncomplete) {
-        currentLevel = Math.max(currentLevel, (nextIncomplete.achievement.level || 1) - 1);
+        currentLevel = Math.max(
+          currentLevel,
+          (nextIncomplete.achievement.level || 1) - 1,
+        );
       }
 
-      const maxLevel = Math.max(...achievements.map(a => a.achievement.level || 0));
+      const maxLevel = Math.max(
+        ...achievements.map((a) => a.achievement.level || 0),
+      );
 
       return {
         category: category as AchievementCategory,
@@ -406,8 +430,8 @@ export async function getGroupedAchievements(companyId: string): Promise<Grouped
       };
     })
     .sort((a, b) => {
-      const aHasProgress = a.achievements.some(ach => ach.progress > 0);
-      const bHasProgress = b.achievements.some(ach => ach.progress > 0);
+      const aHasProgress = a.achievements.some((ach) => ach.progress > 0);
+      const bHasProgress = b.achievements.some((ach) => ach.progress > 0);
       if (aHasProgress !== bHasProgress) {
         return aHasProgress ? -1 : 1;
       }

@@ -3,7 +3,7 @@
  * Защита от XSS атак
  */
 
-import sanitizeHtml from 'sanitize-html';
+import sanitizeHtml from "sanitize-html";
 
 /**
  * Санитизирует HTML контент, удаляя опасные теги и атрибуты
@@ -12,33 +12,33 @@ import sanitizeHtml from 'sanitize-html';
 export const sanitizeMessageContent = (content: string): string => {
   return sanitizeHtml(content, {
     allowedTags: [
-      'p',
-      'br',
-      'strong',
-      'em',
-      'u',
-      's',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'ul',
-      'ol',
-      'li',
-      'blockquote',
-      'code',
-      'pre',
+      "p",
+      "br",
+      "strong",
+      "em",
+      "u",
+      "s",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "ul",
+      "ol",
+      "li",
+      "blockquote",
+      "code",
+      "pre",
     ],
     allowedAttributes: {},
     allowedStyles: {},
     // Запрещаем все скрипты и события
-    disallowedTagsMode: 'discard',
+    disallowedTagsMode: "discard",
     // Максимальная длина контента после санитизации
     textFilter: (text: string) => {
       // Удаляем множественные пробелы и переносы строк
-      return text.replace(/\s+/g, ' ').trim();
+      return text.replace(/\s+/g, " ").trim();
     },
   });
 };

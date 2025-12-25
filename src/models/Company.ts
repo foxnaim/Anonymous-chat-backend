@@ -1,7 +1,7 @@
-import { Schema, model, Types } from 'mongoose';
-import { BaseDocument, baseSchemaOptions } from './BaseModel';
+import { Schema, model, Types } from "mongoose";
+import { BaseDocument, baseSchemaOptions } from "./BaseModel";
 
-export type CompanyStatus = 'Активна' | 'Пробная' | 'Заблокирована';
+export type CompanyStatus = "Активна" | "Пробная" | "Заблокирована";
 
 export interface ICompany extends BaseDocument {
   _id: Types.ObjectId;
@@ -37,7 +37,8 @@ const companySchema = new Schema<ICompany>(
       trim: true,
       validate: {
         validator: (v: string): boolean => /^[A-Z0-9]{8}$/.test(v),
-        message: 'Company code must be exactly 8 uppercase alphanumeric characters',
+        message:
+          "Company code must be exactly 8 uppercase alphanumeric characters",
       },
     },
     adminEmail: {
@@ -48,14 +49,14 @@ const companySchema = new Schema<ICompany>(
     },
     status: {
       type: String,
-      enum: ['Активна', 'Пробная', 'Заблокирована'],
+      enum: ["Активна", "Пробная", "Заблокирована"],
       required: true,
-      default: 'Активна',
+      default: "Активна",
     },
     plan: {
       type: String,
       required: true,
-      default: 'Бесплатный',
+      default: "Бесплатный",
     },
     registered: {
       type: String,
@@ -103,7 +104,7 @@ const companySchema = new Schema<ICompany>(
       default: false,
     },
   },
-  baseSchemaOptions
+  baseSchemaOptions,
 );
 
 // Индексы для оптимизации запросов
@@ -115,4 +116,4 @@ companySchema.index({ name: 1 }); // Для поиска по имени
 // Составной индекс для частых запросов: фильтрация по статусу с сортировкой по дате
 companySchema.index({ status: 1, createdAt: -1 });
 
-export const Company = model<ICompany>('Company', companySchema);
+export const Company = model<ICompany>("Company", companySchema);

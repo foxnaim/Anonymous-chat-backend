@@ -1,13 +1,16 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   getAllPlans,
   createPlan,
   getFreePlanSettings,
   updateFreePlanSettings,
-} from '../controllers/PlanController';
-import { validate } from '../middleware/validation';
-import { createPlanSchema, updateFreePlanSettingsSchema } from '../validators/planValidator';
-import { authenticate, authorize } from '../middleware/auth';
+} from "../controllers/PlanController";
+import { validate } from "../middleware/validation";
+import {
+  createPlanSchema,
+  updateFreePlanSettingsSchema,
+} from "../validators/planValidator";
+import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
 
@@ -21,7 +24,7 @@ const router = Router();
  *       200:
  *         description: Список планов
  */
-router.get('/', getAllPlans);
+router.get("/", getAllPlans);
 
 /**
  * @swagger
@@ -51,7 +54,7 @@ router.get('/', getAllPlans);
  *                       type: integer
  */
 // Получение настроек бесплатного плана - публичный endpoint (нужен для страницы регистрации)
-router.get('/free-settings', getFreePlanSettings);
+router.get("/free-settings", getFreePlanSettings);
 
 // Остальные роуты требуют аутентификации
 router.use((req, res, next) => {
@@ -99,7 +102,12 @@ router.use((req, res, next) => {
  *       403:
  *         description: Запрещено
  */
-router.post('/', authorize('admin', 'super_admin'), validate(createPlanSchema), createPlan);
+router.post(
+  "/",
+  authorize("admin", "super_admin"),
+  validate(createPlanSchema),
+  createPlan,
+);
 
 /**
  * @swagger
@@ -133,10 +141,10 @@ router.post('/', authorize('admin', 'super_admin'), validate(createPlanSchema), 
  *         description: Запрещено
  */
 router.put(
-  '/free-settings',
-  authorize('admin', 'super_admin'),
+  "/free-settings",
+  authorize("admin", "super_admin"),
   validate(updateFreePlanSettingsSchema),
-  updateFreePlanSettings
+  updateFreePlanSettings,
 );
 
 export default router;

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   getCompanyStatsController,
   getMessageDistributionController,
@@ -6,15 +6,15 @@ import {
   getAchievementsController,
   getGroupedAchievementsController,
   getPlatformStatsController,
-} from '../controllers/StatsController';
-import { validate } from '../middleware/validation';
+} from "../controllers/StatsController";
+import { validate } from "../middleware/validation";
 import {
   getCompanyStatsSchema,
   getMessageDistributionSchema,
   getGrowthMetricsSchema,
   getAchievementsSchema,
-} from '../validators/statsValidator';
-import { authenticate } from '../middleware/auth';
+} from "../validators/statsValidator";
+import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
@@ -42,7 +42,11 @@ router.use((req, res, next) => {
  *       200:
  *         description: Статистика компании
  */
-router.get('/company/:id', validate(getCompanyStatsSchema), getCompanyStatsController);
+router.get(
+  "/company/:id",
+  validate(getCompanyStatsSchema),
+  getCompanyStatsController,
+);
 
 /**
  * @swagger
@@ -64,9 +68,9 @@ router.get('/company/:id', validate(getCompanyStatsSchema), getCompanyStatsContr
  *         description: Данные распределения сообщений
  */
 router.get(
-  '/distribution/:id',
+  "/distribution/:id",
   validate(getMessageDistributionSchema),
-  getMessageDistributionController
+  getMessageDistributionController,
 );
 
 /**
@@ -88,7 +92,11 @@ router.get(
  *       200:
  *         description: Метрики роста
  */
-router.get('/growth/:id', validate(getGrowthMetricsSchema), getGrowthMetricsController);
+router.get(
+  "/growth/:id",
+  validate(getGrowthMetricsSchema),
+  getGrowthMetricsController,
+);
 
 /**
  * @swagger
@@ -109,7 +117,11 @@ router.get('/growth/:id', validate(getGrowthMetricsSchema), getGrowthMetricsCont
  *       200:
  *         description: Данные достижений
  */
-router.get('/achievements/:id', validate(getAchievementsSchema), getAchievementsController);
+router.get(
+  "/achievements/:id",
+  validate(getAchievementsSchema),
+  getAchievementsController,
+);
 
 /**
  * @swagger
@@ -131,9 +143,9 @@ router.get('/achievements/:id', validate(getAchievementsSchema), getAchievements
  *         description: Данные сгруппированных достижений
  */
 router.get(
-  '/achievements/:id/grouped',
+  "/achievements/:id/grouped",
   validate(getAchievementsSchema),
-  getGroupedAchievementsController
+  getGroupedAchievementsController,
 );
 
 /**
@@ -148,6 +160,6 @@ router.get(
  *       200:
  *         description: Статистика платформы
  */
-router.get('/platform', getPlatformStatsController);
+router.get("/platform", getPlatformStatsController);
 
 export default router;

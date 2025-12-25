@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   getAllMessages,
   getMessageById,
@@ -6,16 +6,16 @@ import {
   updateMessageStatus,
   moderateMessage,
   deleteMessage,
-} from '../controllers/MessageController';
-import { validate } from '../middleware/validation';
+} from "../controllers/MessageController";
+import { validate } from "../middleware/validation";
 import {
   createMessageSchema,
   updateMessageStatusSchema,
   getMessagesSchema,
   getMessageByIdSchema,
   moderateMessageSchema,
-} from '../validators/messageValidator';
-import { authenticate } from '../middleware/auth';
+} from "../validators/messageValidator";
+import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
@@ -55,7 +55,7 @@ const router = Router();
  *         description: Компания не найдена
  */
 // Создание сообщения - публичный endpoint (анонимные сообщения)
-router.post('/', validate(createMessageSchema), createMessage);
+router.post("/", validate(createMessageSchema), createMessage);
 
 // Остальные роуты требуют аутентификации
 router.use((req, res, next) => {
@@ -118,7 +118,7 @@ router.use((req, res, next) => {
  *                     totalPages:
  *                       type: integer
  */
-router.get('/', validate(getMessagesSchema), getAllMessages);
+router.get("/", validate(getMessagesSchema), getAllMessages);
 
 /**
  * @swagger
@@ -141,7 +141,7 @@ router.get('/', validate(getMessagesSchema), getAllMessages);
  *       404:
  *         description: Сообщение не найдено
  */
-router.get('/:id', validate(getMessageByIdSchema), getMessageById);
+router.get("/:id", validate(getMessageByIdSchema), getMessageById);
 
 /**
  * @swagger
@@ -179,7 +179,11 @@ router.get('/:id', validate(getMessageByIdSchema), getMessageById);
  *       404:
  *         description: Сообщение не найдено
  */
-router.put('/:id/status', validate(updateMessageStatusSchema), updateMessageStatus);
+router.put(
+  "/:id/status",
+  validate(updateMessageStatusSchema),
+  updateMessageStatus,
+);
 
 /**
  * @swagger
@@ -217,7 +221,7 @@ router.put('/:id/status', validate(updateMessageStatusSchema), updateMessageStat
  *       404:
  *         description: Сообщение не найдено
  */
-router.post('/:id/moderate', validate(moderateMessageSchema), moderateMessage);
+router.post("/:id/moderate", validate(moderateMessageSchema), moderateMessage);
 
 /**
  * @swagger
@@ -242,6 +246,6 @@ router.post('/:id/moderate', validate(moderateMessageSchema), moderateMessage);
  *       404:
  *         description: Сообщение не найдено
  */
-router.delete('/:id', validate(getMessageByIdSchema), deleteMessage);
+router.delete("/:id", validate(getMessageByIdSchema), deleteMessage);
 
 export default router;

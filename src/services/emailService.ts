@@ -2,9 +2,9 @@
  * Сервис для отправки email
  */
 
-import nodemailer, { Transporter } from 'nodemailer';
-import { config } from '../config/env';
-import { logger } from '../utils/logger';
+import nodemailer, { Transporter } from "nodemailer";
+import { config } from "../config/env";
+import { logger } from "../utils/logger";
 
 interface EmailOptions {
   to: string;
@@ -23,14 +23,14 @@ class EmailService {
   private initializeTransporter(): void {
     // Если SMTP не настроен, в development режиме просто предупреждаем
     if (!config.smtpHost || !config.smtpUser || !config.smtpPassword) {
-      if (config.nodeEnv === 'development') {
+      if (config.nodeEnv === "development") {
         logger.warn(
-          'SMTP не настроен. В development режиме токен будет возвращен в ответе для тестирования.'
+          "SMTP не настроен. В development режиме токен будет возвращен в ответе для тестирования.",
         );
         // В development без SMTP не создаем транспортер
         return;
       } else {
-        logger.error('SMTP не настроен для production режима!');
+        logger.error("SMTP не настроен для production режима!");
         return;
       }
     } else {
@@ -56,33 +56,33 @@ class EmailService {
   async sendEmail(options: EmailOptions): Promise<void> {
     if (!this.transporter) {
       // В development режиме без SMTP просто логируем
-      if (config.nodeEnv === 'development') {
-        logger.info('Email не отправлен (SMTP не настроен):', {
+      if (config.nodeEnv === "development") {
+        logger.info("Email не отправлен (SMTP не настроен):", {
           to: options.to,
           subject: options.subject,
         });
         return;
       }
-      throw new Error('Email transporter не инициализирован');
+      throw new Error("Email transporter не инициализирован");
     }
 
     try {
       const mailOptions = {
-        from: config.smtpFrom || config.smtpUser || 'noreply@feedbackhub.com',
+        from: config.smtpFrom || config.smtpUser || "noreply@feedbackhub.com",
         to: options.to,
         subject: options.subject,
         html: options.html,
-        text: options.text || options.html.replace(/<[^>]*>/g, ''), // Убираем HTML теги для текстовой версии
+        text: options.text || options.html.replace(/<[^>]*>/g, ""), // Убираем HTML теги для текстовой версии
       };
 
       const info: unknown = await this.transporter.sendMail(mailOptions);
       const messageId =
-        info && typeof info === 'object' && 'messageId' in info
+        info && typeof info === "object" && "messageId" in info
           ? String((info as { messageId: unknown }).messageId)
-          : 'unknown';
+          : "unknown";
       logger.info(`Email отправлен на ${options.to}: ${messageId}`);
     } catch (error) {
-      logger.error('Ошибка отправки email:', error);
+      logger.error("Ошибка отправки email:", error);
       throw error;
     }
   }
@@ -93,9 +93,10 @@ class EmailService {
   async sendPasswordResetEmail(
     email: string,
     resetToken: string,
-    resetUrl?: string
+    resetUrl?: string,
   ): Promise<void> {
-    const resetLink = resetUrl || `${config.frontendUrl}/reset-password?token=${resetToken}`;
+    const resetLink =
+      resetUrl || `${config.frontendUrl}/reset-password?token=${resetToken}`;
 
     const html = `
       <!DOCTYPE html>
@@ -147,7 +148,7 @@ class EmailService {
 
     await this.sendEmail({
       to: email,
-      subject: 'Восстановление пароля - FeedbackHub',
+      subject: "Восстановление пароля - FeedbackHub",
       html,
     });
   }
@@ -155,7 +156,11 @@ class EmailService {
   /**
    * Отправляет письмо с паролем для нового администратора
    */
-  async sendAdminPasswordEmail(email: string, name: string, password: string): Promise<void> {
+  async sendAdminPasswordEmail(
+    email: string,
+    name: string,
+    password: string,
+  ): Promise<void> {
     const html = `
       <!DOCTYPE html>
       <html>
@@ -172,7 +177,7 @@ class EmailService {
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
             <h2 style="color: #333; margin-top: 0;">Доступ к панели администратора</h2>
             
-            <p>Здравствуйте, ${name || 'Администратор'}!</p>
+            <p>Здравствуйте, ${name || "Администратор"}!</p>
             
             <p>Для вас был создан аккаунт администратора в системе FeedbackHub.</p>
             
@@ -207,7 +212,7 @@ class EmailService {
 
     await this.sendEmail({
       to: email,
-      subject: 'Доступ к панели администратора FeedbackHub',
+      subject: "Доступ к панели администратора FeedbackHub",
       html,
     });
   }

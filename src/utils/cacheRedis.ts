@@ -3,10 +3,10 @@
  * Использует Redis если доступен, иначе fallback на SimpleCache
  */
 
-import Redis from 'ioredis';
-import { config } from '../config/env';
-import { logger } from './logger';
-import { SimpleCache } from './cache';
+import Redis from "ioredis";
+import { config } from "../config/env";
+import { logger } from "./logger";
+import { SimpleCache } from "./cache";
 
 interface CacheStats {
   hits: number;
@@ -28,7 +28,7 @@ class CacheManager {
 
   constructor() {
     this.fallbackCache = new SimpleCache();
-    this.initializeRedis();
+    void this.initializeRedis();
   }
 
   /**
@@ -36,7 +36,7 @@ class CacheManager {
    */
   private async initializeRedis(): Promise<void> {
     if (!config.redisEnabled) {
-      logger.info('Redis disabled, using in-memory cache');
+      logger.info("Redis disabled, using in-memory cache");
       return;
     }
 
@@ -45,7 +45,7 @@ class CacheManager {
         host: config.redisHost,
         port: config.redisPort,
         password: config.redisPassword,
-        retryStrategy: (times: number) => {
+        retryStrategy: (times: number): number => {
           // Экспоненциальная задержка с максимумом 3 секунды
           const delay = Math.min(times * 50, 3000);
           return delay;
@@ -54,24 +54,27 @@ class CacheManager {
         lazyConnect: true,
       });
 
-      this.redis.on('error', (error: Error) => {
-        logger.warn('Redis connection error, falling back to in-memory cache:', error);
+      this.redis.on("error", (error: Error) => {
+        logger.warn(
+          "Redis connection error, falling back to in-memory cache:",
+          error,
+        );
         this.useRedis = false;
       });
 
-      this.redis.on('connect', () => {
-        logger.info('Redis connected successfully');
+      this.redis.on("connect", () => {
+        logger.info("Redis connected successfully");
         this.useRedis = true;
       });
 
-      this.redis.on('ready', () => {
-        logger.info('Redis ready');
+      this.redis.on("ready", () => {
+        logger.info("Redis ready");
         this.useRedis = true;
       });
 
       await this.redis.connect();
     } catch (error) {
-      logger.warn('Failed to connect to Redis, using in-memory cache:', error);
+      logger.warn("Failed to connect to Redis, using in-memory cache:", error);
       this.useRedis = false;
       if (this.redis) {
         this.redis.disconnect();
@@ -96,7 +99,7 @@ class CacheManager {
         this.updateHitRate();
         return null;
       } catch (error) {
-        logger.warn('Redis get error, falling back to in-memory cache:', error);
+        logger.warn("Redis get error, falling back to in-memory cache:", error);
         this.useRedis = false;
         // Fallback на in-memory
         return this.fallbackCache.get<T>(key);
@@ -118,7 +121,7 @@ class CacheManager {
    * Сохранить значение в кэш
    */
   async set<T>(key: string, data: T, ttl?: number): Promise<void> {
-    const ttlMs = ttl || SimpleCache.getTTL('default');
+    const ttlMs = ttl || SimpleCache.getTTL("default");
     const ttlSeconds = Math.floor(ttlMs / 1000);
 
     if (this.useRedis && this.redis) {
@@ -127,7 +130,7 @@ class CacheManager {
         this.stats.size = await this.redis.dbsize();
         return;
       } catch (error) {
-        logger.warn('Redis set error, falling back to in-memory cache:', error);
+        logger.warn("Redis set error, falling back to in-memory cache:", error);
         this.useRedis = false;
         // Fallback на in-memory
         this.fallbackCache.set(key, data, ttl);
@@ -151,7 +154,10 @@ class CacheManager {
         this.stats.size = await this.redis.dbsize();
         return;
       } catch (error) {
-        logger.warn('Redis delete error, falling back to in-memory cache:', error);
+        logger.warn(
+          "Redis delete error, falling back to in-memory cache:",
+          error,
+        );
         this.useRedis = false;
         // Fallback на in-memory
         this.fallbackCache.delete(key);
@@ -175,7 +181,10 @@ class CacheManager {
         this.stats.size = 0;
         return;
       } catch (error) {
-        logger.warn('Redis clear error, falling back to in-memory cache:', error);
+        logger.warn(
+          "Redis clear error, falling back to in-memory cache:",
+          error,
+        );
         this.useRedis = false;
         // Fallback на in-memory
         this.fallbackCache.clear();
@@ -208,7 +217,9 @@ class CacheManager {
    * Получить TTL для разных типов данных
    * Увеличены TTL для более агрессивного кэширования
    */
-  static getTTL(type: 'company' | 'stats' | 'messages' | 'default' | 'long'): number {
+  static getTTL(
+    type: "company" | "stats" | "messages" | "default" | "long",
+  ): number {
     const ttlMap: Record<string, number> = {
       company: 30 * 60 * 1000, // 30 минут (было 10) - данные компании редко меняются
       stats: 5 * 60 * 1000, // 5 минут (было 2) - статистика обновляется не так часто
@@ -238,13 +249,12 @@ export { CacheManager };
 export const cache = new CacheManager();
 
 // Graceful shutdown
-if (typeof process !== 'undefined') {
-  process.on('SIGTERM', async () => {
-    await cache.disconnect();
+if (typeof process !== "undefined") {
+  process.on("SIGTERM", () => {
+    void cache.disconnect();
   });
 
-  process.on('SIGINT', async () => {
-    await cache.disconnect();
+  process.on("SIGINT", () => {
+    void cache.disconnect();
   });
 }
-

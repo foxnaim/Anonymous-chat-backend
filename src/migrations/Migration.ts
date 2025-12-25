@@ -1,4 +1,4 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Document, Model } from "mongoose";
 
 export interface IMigration extends Document {
   name: string;
@@ -14,4 +14,4 @@ const migrationSchema = new mongoose.Schema<IMigration>({
 
 export const Migration: Model<IMigration> =
   (mongoose.models.Migration as Model<IMigration>) ||
-  mongoose.model<IMigration>('Migration', migrationSchema);
+  mongoose.model<IMigration>("Migration", migrationSchema);

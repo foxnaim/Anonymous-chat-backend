@@ -1,24 +1,24 @@
-import { generateToken, verifyToken, TokenError } from '../../utils/jwt';
-import { config } from '../../config/env';
-import jwt from 'jsonwebtoken';
+import { generateToken, verifyToken, TokenError } from "../../utils/jwt";
+import { config } from "../../config/env";
+import jwt from "jsonwebtoken";
 
-describe('JWT Utils', () => {
+describe("JWT Utils", () => {
   const mockPayload = {
-    userId: '123',
-    email: 'test@example.com',
-    role: 'user',
-    companyId: '456',
+    userId: "123",
+    email: "test@example.com",
+    role: "user",
+    companyId: "456",
   };
 
-  describe('generateToken', () => {
-    it('должен генерировать валидный JWT токен', () => {
+  describe("generateToken", () => {
+    it("должен генерировать валидный JWT токен", () => {
       const token = generateToken(mockPayload);
       expect(token).toBeDefined();
-      expect(typeof token).toBe('string');
-      expect(token.split('.')).toHaveLength(3); // JWT состоит из 3 частей
+      expect(typeof token).toBe("string");
+      expect(token.split(".")).toHaveLength(3); // JWT состоит из 3 частей
     });
 
-    it('должен включать все поля payload в токен', () => {
+    it("должен включать все поля payload в токен", () => {
       const token = generateToken(mockPayload);
       const decoded = jwt.decode(token) as typeof mockPayload;
       expect(decoded.userId).toBe(mockPayload.userId);
@@ -28,8 +28,8 @@ describe('JWT Utils', () => {
     });
   });
 
-  describe('verifyToken', () => {
-    it('должен успешно верифицировать валидный токен', () => {
+  describe("verifyToken", () => {
+    it("должен успешно верифицировать валидный токен", () => {
       const token = generateToken(mockPayload);
       const decoded = verifyToken(token);
       expect(decoded.userId).toBe(mockPayload.userId);
@@ -38,9 +38,9 @@ describe('JWT Utils', () => {
       expect(decoded.companyId).toBe(mockPayload.companyId);
     });
 
-    it('должен выбрасывать TokenError с кодом EXPIRED для истекшего токена', () => {
+    it("должен выбрасывать TokenError с кодом EXPIRED для истекшего токена", () => {
       const expiredToken = jwt.sign(mockPayload, config.jwtSecret, {
-        expiresIn: '-1h', // Токен уже истек
+        expiresIn: "-1h", // Токен уже истек
       });
 
       expect(() => verifyToken(expiredToken)).toThrow(TokenError);
@@ -49,13 +49,13 @@ describe('JWT Utils', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(TokenError);
         if (error instanceof TokenError) {
-          expect(error.code).toBe('EXPIRED');
+          expect(error.code).toBe("EXPIRED");
         }
       }
     });
 
-    it('должен выбрасывать TokenError с кодом INVALID для невалидного токена', () => {
-      const invalidToken = 'invalid.token.here';
+    it("должен выбрасывать TokenError с кодом INVALID для невалидного токена", () => {
+      const invalidToken = "invalid.token.here";
 
       expect(() => verifyToken(invalidToken)).toThrow(TokenError);
       try {
@@ -63,13 +63,13 @@ describe('JWT Utils', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(TokenError);
         if (error instanceof TokenError) {
-          expect(error.code).toBe('INVALID');
+          expect(error.code).toBe("INVALID");
         }
       }
     });
 
-    it('должен выбрасывать TokenError с кодом MALFORMED для неправильно сформированного токена', () => {
-      const malformedToken = 'not.a.valid.jwt.token.structure';
+    it("должен выбрасывать TokenError с кодом MALFORMED для неправильно сформированного токена", () => {
+      const malformedToken = "not.a.valid.jwt.token.structure";
 
       expect(() => verifyToken(malformedToken)).toThrow(TokenError);
       try {
@@ -77,13 +77,13 @@ describe('JWT Utils', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(TokenError);
         if (error instanceof TokenError) {
-          expect(['INVALID', 'MALFORMED']).toContain(error.code);
+          expect(["INVALID", "MALFORMED"]).toContain(error.code);
         }
       }
     });
 
-    it('должен выбрасывать TokenError для токена с неправильным секретом', () => {
-      const tokenWithWrongSecret = jwt.sign(mockPayload, 'wrong-secret');
+    it("должен выбрасывать TokenError для токена с неправильным секретом", () => {
+      const tokenWithWrongSecret = jwt.sign(mockPayload, "wrong-secret");
 
       expect(() => verifyToken(tokenWithWrongSecret)).toThrow(TokenError);
       try {
@@ -91,12 +91,9 @@ describe('JWT Utils', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(TokenError);
         if (error instanceof TokenError) {
-          expect(error.code).toBe('INVALID');
+          expect(error.code).toBe("INVALID");
         }
       }
     });
   });
 });
-
-
-

@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
-import { asyncHandler } from '../middleware/asyncHandler';
-import mongoose, { ConnectionStates } from 'mongoose';
+import { Router, Request, Response } from "express";
+import { asyncHandler } from "../middleware/asyncHandler";
+import mongoose, { ConnectionStates } from "mongoose";
 
 const router = Router();
 
@@ -40,18 +40,19 @@ const router = Router();
  *         description: Сервис не работает
  */
 router.get(
-  '/',
+  "/",
   // eslint-disable-next-line @typescript-eslint/require-await
   asyncHandler(async (_req: Request, res: Response) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    const isDbConnected = mongoose.connection.readyState === ConnectionStates.connected;
+    const isDbConnected =
+      mongoose.connection.readyState === ConnectionStates.connected;
     const healthCheck = {
       uptime: process.uptime(),
-      message: 'OK',
+      message: "OK",
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || "development",
       database: {
-        status: isDbConnected ? 'connected' : 'disconnected',
+        status: isDbConnected ? "connected" : "disconnected",
       },
     };
 
@@ -61,7 +62,7 @@ router.get(
       success: true,
       data: healthCheck,
     });
-  })
+  }),
 );
 
 export default router;

@@ -1,8 +1,11 @@
-import { Router } from 'express';
-import { getAdminSettings, updateAdminSettings } from '../controllers/AdminSettingsController';
-import { validate } from '../middleware/validation';
-import { updateAdminSettingsSchema } from '../validators/adminValidator';
-import { authenticate, authorize } from '../middleware/auth';
+import { Router } from "express";
+import {
+  getAdminSettings,
+  updateAdminSettings,
+} from "../controllers/AdminSettingsController";
+import { validate } from "../middleware/validation";
+import { updateAdminSettingsSchema } from "../validators/adminValidator";
+import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
 
@@ -10,7 +13,7 @@ const router = Router();
 router.use((req, res, next) => {
   authenticate(req, res, next);
 });
-router.use(authorize('admin', 'super_admin'));
+router.use(authorize("admin", "super_admin"));
 
 /**
  * @swagger
@@ -26,7 +29,7 @@ router.use(authorize('admin', 'super_admin'));
  *       403:
  *         description: Запрещено
  */
-router.get('/', getAdminSettings);
+router.get("/", getAdminSettings);
 
 /**
  * @swagger
@@ -65,6 +68,6 @@ router.get('/', getAdminSettings);
  *       403:
  *         description: Запрещено
  */
-router.put('/', validate(updateAdminSettingsSchema), updateAdminSettings);
+router.put("/", validate(updateAdminSettingsSchema), updateAdminSettings);
 
 export default router;

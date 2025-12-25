@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   getAllCompanies,
   getCompanyById,
@@ -9,8 +9,8 @@ import {
   updateCompanyStatus,
   updateCompanyPlan,
   deleteCompany,
-} from '../controllers/CompanyController';
-import { validate } from '../middleware/validation';
+} from "../controllers/CompanyController";
+import { validate } from "../middleware/validation";
 import {
   createCompanySchema,
   updateCompanySchema,
@@ -18,8 +18,8 @@ import {
   getCompanyByCodeSchema,
   updateCompanyStatusSchema,
   updateCompanyPlanSchema,
-} from '../validators/companyValidator';
-import { authenticate, authorize } from '../middleware/auth';
+} from "../validators/companyValidator";
+import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
 
@@ -43,7 +43,7 @@ const router = Router();
  *       404:
  *         description: Компания не найдена
  */
-router.get('/code/:code', validate(getCompanyByCodeSchema), getCompanyByCode);
+router.get("/code/:code", validate(getCompanyByCodeSchema), getCompanyByCode);
 
 /**
  * @swagger
@@ -80,7 +80,7 @@ router.get('/code/:code', validate(getCompanyByCodeSchema), getCompanyByCode);
  *                       createdAt:
  *                         type: string
  */
-router.get('/public', getPublicCompanies);
+router.get("/public", getPublicCompanies);
 
 // Остальные роуты требуют аутентификации
 router.use((req, res, next) => {
@@ -139,7 +139,7 @@ router.use((req, res, next) => {
  *       403:
  *         description: Запрещено
  */
-router.get('/', authorize('admin', 'super_admin'), getAllCompanies);
+router.get("/", authorize("admin", "super_admin"), getAllCompanies);
 
 /**
  * @swagger
@@ -162,7 +162,7 @@ router.get('/', authorize('admin', 'super_admin'), getAllCompanies);
  *       404:
  *         description: Компания не найдена
  */
-router.get('/:id', validate(getCompanyByIdSchema), getCompanyById);
+router.get("/:id", validate(getCompanyByIdSchema), getCompanyById);
 
 /**
  * @swagger
@@ -184,7 +184,12 @@ router.get('/:id', validate(getCompanyByIdSchema), getCompanyById);
  *       403:
  *         description: Запрещено
  */
-router.post('/', authorize('admin', 'super_admin'), validate(createCompanySchema), createCompany);
+router.post(
+  "/",
+  authorize("admin", "super_admin"),
+  validate(createCompanySchema),
+  createCompany,
+);
 
 /**
  * @swagger
@@ -213,7 +218,7 @@ router.post('/', authorize('admin', 'super_admin'), validate(createCompanySchema
  *       404:
  *         description: Компания не найдена
  */
-router.put('/:id', validate(updateCompanySchema), updateCompany);
+router.put("/:id", validate(updateCompanySchema), updateCompany);
 
 /**
  * @swagger
@@ -246,10 +251,10 @@ router.put('/:id', validate(updateCompanySchema), updateCompany);
  *         description: Запрещено
  */
 router.put(
-  '/:id/status',
-  authorize('admin', 'super_admin'),
+  "/:id/status",
+  authorize("admin", "super_admin"),
   validate(updateCompanyStatusSchema),
-  updateCompanyStatus
+  updateCompanyStatus,
 );
 
 /**
@@ -283,10 +288,10 @@ router.put(
  *         description: Запрещено
  */
 router.put(
-  '/:id/plan',
-  authorize('admin', 'super_admin'),
+  "/:id/plan",
+  authorize("admin", "super_admin"),
   validate(updateCompanyPlanSchema),
-  updateCompanyPlan
+  updateCompanyPlan,
 );
 
 /**
@@ -312,6 +317,6 @@ router.put(
  *       404:
  *         description: Компания не найдена
  */
-router.delete('/:id', authorize('admin', 'super_admin'), deleteCompany);
+router.delete("/:id", authorize("admin", "super_admin"), deleteCompany);
 
 export default router;
