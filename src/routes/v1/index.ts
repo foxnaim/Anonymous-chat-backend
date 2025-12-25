@@ -21,3 +21,4 @@ router.use("/admins", adminRoutes);
 router.use("/admin-settings", adminSettingsRoutes);
 
 export default router;
+

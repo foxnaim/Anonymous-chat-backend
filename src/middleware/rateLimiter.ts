@@ -18,3 +18,4 @@ export const apiLimiter = rateLimit({
   standardHeaders: true, // Возвращает информацию о лимите в заголовках `RateLimit-*`
   legacyHeaders: false, // Отключает заголовки `X-RateLimit-*`
 });
+
