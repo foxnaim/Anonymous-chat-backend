@@ -35,16 +35,21 @@ class EmailService {
       }
     } else {
       // Настроенный SMTP
+      // Добавляем таймауты, чтобы не висеть на SMTP-соединении
       this.transporter = nodemailer.createTransport({
         host: config.smtpHost,
         port: config.smtpPort,
-        secure: config.smtpSecure, // true для 465, false для других портов
+        secure: config.smtpSecure, // true для 465, false для других портов (587 – STARTTLS)
         auth: {
           user: config.smtpUser,
           pass: config.smtpPassword,
         },
+        connectionTimeout: 15000, // 15s
+        socketTimeout: 15000, // 15s
+        greetingTimeout: 10000, // 10s
+        pool: false,
         tls: {
-          rejectUnauthorized: false, // Для самоподписанных сертификатов
+          rejectUnauthorized: false, // Для самоподписанных сертификатов / Gmail ok
         },
       });
     }
