@@ -345,7 +345,10 @@ export const forgotPassword = asyncHandler(
 
     // Ограничиваем ожидание отправки письма, чтобы не блокировать запрос
     const emailTimeoutMs = 10000; // 10 секунд достаточно для SMTP, иначе возвращаем успех
-    const emailPromise = emailService.sendPasswordResetEmail(String(email), resetToken);
+    const emailPromise = emailService.sendPasswordResetEmail(
+      String(email),
+      resetToken,
+    );
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("EMAIL_SEND_TIMEOUT")), emailTimeoutMs),
     );
