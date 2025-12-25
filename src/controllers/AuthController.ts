@@ -374,7 +374,7 @@ export const forgotPassword = asyncHandler(
         errorMessage.includes("RESEND_DOMAIN_NOT_VERIFIED")
       ) {
         logger.warn(`Password reset token for ${email}: ${resetToken}`);
-        
+
         // Определяем причину для более информативного сообщения
         let warningMessage: string | undefined;
         if (config.nodeEnv === "production") {
@@ -389,7 +389,7 @@ export const forgotPassword = asyncHandler(
               "SMTP connection failed. Token provided for testing. Please configure an external SMTP service.";
           }
         }
-        
+
         return res.json({
           success: true,
           message: "If the email exists, a password reset link has been sent",
