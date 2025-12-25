@@ -16,4 +16,3 @@ export interface ApiErrorResponse {
 }
 
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
-

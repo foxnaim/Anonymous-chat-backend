@@ -182,10 +182,13 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     }
   } catch (userError: unknown) {
     // Если при создании/обновлении пользователя произошла ошибка — пробуем откатить созданного админа
+    const userErrorMessage =
+      (userError as Error)?.message ??
+      (typeof userError === "string"
+        ? userError
+        : JSON.stringify(userError ?? "Unknown error"));
     logger.error(
-      `Failed to ensure user for admin ${String(admin._id)} (${normalizedEmail}): ${
-        (userError as Error)?.message || userError
-      }`,
+      `Failed to ensure user for admin ${String(admin._id)} (${normalizedEmail}): ${userErrorMessage}`,
     );
     await AdminUser.findByIdAndDelete(admin._id);
     throw userError;

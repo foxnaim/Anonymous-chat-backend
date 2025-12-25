@@ -168,10 +168,17 @@ export const createCompany = asyncHandler(
 
     const normalizedName = name ? String(name).trim() : "";
     const normalizedCode = code ? String(code).toUpperCase() : "";
-    const normalizedEmail = adminEmail ? String(adminEmail).toLowerCase().trim() : "";
+    const normalizedEmail = adminEmail
+      ? String(adminEmail).toLowerCase().trim()
+      : "";
     const normalizedPassword = password ? String(password) : "";
 
-    if (!normalizedName || !normalizedCode || !normalizedEmail || !normalizedPassword) {
+    if (
+      !normalizedName ||
+      !normalizedCode ||
+      !normalizedEmail ||
+      !normalizedPassword
+    ) {
       throw new AppError(
         "Name, code, adminEmail, and password are required",
         400,
@@ -193,10 +200,12 @@ export const createCompany = asyncHandler(
         ...existingCompany.toObject(),
         _id: undefined,
       };
+
       res.json({
         success: true,
         data: companyData,
-        message: "Company already exists. Returning existing company (idempotent create).",
+        message:
+          "Company already exists. Returning existing company (idempotent create).",
       });
       return;
     }
@@ -205,7 +214,11 @@ export const createCompany = asyncHandler(
     const existingUser = await User.findOne({
       email: normalizedEmail,
     });
-    if (existingUser && existingUser.companyId && existingUser.companyId.toString() !== "") {
+    if (
+      existingUser &&
+      existingUser.companyId &&
+      existingUser.companyId.toString() !== ""
+    ) {
       throw new AppError(
         "User with this email already exists",
         409,
@@ -271,10 +284,12 @@ export const createCompany = asyncHandler(
             ...dupCompany.toObject(),
             _id: undefined,
           };
+
           res.json({
             success: true,
             data: companyData,
-            message: "Company already exists (race condition). Returning existing.",
+            message:
+              "Company already exists (race condition). Returning existing.",
           });
           return;
         }
@@ -289,7 +304,10 @@ export const createCompany = asyncHandler(
     const user = await User.findOne({ email: normalizedEmail });
     if (user) {
       let shouldSave = false;
-      if (!user.companyId || user.companyId.toString() !== company._id.toString()) {
+      if (
+        !user.companyId ||
+        user.companyId.toString() !== company._id.toString()
+      ) {
         user.companyId = company._id;
         shouldSave = true;
       }
