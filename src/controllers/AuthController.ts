@@ -358,13 +358,22 @@ export const forgotPassword = asyncHandler(
       logger.info(`Password reset email sent to ${email}`);
     } catch (error) {
       // Логируем, но не падаем — фронту всегда отвечаем успехом
-      logger.error(`Failed to send password reset email to ${email}:`, error);
-      if (config.nodeEnv === "development") {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to send password reset email to ${email}:`, {
+        error: errorMessage,
+        note: "Railway may be blocking outbound SMTP connections. Consider using an external SMTP service (SendGrid, Mailgun, Resend, etc.)",
+      });
+      
+      // В development или если SMTP не работает, возвращаем токен для тестирования
+      if (config.nodeEnv === "development" || errorMessage.includes("timeout") || errorMessage.includes("TIMEOUT")) {
         logger.warn(`Password reset token for ${email}: ${resetToken}`);
         return res.json({
           success: true,
           message: "If the email exists, a password reset link has been sent",
-          resetToken, // Только в development для тестирования
+          resetToken, // Для тестирования, если SMTP не работает
+          warning: config.nodeEnv === "production" 
+            ? "SMTP connection failed. Token provided for testing. Please configure an external SMTP service."
+            : undefined,
         });
       }
     }
