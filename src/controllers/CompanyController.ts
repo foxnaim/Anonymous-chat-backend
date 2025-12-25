@@ -193,11 +193,12 @@ export const createCompany = asyncHandler(
         ...existingCompany.toObject(),
         _id: undefined,
       };
-      return res.json({
+      res.json({
         success: true,
         data: companyData,
         message: "Company already exists. Returning existing company (idempotent create).",
       });
+      return;
     }
 
     // Проверяем, не существует ли пользователь с таким email — если есть и привязан к другой компании, отдаем конфликт
@@ -270,11 +271,12 @@ export const createCompany = asyncHandler(
             ...dupCompany.toObject(),
             _id: undefined,
           };
-          return res.json({
+          res.json({
             success: true,
             data: companyData,
             message: "Company already exists (race condition). Returning existing.",
           });
+          return;
         }
       }
       throw createError;
@@ -319,10 +321,11 @@ export const createCompany = asyncHandler(
       _id: undefined,
     };
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       data: companyData,
     });
+    return;
   },
 );
 
