@@ -36,6 +36,7 @@ class EmailService {
     } else {
       // Настроенный SMTP
       // Добавляем таймауты, чтобы не висеть на SMTP-соединении
+      // Увеличиваем таймауты для Gmail, который может быть медленным
       this.transporter = nodemailer.createTransport({
         host: config.smtpHost,
         port: config.smtpPort,
@@ -44,12 +45,14 @@ class EmailService {
           user: config.smtpUser,
           pass: config.smtpPassword,
         },
-        connectionTimeout: 15000, // 15s
-        socketTimeout: 15000, // 15s
-        greetingTimeout: 10000, // 10s
+        connectionTimeout: 30000, // 30s - увеличен для Gmail
+        socketTimeout: 30000, // 30s - увеличен для Gmail
+        greetingTimeout: 15000, // 15s - увеличен для Gmail
         tls: {
           rejectUnauthorized: false, // Для самоподписанных сертификатов / Gmail ok
         },
+        debug: config.nodeEnv === "development", // Включаем debug в development
+        logger: config.nodeEnv === "development", // Логируем в development
       });
     }
   }
@@ -86,7 +89,17 @@ class EmailService {
           : "unknown";
       logger.info(`Email отправлен на ${options.to}: ${messageId}`);
     } catch (error) {
-      logger.error("Ошибка отправки email:", error);
+      // Детальное логирование ошибок SMTP
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorCode = error && typeof error === "object" && "code" in error ? String(error.code) : "UNKNOWN";
+      logger.error(`Ошибка отправки email на ${options.to}:`, {
+        error: errorMessage,
+        code: errorCode,
+        host: config.smtpHost,
+        port: config.smtpPort,
+        user: config.smtpUser,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       throw error;
     }
   }

@@ -17,4 +17,13 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true, // Возвращает информацию о лимите в заголовках `RateLimit-*`
   legacyHeaders: false, // Отключает заголовки `X-RateLimit-*`
+  // Настраиваем keyGenerator для правильной работы с trust proxy
+  keyGenerator: (req) => {
+    // Используем IP из X-Forwarded-For, если доступен (через trust proxy)
+    return (req.ip || req.socket.remoteAddress || 'unknown') as string;
+  },
+  // Отключаем валидацию trust proxy, так как мы уже настроили его правильно
+  validate: {
+    trustProxy: false, // Отключаем валидацию, так как trust proxy настроен правильно
+  },
 });

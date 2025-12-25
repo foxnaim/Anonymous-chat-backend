@@ -14,7 +14,10 @@ import routes from "./routes";
 
 const app: Application = express();
 
-app.set('trust proxy', true);
+// Trust proxy - необходимо для Railway и других прокси-серверов
+// Устанавливаем trust proxy: 1 для одного прокси (Railway использует один прокси)
+// Это позволяет Express правильно обрабатывать X-Forwarded-For и другие заголовки
+app.set('trust proxy', 1);
 
 // Initialize Sentry if DSN is provided
 initializeSentry(app);
