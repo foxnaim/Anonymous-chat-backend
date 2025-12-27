@@ -198,7 +198,7 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Сначала отправляем ответ клиенту, чтобы не блокировать UI
-  res.status(201).json({
+  return res.status(201).json({
     success: true,
     data: admin,
     message:
