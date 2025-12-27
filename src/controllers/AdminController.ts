@@ -197,14 +197,6 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw userError;
   }
 
-  // Сначала отправляем ответ клиенту, чтобы не блокировать UI
-  return res.status(201).json({
-    success: true,
-    data: admin,
-    message:
-      "Admin created successfully. Password has been sent to the provided email address.",
-  });
-
   // Отправляем email асинхронно ПОСЛЕ отправки ответа, чтобы не блокировать запрос
   // Используем setImmediate, чтобы гарантировать, что ответ уже отправлен
   setImmediate(async () => {
@@ -225,6 +217,14 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
         );
       }
     }
+  });
+
+  // Отправляем ответ клиенту, чтобы не блокировать UI
+  return res.status(201).json({
+    success: true,
+    data: admin,
+    message:
+      "Admin created successfully. Password has been sent to the provided email address.",
   });
 });
 
