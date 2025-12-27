@@ -22,16 +22,19 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
     limit && typeof limit === "string" ? parseInt(limit, 10) : 50;
   const skip = (pageNumber - 1) * pageSize;
 
-  // Оптимизация: используем lean() для производительности и select для исключения ненужных полей
+  // Оптимизация: выполняем запросы параллельно для максимальной скорости
+  // Используем lean() для производительности (возвращает простые объекты без методов Mongoose)
+  // select исключает ненужные поля
+  // sort использует индекс createdAt для быстрой сортировки
   const [admins, total] = await Promise.all([
     AdminUser.find()
       .select("-__v") // Исключаем версию документа
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1 }) // Использует индекс createdAt: -1
       .skip(skip)
       .limit(pageSize)
-      .lean()
+      .lean() // lean() для быстрого получения простых объектов без overhead Mongoose
       .exec(),
-    AdminUser.countDocuments(),
+    AdminUser.countDocuments().exec(), // Параллельно считаем total
   ]);
 
   res.json({
@@ -194,36 +197,34 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw userError;
   }
 
-  // Отправляем пароль администратору по email
-  try {
-    await emailService.sendAdminPasswordEmail(
-      String(email).toLowerCase(),
-      name || "Администратор",
-      generatedPassword,
-    );
-    logger.info(`Admin password email sent to ${email}`);
-  } catch (error) {
-    // Логируем ошибку, но не прерываем создание админа
-    logger.error(`Failed to send admin password email to ${email}:`, error);
-    // В development режиме возвращаем пароль в ответе для удобства тестирования
-    if (process.env.NODE_ENV === "development") {
-      res.status(201).json({
-        success: true,
-        data: admin,
-        // Только в development - никогда в production!
-        _devPassword: generatedPassword,
-        _devWarning:
-          "This password is only shown in development mode. In production, it is sent via email only.",
-      });
-      return;
-    }
-  }
-
-  return res.status(201).json({
+  // Сначала отправляем ответ клиенту, чтобы не блокировать UI
+  res.status(201).json({
     success: true,
     data: admin,
     message:
       "Admin created successfully. Password has been sent to the provided email address.",
+  });
+
+  // Отправляем email асинхронно ПОСЛЕ отправки ответа, чтобы не блокировать запрос
+  // Используем setImmediate, чтобы гарантировать, что ответ уже отправлен
+  setImmediate(async () => {
+    try {
+      await emailService.sendAdminPasswordEmail(
+        String(email).toLowerCase(),
+        name || "Администратор",
+        generatedPassword,
+      );
+      logger.info(`Admin password email sent to ${email}`);
+    } catch (error) {
+      // Логируем ошибку, но не прерываем работу (админ уже создан)
+      logger.error(`Failed to send admin password email to ${email}:`, error);
+      // В development режиме можно вернуть пароль, но ответ уже отправлен
+      if (process.env.NODE_ENV === "development") {
+        logger.warn(
+          `Development mode: Admin password for ${email} is ${generatedPassword}`,
+        );
+      }
+    }
   });
 });
 
