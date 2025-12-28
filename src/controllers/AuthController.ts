@@ -514,7 +514,7 @@ export const changeEmail = asyncHandler(async (req: Request, res: Response) => {
     );
   }
 
-  // Проверяем, что новый email не занят
+  // Проверяем, что новый email не занят в User
   const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
   if (existingUser) {
     throw new AppError(
@@ -524,9 +524,33 @@ export const changeEmail = asyncHandler(async (req: Request, res: Response) => {
     );
   }
 
-  // Обновляем email
+  // Проверяем, что новый email не занят в AdminUser (если пользователь админ)
+  if (user.role === "admin" || user.role === "super_admin") {
+    const AdminUserModel = (await import("../models/AdminUser")).AdminUser;
+    const existingAdmin = await AdminUserModel.findOne({ email: newEmail.toLowerCase() });
+    if (existingAdmin && existingAdmin.email.toLowerCase() !== user.email.toLowerCase()) {
+      throw new AppError(
+        "This email address is already registered to another admin account. Please choose a different email address.",
+        400,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+  }
+
+  // Обновляем email в User
+  const oldEmail = user.email;
   user.email = newEmail.toLowerCase();
   await user.save();
+
+  // Если пользователь админ или суперадмин, обновляем email в AdminUser
+  if (user.role === "admin" || user.role === "super_admin") {
+    const AdminUserModel = (await import("../models/AdminUser")).AdminUser;
+    const adminUser = await AdminUserModel.findOne({ email: oldEmail.toLowerCase() });
+    if (adminUser) {
+      adminUser.email = newEmail.toLowerCase();
+      await adminUser.save();
+    }
+  }
 
   res.json({
     success: true,
