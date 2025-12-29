@@ -597,7 +597,7 @@ export const oauthSync = asyncHandler(
       provider?: string;
       providerId?: string;
     };
-    const { email, name, provider } = body;
+    const { email, name } = body;
 
     if (!email) {
       throw new AppError("Email is required", 400, ErrorCode.BAD_REQUEST);
