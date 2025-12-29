@@ -343,66 +343,14 @@ export const forgotPassword = asyncHandler(
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 час
     await user.save();
 
-    // Ограничиваем ожидание отправки письма, чтобы не блокировать запрос
-    const emailTimeoutMs = 10000; // 10 секунд достаточно для SMTP, иначе возвращаем успех
-    const emailPromise = emailService.sendPasswordResetEmail(
-      String(email),
-      resetToken,
-    );
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("EMAIL_SEND_TIMEOUT")), emailTimeoutMs),
-    );
-
-    try {
-      await Promise.race([emailPromise, timeoutPromise]);
-      logger.info(`Password reset email sent to ${email}`);
-    } catch (error) {
-      // Логируем, но не падаем — фронту всегда отвечаем успехом
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      logger.error(`Failed to send password reset email to ${email}:`, {
-        error: errorMessage,
-        note: "Railway may be blocking outbound SMTP connections. Consider using an external SMTP service (SendGrid, Mailgun, Resend, etc.)",
-      });
-
-      // В development, если SMTP не работает, или если Resend ограничивает тестовый домен, возвращаем токен для тестирования
-      if (
-        config.nodeEnv === "development" ||
-        errorMessage.includes("timeout") ||
-        errorMessage.includes("TIMEOUT") ||
-        errorMessage.includes("RESEND_TEST_DOMAIN_LIMIT") ||
-        errorMessage.includes("RESEND_DOMAIN_NOT_VERIFIED")
-      ) {
-        logger.warn(`Password reset token for ${email}: ${resetToken}`);
-        
-        // Определяем причину для более информативного сообщения
-        let warningMessage: string | undefined;
-        if (config.nodeEnv === "production") {
-          if (errorMessage.includes("RESEND_TEST_DOMAIN_LIMIT")) {
-            warningMessage =
-              "Resend test domain ограничивает отправку только на зарегистрированный email. Верифицируйте свой домен на https://resend.com/domains или используйте токен ниже для тестирования.";
-          } else if (errorMessage.includes("RESEND_DOMAIN_NOT_VERIFIED")) {
-            warningMessage =
-              "Домен не верифицирован в Resend. Верифицируйте свой домен на https://resend.com/domains или используйте токен ниже для тестирования.";
-          } else {
-            warningMessage =
-              "SMTP connection failed. Token provided for testing. Please configure an external SMTP service.";
-          }
-        }
-        
-        return res.json({
-          success: true,
-          message: "If the email exists, a password reset link has been sent",
-          resetToken, // Для тестирования, если SMTP не работает
-          warning: warningMessage,
-        });
-      }
-    }
-
-    // Всегда возвращаем успешный ответ (для безопасности не раскрываем детали)
+    // В текущей архитектуре (EmailJS на фронтенде) мы возвращаем токен клиенту,
+    // чтобы фронтенд сам отправил письмо.
+    // В будущем, при наличии SMTP, можно вернуть старую логику отправки с бэкенда.
+    
     return res.json({
       success: true,
-      message: "If the email exists, a password reset link has been sent",
+      message: "Reset token generated",
+      resetToken, // Возвращаем токен фронтенду для отправки через EmailJS
     });
   },
 );
