@@ -623,17 +623,39 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
     }
     await user.save();
   } else {
-    // Создаем нового пользователя (без пароля для OAuth)
-    // Генерируем случайный пароль, который никогда не будет использован
-    const randomPassword = generateResetToken(); // Используем как случайную строку
-    const hashedPassword = await hashPassword(randomPassword);
+    // Проверяем, существует ли этот email в админах или компаниях
+    const adminUser = await AdminUser.findOne({ email: normalizedEmail });
+    const company = await Company.findOne({ adminEmail: normalizedEmail });
 
-    user = await User.create({
-      email: normalizedEmail,
-      password: hashedPassword, // OAuth пользователи не используют пароль
-      name: name || email.split("@")[0],
-      role: "user", // По умолчанию обычный пользователь
-    });
+    if (adminUser) {
+      // Это админ, создаем пользователя
+      const randomPassword = generateResetToken();
+      const hashedPassword = await hashPassword(randomPassword);
+      user = await User.create({
+        email: normalizedEmail,
+        password: hashedPassword,
+        name: name || adminUser.name,
+        role: adminUser.role, // "admin" или "super_admin"
+      });
+    } else if (company) {
+      // Это компания, создаем пользователя
+      const randomPassword = generateResetToken();
+      const hashedPassword = await hashPassword(randomPassword);
+      user = await User.create({
+        email: normalizedEmail,
+        password: hashedPassword,
+        name: name || company.name,
+        role: "company",
+        companyId: company._id,
+      });
+    } else {
+      // Если пользователь не найден нигде - запрещаем вход
+      throw new AppError(
+        "User not registered. Please register as a company or ask an administrator.",
+        403,
+        ErrorCode.FORBIDDEN
+      );
+    }
   }
 
   // Генерируем JWT токен
