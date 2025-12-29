@@ -344,7 +344,7 @@ export const forgotPassword = asyncHandler(
     // В текущей архитектуре (EmailJS на фронтенде) мы возвращаем токен клиенту,
     // чтобы фронтенд сам отправил письмо.
     // В будущем, при наличии SMTP, можно вернуть старую логику отправки с бэкенда.
-    
+
     return res.json({
       success: true,
       message: "Reset token generated",
@@ -473,8 +473,13 @@ export const changeEmail = asyncHandler(async (req: Request, res: Response) => {
   // Проверяем, что новый email не занят в AdminUser (если пользователь админ)
   if (user.role === "admin" || user.role === "super_admin") {
     const AdminUserModel = (await import("../models/AdminUser")).AdminUser;
-    const existingAdmin = await AdminUserModel.findOne({ email: newEmail.toLowerCase() });
-    if (existingAdmin && existingAdmin.email.toLowerCase() !== user.email.toLowerCase()) {
+    const existingAdmin = await AdminUserModel.findOne({
+      email: newEmail.toLowerCase(),
+    });
+    if (
+      existingAdmin &&
+      existingAdmin.email.toLowerCase() !== user.email.toLowerCase()
+    ) {
       throw new AppError(
         "This email address is already registered to another admin account. Please choose a different email address.",
         400,
@@ -491,7 +496,9 @@ export const changeEmail = asyncHandler(async (req: Request, res: Response) => {
   // Если пользователь админ или суперадмин, обновляем email в AdminUser
   if (user.role === "admin" || user.role === "super_admin") {
     const AdminUserModel = (await import("../models/AdminUser")).AdminUser;
-    const adminUser = await AdminUserModel.findOne({ email: oldEmail.toLowerCase() });
+    const adminUser = await AdminUserModel.findOne({
+      email: oldEmail.toLowerCase(),
+    });
     if (adminUser) {
       adminUser.email = newEmail.toLowerCase();
       await adminUser.save();
@@ -589,66 +596,65 @@ export const changePassword = asyncHandler(
  * OAuth синхронизация - создает/обновляет пользователя после OAuth входа
  * Используется NextAuth для создания пользователя в БД
  */
-export const oauthSync = asyncHandler(
-  async (req: Request, res: Response) => {
-    const body = req.body as {
-      email?: string;
-      name?: string;
-      provider?: string;
-      providerId?: string;
-    };
-    const { email, name } = body;
+export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
+  const body = req.body as {
+    email?: string;
+    name?: string;
+    provider?: string;
+    providerId?: string;
+  };
+  const { email, name } = body;
+  // provider и providerId доступны в body, но не используются в текущей реализации
 
-    if (!email) {
-      throw new AppError("Email is required", 400, ErrorCode.BAD_REQUEST);
+  if (!email) {
+    throw new AppError("Email is required", 400, ErrorCode.BAD_REQUEST);
+  }
+
+  const normalizedEmail = String(email).toLowerCase();
+
+  // Ищем существующего пользователя
+  let user = await User.findOne({ email: normalizedEmail });
+
+  if (user) {
+    // Обновляем lastLogin и имя, если изменилось
+    user.lastLogin = new Date();
+    if (name && user.name !== name) {
+      user.name = name;
     }
+    await user.save();
+  } else {
+    // Создаем нового пользователя (без пароля для OAuth)
+    // Генерируем случайный пароль, который никогда не будет использован
+    const randomPassword = generateResetToken(); // Используем как случайную строку
+    const hashedPassword = await hashPassword(randomPassword);
 
-    const normalizedEmail = String(email).toLowerCase();
-
-    // Ищем существующего пользователя
-    let user = await User.findOne({ email: normalizedEmail });
-
-    if (user) {
-      // Обновляем lastLogin и имя, если изменилось
-      user.lastLogin = new Date();
-      if (name && user.name !== name) {
-        user.name = name;
-      }
-      await user.save();
-    } else {
-      // Создаем нового пользователя (без пароля для OAuth)
-      // Генерируем случайный пароль, который никогда не будет использован
-      const randomPassword = generateResetToken(); // Используем как случайную строку
-      const hashedPassword = await hashPassword(randomPassword);
-
-      user = await User.create({
-        email: normalizedEmail,
-        password: hashedPassword, // OAuth пользователи не используют пароль
-        name: name || email.split("@")[0],
-        role: "user", // По умолчанию обычный пользователь
-      });
-    }
-
-    // Генерируем JWT токен
-    const token = generateToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId?.toString(),
+    user = await User.create({
+      email: normalizedEmail,
+      password: hashedPassword, // OAuth пользователи не используют пароль
+      name: name || email.split("@")[0],
+      role: "user", // По умолчанию обычный пользователь
     });
+  }
 
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user._id.toString(),
-          email: user.email,
-          role: user.role,
-          companyId: user.companyId,
-          name: user.name,
-        },
-        token,
+  // Генерируем JWT токен
+  const token = generateToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    companyId: user.companyId?.toString(),
+  });
+
+  res.json({
+    success: true,
+    data: {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        name: user.name,
       },
-    });
-  },
-);
+      token,
+    },
+  });
+});

@@ -199,24 +199,26 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   // Отправляем email асинхронно ПОСЛЕ отправки ответа, чтобы не блокировать запрос
   // Используем setImmediate, чтобы гарантировать, что ответ уже отправлен
-  setImmediate(async () => {
-    try {
-      await emailService.sendAdminPasswordEmail(
+  setImmediate(() => {
+    emailService
+      .sendAdminPasswordEmail(
         String(email).toLowerCase(),
         name || "Администратор",
         generatedPassword,
-      );
-      logger.info(`Admin password email sent to ${email}`);
-    } catch (error) {
-      // Логируем ошибку, но не прерываем работу (админ уже создан)
-      logger.error(`Failed to send admin password email to ${email}:`, error);
-      // В development режиме можно вернуть пароль, но ответ уже отправлен
-      if (process.env.NODE_ENV === "development") {
-        logger.warn(
-          `Development mode: Admin password for ${email} is ${generatedPassword}`,
-        );
-      }
-    }
+      )
+      .then(() => {
+        logger.info(`Admin password email sent to ${email}`);
+      })
+      .catch((error) => {
+        // Логируем ошибку, но не прерываем работу (админ уже создан)
+        logger.error(`Failed to send admin password email to ${email}:`, error);
+        // В development режиме можно вернуть пароль, но ответ уже отправлен
+        if (process.env.NODE_ENV === "development") {
+          logger.warn(
+            `Development mode: Admin password for ${email} is ${generatedPassword}`,
+          );
+        }
+      });
   });
 
   // Отправляем ответ клиенту, чтобы не блокировать UI

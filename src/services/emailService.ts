@@ -72,10 +72,10 @@ class EmailService {
       config.smtpFrom ||
       config.smtpUser ||
       "onboarding@resend.dev";
-    
+
     // Сохраняем оригинальный email для логирования
     const originalEmail = fromEmail;
-    
+
     // Если используется Gmail или другой неверифицированный домен, используем тестовый домен Resend
     // Resend не позволяет отправлять с неверифицированных доменов
     if (
@@ -91,7 +91,7 @@ class EmailService {
         `Используется тестовый домен Resend (${fromEmail}) вместо ${originalEmail}. Настройте свой домен на https://resend.com/domains`,
       );
     }
-    
+
     const fromName =
       config.smtpFrom?.match(/(.+?)\s*</)?.[1]?.trim() || "FeedbackHub";
 
@@ -117,7 +117,7 @@ class EmailService {
           name?: string;
         };
         const errorMessage = errorData?.message || "Unknown error";
-        
+
         // Если это ошибка 403 из-за ограничений тестового домена, выбрасываем специальную ошибку
         if (
           response.status === 403 &&
@@ -125,7 +125,7 @@ class EmailService {
         ) {
           throw new Error("RESEND_TEST_DOMAIN_LIMIT");
         }
-        
+
         // Если это ошибка 403 из-за неверифицированного домена, выбрасываем специальную ошибку
         if (
           response.status === 403 &&
@@ -133,7 +133,7 @@ class EmailService {
         ) {
           throw new Error("RESEND_DOMAIN_NOT_VERIFIED");
         }
-        
+
         throw new Error(
           `Resend API error: ${response.status} ${JSON.stringify(errorData)}`,
         );
