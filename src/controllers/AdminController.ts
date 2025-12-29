@@ -35,6 +35,7 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
       .skip(skip)
       .limit(pageSize)
       .lean() // lean() для быстрого получения простых объектов без overhead Mongoose
+      .readConcern('majority') // Читаем с majority для консистентности
       .exec(),
     AdminUser.countDocuments().exec(), // Параллельно считаем total
   ]);
@@ -296,10 +297,11 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
         await User.deleteMany({ email }); // Удаляем всех юзеров с таким email
         await AdminUser.deleteMany({ email }); // Удаляем всех админов с таким email
         
-        return res.json({
+        res.json({
             success: true,
             message: "Admin deleted successfully (via User ID)",
         });
+        return;
     }
 
     // Если совсем не нашли
@@ -327,7 +329,7 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   console.log(`[AdminController] Successfully deleted admin ${email}`);
 
-  return res.json({
+  res.json({
     success: true,
     message: "Admin deleted successfully",
   });
