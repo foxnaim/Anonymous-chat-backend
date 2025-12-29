@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { AppError, ErrorCode } from "../utils/AppError";
 import { AdminUser } from "../models/AdminUser";
@@ -278,70 +279,73 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const { id } = req.params;
+  console.log(`[AdminController] DELETE request for admin ID: ${id} at ${new Date().toISOString()}`);
 
-  const admin = await AdminUser.findById(id);
-  if (!admin) {
-    throw new AppError("Admin not found", 404, ErrorCode.NOT_FOUND);
-  }
-
-  // Нельзя удалить самого себя
-  if (req.user?.email === admin.email) {
-    throw new AppError("Cannot delete yourself", 400, ErrorCode.BAD_REQUEST);
-  }
-
-  // Нельзя удалить другого суперадмина (только обычных админов)
-  if (admin.role === "super_admin") {
-    throw new AppError("Cannot delete super admin", 403, ErrorCode.FORBIDDEN);
-  }
-
-  // Сохраняем email для удаления пользователя
-  const adminEmail = admin.email;
-
-  // Удаляем админа атомарно с помощью findByIdAndDelete
-  const deletedAdmin = await AdminUser.findByIdAndDelete(id);
-  
-  if (!deletedAdmin) {
-    // Если админ не найден при удалении, возможно он уже был удален
-    // Проверяем, существует ли он еще
-    const stillExists = await AdminUser.findById(id);
-    if (stillExists) {
-      logger.error(
-        `Failed to delete admin ${id} (${adminEmail}) — findByIdAndDelete returned null but admin still exists`,
-      );
-      throw new AppError(
-        "Failed to delete admin. Please try again.",
-        500,
-        ErrorCode.INTERNAL_ERROR,
-      );
+  try {
+    // 1. Сначала ищем по ID (любым способом)
+    let admin = await AdminUser.findById(id);
+    if (!admin) {
+      admin = await AdminUser.findOne({ _id: id });
     }
-    // Если админа действительно нет, считаем удаление успешным
-    logger.info(`Admin ${id} (${adminEmail}) was already deleted`);
+
+    let emailToDelete = "";
+
+    if (admin) {
+      emailToDelete = admin.email.toLowerCase().trim();
+    } else {
+      // Если по ID не нашли, возможно это ID из коллекции User?
+      // Пробуем найти пользователя по этому ID
+      const userAsAdmin = await User.findById(id);
+      if (userAsAdmin && (userAsAdmin.role === "admin" || userAsAdmin.role === "super_admin")) {
+        emailToDelete = userAsAdmin.email.toLowerCase().trim();
+        console.log(`[AdminController] ID ${id} found in User collection as ${userAsAdmin.role}. Email: ${emailToDelete}`);
+      }
+    }
+
+    if (!emailToDelete) {
+      console.warn(`[AdminController] No admin or user found with ID: ${id}`);
+      throw new AppError("Admin not found", 404, ErrorCode.NOT_FOUND);
+    }
+
+    // 2. Проверка на удаление самого себя
+    if (req.user?.email.toLowerCase().trim() === emailToDelete) {
+      throw new AppError("Cannot delete yourself", 400, ErrorCode.BAD_REQUEST);
+    }
+
+    // 3. Жесткое удаление из всех коллекций
+    console.log(`[AdminController] Executing hard delete for email: ${emailToDelete}`);
+
+    // Используем нативный драйвер для обхода всех хуков и кэшей
+    const adminCollection = AdminUser.collection;
+    const userCollection = User.collection;
+
+    const [adminDel, userDel] = await Promise.all([
+      adminCollection.deleteMany({ 
+        $or: [
+          { email: emailToDelete },
+          { _id: new Types.ObjectId(id.match(/^[0-9a-fA-F]{24}$/) ? id : undefined) }
+        ] 
+      }),
+      userCollection.deleteMany({ email: emailToDelete })
+    ]);
+
+    console.log(`[AdminController] Hard delete results: AdminUser: ${adminDel.deletedCount}, User: ${userDel.deletedCount}`);
+
+    // 4. Проверка
+    const stillAdmin = await AdminUser.findOne({ email: emailToDelete });
+    if (stillAdmin) {
+      console.error(`[AdminController] CRITICAL FAIL: Admin ${emailToDelete} still exists after hard delete!`);
+      // Пробуем еще раз по email без ID
+      await adminCollection.deleteMany({ email: emailToDelete });
+    }
+
+    res.json({
+      success: true,
+      message: "Admin deleted successfully",
+    });
+  } catch (error: any) {
+    console.error(`[AdminController] Delete error:`, error);
+    if (error instanceof AppError) throw error;
+    throw new AppError(error.message || "Internal server error during deletion", 500);
   }
-
-  // Удаляем пользователя (если он существует)
-  const user = await User.findOne({ email: adminEmail });
-  if (user) {
-    await User.findByIdAndDelete(user._id);
-    logger.info(`User deleted for admin ${id} (${adminEmail})`);
-  }
-
-  // Финальная проверка: убедимся, что админ действительно удалён
-  const finalCheck = await AdminUser.findById(id);
-  if (finalCheck) {
-    logger.error(
-      `Failed to delete admin ${id} (${adminEmail}) — document still exists after deletion`,
-    );
-    throw new AppError(
-      "Failed to delete admin. Please try again.",
-      500,
-      ErrorCode.INTERNAL_ERROR,
-    );
-  }
-
-  logger.info(`Admin ${id} (${adminEmail}) deleted successfully`);
-
-  res.json({
-    success: true,
-    message: "Admin deleted successfully",
-  });
 });
