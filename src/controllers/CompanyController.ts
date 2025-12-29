@@ -5,7 +5,9 @@ import { Company } from "../models/Company";
 import { User } from "../models/User";
 import { AdminUser } from "../models/AdminUser";
 import { SubscriptionPlan } from "../models/SubscriptionPlan";
+import { Message } from "../models/Message";
 import { hashPassword } from "../utils/password";
+import { logger } from "../utils/logger";
 
 export const getAllCompanies = asyncHandler(
   async (req: Request, res: Response) => {
@@ -585,22 +587,54 @@ export const updateCompanyPlan = asyncHandler(
 export const deleteCompany = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
+    const cleanId = id.trim();
+    
+    logger.info(`[CompanyController] DELETE request for company ID: ${cleanId}`);
 
     // Только админы могут удалять компании
     if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
       throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
     }
 
-    const company = await Company.findById(id);
+    // 1. Находим компанию
+    const company = await Company.findById(cleanId).lean();
     if (!company) {
+      logger.warn(`[CompanyController] Company with ID ${cleanId} not found`);
       throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
     }
 
-    // Удаляем всех пользователей компании
-    await User.deleteMany({ companyId: company._id });
+    const companyCode = company.code;
+    const companyId = company._id.toString();
+    
+    logger.info(`[CompanyController] Deleting company: ${company.name} (code: ${companyCode}, id: ${companyId})`);
 
-    // Удаляем компанию
-    await Company.findByIdAndDelete(id);
+    // 2. Удаляем все сообщения компании по companyCode
+    const messagesResult = await Message.deleteMany({ companyCode });
+    logger.info(`[CompanyController] Deleted ${messagesResult.deletedCount} messages for company ${companyCode}`);
+
+    // 3. Удаляем всех пользователей компании по companyId
+    const usersResult = await User.deleteMany({ companyId: company._id });
+    logger.info(`[CompanyController] Deleted ${usersResult.deletedCount} users for company ${companyId}`);
+
+    // 4. Удаляем компанию по ID
+    const companyResult = await Company.findByIdAndDelete(cleanId);
+    if (!companyResult) {
+      logger.error(`[CompanyController] Failed to delete company ${cleanId} - not found during deletion`);
+      throw new AppError("Company not found during deletion", 404, ErrorCode.NOT_FOUND);
+    }
+
+    // 5. Финальная проверка - убеждаемся, что компания удалена
+    const stillExists = await Company.findById(cleanId).lean();
+    if (stillExists) {
+      logger.error(`[CompanyController] CRITICAL: Company ${cleanId} still exists after deletion!`);
+      throw new AppError(
+        "Failed to delete company completely. Company persists in database.",
+        500,
+        ErrorCode.INTERNAL_ERROR
+      );
+    }
+
+    logger.info(`[CompanyController] Successfully deleted company ${company.name} (${companyCode})`);
 
     res.json({
       success: true,
