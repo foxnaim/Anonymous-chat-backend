@@ -584,3 +584,71 @@ export const changePassword = asyncHandler(
     });
   },
 );
+
+/**
+ * OAuth синхронизация - создает/обновляет пользователя после OAuth входа
+ * Используется NextAuth для создания пользователя в БД
+ */
+export const oauthSync = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = req.body as {
+      email?: string;
+      name?: string;
+      provider?: string;
+      providerId?: string;
+    };
+    const { email, name, provider } = body;
+
+    if (!email) {
+      throw new AppError("Email is required", 400, ErrorCode.BAD_REQUEST);
+    }
+
+    const normalizedEmail = String(email).toLowerCase();
+
+    // Ищем существующего пользователя
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (user) {
+      // Обновляем lastLogin и имя, если изменилось
+      user.lastLogin = new Date();
+      if (name && user.name !== name) {
+        user.name = name;
+      }
+      await user.save();
+    } else {
+      // Создаем нового пользователя (без пароля для OAuth)
+      // Генерируем случайный пароль, который никогда не будет использован
+      const randomPassword = generateResetToken(); // Используем как случайную строку
+      const hashedPassword = await hashPassword(randomPassword);
+
+      user = await User.create({
+        email: normalizedEmail,
+        password: hashedPassword, // OAuth пользователи не используют пароль
+        name: name || email.split("@")[0],
+        role: "user", // По умолчанию обычный пользователь
+      });
+    }
+
+    // Генерируем JWT токен
+    const token = generateToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId?.toString(),
+    });
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          role: user.role,
+          companyId: user.companyId,
+          name: user.name,
+        },
+        token,
+      },
+    });
+  },
+);

@@ -8,6 +8,7 @@ import {
   resetPassword,
   changeEmail,
   changePassword,
+  oauthSync,
 } from "../controllers/AuthController";
 import { validate } from "../middleware/validation";
 import {
@@ -328,5 +329,33 @@ router.post(
   validate(changePasswordSchema),
   changePassword,
 );
+
+/**
+ * @swagger
+ * /api/auth/oauth-sync:
+ *   post:
+ *     summary: Синхронизация OAuth пользователя (создание/обновление в БД)
+ *     tags: [Аутентификация]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               name:
+ *                 type: string
+ *               provider:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Пользователь синхронизирован
+ */
+router.post("/oauth-sync", oauthSync);
 
 export default router;
