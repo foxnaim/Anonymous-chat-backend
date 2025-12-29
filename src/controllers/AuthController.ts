@@ -616,12 +616,38 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
   let user = await User.findOne({ email: normalizedEmail });
 
   if (user) {
-    // Обновляем lastLogin и имя, если изменилось
-    user.lastLogin = new Date();
-    if (name && user.name !== name) {
-      user.name = name;
+    // Если пользователь существует, проверяем его роль
+    // Система разрешает вход только для admin, super_admin и company
+    // Если роль 'user', проверяем, может быть это админ или компания, которая была неправильно зарегистрирована
+    if (user.role === "user") {
+      const adminUser = await AdminUser.findOne({ email: normalizedEmail });
+      const company = await Company.findOne({ adminEmail: normalizedEmail });
+
+      if (adminUser) {
+        user.role = adminUser.role as "admin" | "super_admin";
+        if (name) user.name = name;
+        await user.save();
+      } else if (company) {
+        user.role = "company";
+        user.companyId = company._id;
+        if (name) user.name = name;
+        await user.save();
+      } else {
+        // Если это просто user без привязки к компании/админу - запрещаем вход
+        throw new AppError(
+          "Access denied. Only registered companies and administrators can log in.",
+          403,
+          ErrorCode.FORBIDDEN
+        );
+      }
+    } else {
+      // Обновляем lastLogin и имя для существующих корректных пользователей
+      user.lastLogin = new Date();
+      if (name && user.name !== name) {
+        user.name = name;
+      }
+      await user.save();
     }
-    await user.save();
   } else {
     // Проверяем, существует ли этот email в админах или компаниях
     const adminUser = await AdminUser.findOne({ email: normalizedEmail });
