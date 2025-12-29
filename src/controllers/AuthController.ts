@@ -14,8 +14,6 @@ import {
 } from "../utils/password";
 import { generateToken } from "../utils/jwt";
 import { logger } from "../utils/logger";
-import { emailService } from "../services/emailService";
-import { config } from "../config/env";
 
 /**
  * Вход в систему (для доступа в панель управления компанией)
