@@ -9,6 +9,7 @@ import {
   changeEmail,
   changePassword,
   oauthSync,
+  promoteToSuperAdmin,
 } from "../controllers/AuthController";
 import { validate } from "../middleware/validation";
 import {
@@ -357,5 +358,17 @@ router.post(
  *         description: Пользователь синхронизирован
  */
 router.post("/oauth-sync", oauthSync);
+
+/**
+ * Временный эндпоинт для обновления роли текущего пользователя на super_admin
+ * ТОЛЬКО ДЛЯ РАЗРАБОТКИ!
+ */
+router.post(
+  "/promote-super-admin",
+  (req, res, next) => {
+    authenticate(req, res, next);
+  },
+  promoteToSuperAdmin,
+);
 
 export default router;

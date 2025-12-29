@@ -658,3 +658,60 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 });
+
+/**
+ * Временный эндпоинт для обновления роли текущего пользователя на super_admin
+ * ТОЛЬКО ДЛЯ РАЗРАБОТКИ - удалить в production!
+ */
+export const promoteToSuperAdmin = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new AppError("Not authenticated", 401, ErrorCode.UNAUTHORIZED);
+  }
+
+  const user = await User.findById(req.user.userId);
+  if (!user) {
+    throw new AppError("User not found", 404, ErrorCode.NOT_FOUND);
+  }
+
+  // Обновляем роль на super_admin
+  user.role = "super_admin";
+  await user.save();
+
+  // Обновляем или создаем AdminUser
+  let adminUser = await AdminUser.findOne({ email: user.email.toLowerCase() });
+  if (adminUser) {
+    adminUser.role = "super_admin";
+    await adminUser.save();
+  } else {
+    const createdAt = new Date().toISOString().split('T')[0];
+    await AdminUser.create({
+      email: user.email.toLowerCase(),
+      name: user.name || user.email.split("@")[0],
+      role: "super_admin",
+      createdAt,
+    });
+  }
+
+  // Генерируем новый токен с обновленной ролью
+  const token = generateToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    companyId: user.companyId?.toString(),
+  });
+
+  res.json({
+    success: true,
+    message: "Role updated to super_admin",
+    data: {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        name: user.name,
+      },
+      token,
+    },
+  });
+});
