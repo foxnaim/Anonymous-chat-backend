@@ -58,7 +58,10 @@ export const authorize = (...roles: string[]) => {
       );
     }
 
-    if (!roles.includes(req.user.role)) {
+    const userRole = req.user.role.toLowerCase();
+    const allowedRoles = roles.map((role) => role.toLowerCase());
+
+    if (!allowedRoles.includes(userRole)) {
       return next(
         new AppError("Insufficient permissions", 403, ErrorCode.FORBIDDEN),
       );

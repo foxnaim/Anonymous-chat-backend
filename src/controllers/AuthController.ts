@@ -69,7 +69,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const token = generateToken({
     userId: user._id.toString(),
     email: user.email,
-    role: user.role,
+    role: user.role.toLowerCase(),
     companyId: user.companyId?.toString(),
   });
 
@@ -79,7 +79,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       user: {
         id: user._id.toString(),
         email: user.email,
-        role: user.role,
+        role: user.role.toLowerCase(),
         companyId: user.companyId,
         name: user.name,
       },
@@ -640,7 +640,7 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
   const token = generateToken({
     userId: user._id.toString(),
     email: user.email,
-    role: user.role,
+    role: user.role.toLowerCase(),
     companyId: user.companyId?.toString(),
   });
 
@@ -650,7 +650,7 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
       user: {
         id: user._id.toString(),
         email: user.email,
-        role: user.role,
+        role: user.role.toLowerCase(),
         companyId: user.companyId,
         name: user.name,
       },
