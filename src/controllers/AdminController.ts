@@ -27,6 +27,7 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
   // Используем lean() для производительности (возвращает простые объекты без методов Mongoose)
   // select исключает ненужные поля
   // sort использует индекс createdAt для быстрой сортировки
+  // Используем нативный драйвер для гарантии свежих данных (обход Mongoose кэша)
   const [admins, total] = await Promise.all([
     AdminUser.find()
       .select("-__v") // Исключаем версию документа
@@ -34,6 +35,7 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
       .skip(skip)
       .limit(pageSize)
       .lean() // lean() для быстрого получения простых объектов без overhead Mongoose
+      .readConcern('majority') // Читаем с majority для консистентности
       .exec(),
     AdminUser.countDocuments().exec(), // Параллельно считаем total
   ]);
@@ -319,25 +321,88 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
     const adminCollection = AdminUser.collection;
     const userCollection = User.collection;
 
+    // Удаляем по ID (если валидный ObjectId)
+    let objectId: Types.ObjectId | undefined;
+    try {
+      if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+        objectId = new Types.ObjectId(id);
+      }
+    } catch (e) {
+      // Игнорируем ошибку парсинга ObjectId
+    }
+
+    // Удаляем из обеих коллекций максимально агрессивно
+    const deleteConditions: any[] = [{ email: emailToDelete }];
+    if (objectId) {
+      deleteConditions.push({ _id: objectId });
+    }
+
     const [adminDel, userDel] = await Promise.all([
-      adminCollection.deleteMany({ 
-        $or: [
-          { email: emailToDelete },
-          { _id: new Types.ObjectId(id.match(/^[0-9a-fA-F]{24}$/) ? id : undefined) }
-        ] 
-      }),
+      adminCollection.deleteMany({ $or: deleteConditions }),
       userCollection.deleteMany({ email: emailToDelete })
     ]);
 
     console.log(`[AdminController] Hard delete results: AdminUser: ${adminDel.deletedCount}, User: ${userDel.deletedCount}`);
 
-    // 4. Проверка
-    const stillAdmin = await AdminUser.findOne({ email: emailToDelete });
-    if (stillAdmin) {
-      console.error(`[AdminController] CRITICAL FAIL: Admin ${emailToDelete} still exists after hard delete!`);
-      // Пробуем еще раз по email без ID
-      await adminCollection.deleteMany({ email: emailToDelete });
+    // 4. Финальная проверка через нативный драйвер (обход Mongoose кэша)
+    const stillAdminNative = await adminCollection.findOne({ email: emailToDelete });
+    const stillUserNative = await userCollection.findOne({ email: emailToDelete });
+    
+    if (stillAdminNative || stillUserNative) {
+      console.error(`[AdminController] CRITICAL: Documents still exist after delete! Admin: ${!!stillAdminNative}, User: ${!!stillUserNative}`);
+      
+      // Последняя попытка - удаляем все что найдено
+      if (stillAdminNative) {
+        await adminCollection.deleteOne({ _id: stillAdminNative._id });
+        console.log(`[AdminController] Force deleted AdminUser with _id: ${stillAdminNative._id}`);
+      }
+      if (stillUserNative) {
+        await userCollection.deleteOne({ _id: stillUserNative._id });
+        console.log(`[AdminController] Force deleted User with _id: ${stillUserNative._id}`);
+      }
+      
+      // Финальная проверка
+      const finalCheckAdmin = await adminCollection.findOne({ email: emailToDelete });
+      const finalCheckUser = await userCollection.findOne({ email: emailToDelete });
+      
+      if (finalCheckAdmin || finalCheckUser) {
+        logger.error(`[AdminController] FATAL: Cannot delete admin ${emailToDelete} - documents persist after all attempts`);
+        throw new AppError(
+          "Failed to delete admin completely. Database may be locked or experiencing issues.",
+          500,
+          ErrorCode.INTERNAL_ERROR
+        );
+      }
     }
+
+    // 5. Финальная проверка через Mongoose (для уверенности)
+    const mongooseCheckAdmin = await AdminUser.findOne({ email: emailToDelete });
+    const mongooseCheckUser = await User.findOne({ email: emailToDelete });
+    
+    if (mongooseCheckAdmin || mongooseCheckUser) {
+      logger.warn(`[AdminController] Mongoose still sees documents for ${emailToDelete}. Force clearing...`);
+      
+      // Принудительно удаляем через Mongoose методы
+      if (mongooseCheckAdmin) {
+        await mongooseCheckAdmin.deleteOne();
+      }
+      if (mongooseCheckUser) {
+        await mongooseCheckUser.deleteOne();
+      }
+      
+      // Еще раз проверяем через нативный драйвер
+      const finalNativeCheck = await adminCollection.findOne({ email: emailToDelete });
+      if (finalNativeCheck) {
+        logger.error(`[AdminController] FATAL: Admin ${emailToDelete} persists even after Mongoose delete`);
+        throw new AppError(
+          "Failed to delete admin. Please contact support.",
+          500,
+          ErrorCode.INTERNAL_ERROR
+        );
+      }
+    }
+    
+    logger.info(`[AdminController] Admin ${emailToDelete} (ID: ${id}) successfully deleted from all collections`);
 
     res.json({
       success: true,
