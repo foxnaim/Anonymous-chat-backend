@@ -617,22 +617,7 @@ export const deleteCompany = asyncHandler(
     logger.info(`[CompanyController] Deleted ${usersResult.deletedCount} users for company ${companyId}`);
 
     // 4. Удаляем компанию по ID
-    const companyResult = await Company.findByIdAndDelete(cleanId);
-    if (!companyResult) {
-      logger.error(`[CompanyController] Failed to delete company ${cleanId} - not found during deletion`);
-      throw new AppError("Company not found during deletion", 404, ErrorCode.NOT_FOUND);
-    }
-
-    // 5. Финальная проверка - убеждаемся, что компания удалена
-    const stillExists = await Company.findById(cleanId).lean();
-    if (stillExists) {
-      logger.error(`[CompanyController] CRITICAL: Company ${cleanId} still exists after deletion!`);
-      throw new AppError(
-        "Failed to delete company completely. Company persists in database.",
-        500,
-        ErrorCode.INTERNAL_ERROR
-      );
-    }
+    await Company.findByIdAndDelete(cleanId);
 
     logger.info(`[CompanyController] Successfully deleted company ${company.name} (${companyCode})`);
 
