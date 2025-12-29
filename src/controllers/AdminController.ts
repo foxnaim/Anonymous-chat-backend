@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { AppError, ErrorCode } from "../utils/AppError";
 import { AdminUser } from "../models/AdminUser";
@@ -328,7 +327,7 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   console.log(`[AdminController] Successfully deleted admin ${email}`);
 
-  res.json({
+  return res.json({
     success: true,
     message: "Admin deleted successfully",
   });
