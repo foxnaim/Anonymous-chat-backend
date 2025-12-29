@@ -294,20 +294,42 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("Cannot delete super admin", 403, ErrorCode.FORBIDDEN);
   }
 
-  // Удаляем пользователя
-  const user = await User.findOne({ email: admin.email });
-  if (user) {
-    await user.deleteOne();
+  // Сохраняем email для удаления пользователя
+  const adminEmail = admin.email;
+
+  // Удаляем админа атомарно с помощью findByIdAndDelete
+  const deletedAdmin = await AdminUser.findByIdAndDelete(id);
+  
+  if (!deletedAdmin) {
+    // Если админ не найден при удалении, возможно он уже был удален
+    // Проверяем, существует ли он еще
+    const stillExists = await AdminUser.findById(id);
+    if (stillExists) {
+      logger.error(
+        `Failed to delete admin ${id} (${adminEmail}) — findByIdAndDelete returned null but admin still exists`,
+      );
+      throw new AppError(
+        "Failed to delete admin. Please try again.",
+        500,
+        ErrorCode.INTERNAL_ERROR,
+      );
+    }
+    // Если админа действительно нет, считаем удаление успешным
+    logger.info(`Admin ${id} (${adminEmail}) was already deleted`);
   }
 
-  // Удаляем админа
-  await admin.deleteOne();
+  // Удаляем пользователя (если он существует)
+  const user = await User.findOne({ email: adminEmail });
+  if (user) {
+    await User.findByIdAndDelete(user._id);
+    logger.info(`User deleted for admin ${id} (${adminEmail})`);
+  }
 
-  // Дополнительная проверка: убедимся, что админ действительно удалён
-  const stillExists = await AdminUser.findById(id);
-  if (stillExists) {
+  // Финальная проверка: убедимся, что админ действительно удалён
+  const finalCheck = await AdminUser.findById(id);
+  if (finalCheck) {
     logger.error(
-      `Failed to delete admin ${id} (${admin.email}) — document still exists after deleteOne`,
+      `Failed to delete admin ${id} (${adminEmail}) — document still exists after deletion`,
     );
     throw new AppError(
       "Failed to delete admin. Please try again.",
@@ -315,6 +337,8 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
       ErrorCode.INTERNAL_ERROR,
     );
   }
+
+  logger.info(`Admin ${id} (${adminEmail}) deleted successfully`);
 
   res.json({
     success: true,
