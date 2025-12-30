@@ -257,59 +257,64 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
-  const body = req.body as { token?: string };
-  const { token } = body;
+// Verify email handler
+const verifyEmailHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = req.body as { token?: string };
+    const { token } = body;
 
-  if (!token) {
-    throw new AppError(
-      "Verification token is required",
-      400,
-      ErrorCode.BAD_REQUEST,
-    );
-  }
+    if (!token) {
+      throw new AppError(
+        "Verification token is required",
+        400,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
 
-  const hashedToken = hashResetToken(token);
+    const hashedToken = hashResetToken(token);
 
-  const user = await User.findOne({
-    verificationToken: hashedToken,
-  });
+    const user = await User.findOne({
+      verificationToken: hashedToken,
+    });
 
-  if (!user) {
-    throw new AppError(
-      "Invalid or expired verification token",
-      400,
-      ErrorCode.BAD_REQUEST,
-    );
-  }
+    if (!user) {
+      throw new AppError(
+        "Invalid or expired verification token",
+        400,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
 
-  user.isVerified = true;
-  user.verificationToken = undefined;
-  await user.save();
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    await user.save();
 
-  // После подтверждения сразу логиним пользователя
-  const jwtToken = generateToken({
-    userId: user._id.toString(),
-    email: user.email,
-    role: user.role.toLowerCase(),
-    companyId: user.companyId?.toString(),
-  });
+    // После подтверждения сразу логиним пользователя
+    const jwtToken = generateToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role.toLowerCase(),
+      companyId: user.companyId?.toString(),
+    });
 
-  res.json({
-    success: true,
-    data: {
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        role: user.role.toLowerCase(),
-        companyId: user.companyId,
-        name: user.name,
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          role: user.role.toLowerCase(),
+          companyId: user.companyId,
+          name: user.name,
+        },
+        token: jwtToken,
       },
-      token: jwtToken,
-    },
-    message: "Email verified successfully",
-  });
-});
+      message: "Email verified successfully",
+    });
+  },
+);
+
+export const verifyEmail = verifyEmailHandler;
 
 export const verifyPassword = asyncHandler(
   async (req: Request, res: Response) => {
