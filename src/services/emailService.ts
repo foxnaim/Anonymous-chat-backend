@@ -280,6 +280,73 @@ class EmailService {
   }
 
   /**
+   * Отправляет письмо для подтверждения email при регистрации
+   */
+  async sendVerificationEmail(
+    email: string,
+    verificationToken: string,
+    verificationUrl?: string,
+  ): Promise<void> {
+    const verifyLink =
+      verificationUrl ||
+      `${config.frontendUrl}/verify-email?token=${verificationToken}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Подтверждение email</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">FeedbackHub</h1>
+          </div>
+          
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #333; margin-top: 0;">Подтверждение email</h2>
+            
+            <p>Здравствуйте!</p>
+            
+            <p>Спасибо за регистрацию в FeedbackHub!</p>
+            
+            <p>Для завершения регистрации и активации вашего аккаунта, пожалуйста, подтвердите ваш email адрес, нажав на кнопку ниже:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verifyLink}" 
+                 style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Подтвердить email
+              </a>
+            </div>
+            
+            <p>Или скопируйте и вставьте следующую ссылку в браузер:</p>
+            <p style="word-break: break-all; background: #fff; padding: 10px; border-radius: 5px; font-size: 12px;">
+              ${verifyLink}
+            </p>
+            
+            <p style="color: #666; font-size: 14px;">
+              <strong>Важно:</strong> Если вы не регистрировались в FeedbackHub, просто проигнорируйте это письмо.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+            
+            <p style="color: #999; font-size: 12px; margin: 0;">
+              Если кнопка не работает, скопируйте ссылку выше и вставьте в адресную строку браузера.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    await this.sendEmail({
+      to: email,
+      subject: "Подтверждение email - FeedbackHub",
+      html,
+    });
+  }
+
+  /**
    * Отправляет письмо с паролем для нового администратора
    */
   async sendAdminPasswordEmail(

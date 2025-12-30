@@ -14,6 +14,8 @@ import {
 } from "../utils/password";
 import { generateToken } from "../utils/jwt";
 import { logger } from "../utils/logger";
+import { emailService } from "../services/emailService";
+import { config } from "../config/env";
 
 /**
  * Вход в систему (для доступа в панель управления компанией)
@@ -243,7 +245,31 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   });
 
   // При регистрации мы НЕ возвращаем JWT токен, чтобы пользователь не мог сразу войти
-  // Вместо этого мы возвращаем verificationToken для отправки письма на фронтенде
+  // Отправляем email верификации с бэкенда
+  const verificationUrl = `${config.frontendUrl}/verify-email?token=${verificationToken}`;
+  
+  // Отправляем email верификации асинхронно ПОСЛЕ отправки ответа
+  setImmediate(() => {
+    emailService
+      .sendVerificationEmail(
+        String(email).toLowerCase(),
+        verificationToken,
+        verificationUrl,
+      )
+      .then(() => {
+        logger.info(`Verification email sent to ${email}`);
+      })
+      .catch((error) => {
+        // Логируем ошибку, но не прерываем работу (пользователь уже создан)
+        logger.error(`Failed to send verification email to ${email}:`, error);
+        // В development режиме можно вернуть токен, но ответ уже отправлен
+        if (process.env.NODE_ENV === "development") {
+          logger.warn(
+            `Development mode: Verification token for ${email} is ${verificationToken}`,
+          );
+        }
+      });
+  });
 
   res.status(201).json({
     success: true,
@@ -255,7 +281,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         companyId: user.companyId,
         name: user.name,
       },
-      verificationToken, // Токен для отправки письма
+      verificationToken, // Токен для отправки письма (fallback, если email не отправился)
     },
     message:
       "Registration successful. Please check your email to verify your account.",
@@ -433,14 +459,36 @@ export const forgotPassword = asyncHandler(
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 час
     await user.save();
 
-    // В текущей архитектуре (EmailJS на фронтенде) мы возвращаем токен клиенту,
-    // чтобы фронтенд сам отправил письмо.
-    // В будущем, при наличии SMTP, можно вернуть старую логику отправки с бэкенда.
+    // Отправляем email восстановления пароля с бэкенда
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
+    
+    // Отправляем email асинхронно ПОСЛЕ отправки ответа
+    setImmediate(() => {
+      emailService
+        .sendPasswordResetEmail(
+          String(email).toLowerCase(),
+          resetToken,
+          resetUrl,
+        )
+        .then(() => {
+          logger.info(`Password reset email sent to ${email}`);
+        })
+        .catch((error) => {
+          // Логируем ошибку, но не прерываем работу (токен уже создан)
+          logger.error(`Failed to send password reset email to ${email}:`, error);
+          // В development режиме можно вернуть токен, но ответ уже отправлен
+          if (process.env.NODE_ENV === "development") {
+            logger.warn(
+              `Development mode: Reset token for ${email} is ${resetToken}`,
+            );
+          }
+        });
+    });
 
     return res.json({
       success: true,
-      message: "Reset token generated",
-      resetToken, // Возвращаем токен фронтенду для отправки через EmailJS
+      message: "If the email exists, a password reset link has been sent",
+      resetToken, // Возвращаем токен фронтенду как fallback (если email не отправился)
     });
   },
 );
