@@ -62,6 +62,16 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
+  // Проверяем, подтвержден ли email (только если поле существует и равно false)
+  // Для старых пользователей без поля isVerified вход разрешен (undefined !== false)
+  if (user.isVerified === false) {
+    throw new AppError(
+      "Please verify your email address before logging in.",
+      403,
+      ErrorCode.FORBIDDEN,
+    );
+  }
+
   // Обновляем lastLogin
   user.lastLogin = new Date();
   await user.save();
@@ -209,21 +219,23 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     companyId = company._id.toString();
   }
 
+  // Генерируем токен подтверждения email
+  const verificationToken = generateResetToken();
+  const hashedVerificationToken = hashResetToken(verificationToken);
+
   const user = await User.create({
     email: String(email).toLowerCase(),
     password: hashedPassword,
     name: name || companyName,
     role,
     companyId: companyId ? (companyId as unknown as Types.ObjectId) : undefined,
+    isVerified: false,
+    verificationToken: hashedVerificationToken,
   });
 
-  const token = generateToken({
-    userId: user._id.toString(),
-    email: user.email,
-    role: user.role,
-    companyId: user.companyId?.toString(),
-  });
-
+  // При регистрации мы НЕ возвращаем JWT токен, чтобы пользователь не мог сразу войти
+  // Вместо этого мы возвращаем verificationToken для отправки письма на фронтенде
+  
   res.status(201).json({
     success: true,
     data: {
@@ -234,8 +246,55 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         companyId: user.companyId,
         name: user.name,
       },
-      token,
+      verificationToken, // Токен для отправки письма
     },
+    message: "Registration successful. Please check your email to verify your account.",
+  });
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const body = req.body as { token?: string };
+  const { token } = body;
+
+  if (!token) {
+    throw new AppError("Verification token is required", 400, ErrorCode.BAD_REQUEST);
+  }
+
+  const hashedToken = hashResetToken(token);
+
+  const user = await User.findOne({
+    verificationToken: hashedToken,
+  });
+
+  if (!user) {
+    throw new AppError("Invalid or expired verification token", 400, ErrorCode.BAD_REQUEST);
+  }
+
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  await user.save();
+
+  // После подтверждения сразу логиним пользователя
+  const jwtToken = generateToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role.toLowerCase(),
+    companyId: user.companyId?.toString(),
+  });
+
+  res.json({
+    success: true,
+    data: {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role.toLowerCase(),
+        companyId: user.companyId,
+        name: user.name,
+      },
+      token: jwtToken,
+    },
+    message: "Email verified successfully",
   });
 });
 
@@ -643,20 +702,22 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
         if (name) user.name = name;
         await user.save();
       } else {
-        // Если это просто user без привязки к компании/админу - запрещаем вход
+        // Если это просто user без привязки к компании/админу - удаляем пользователя и запрещаем вход
+        // Это позволит пользователю зарегистрироваться заново как компания
+        await User.deleteOne({ _id: user._id });
         throw new AppError(
-          "Access denied. Only registered companies and administrators can log in.",
+          "User not registered. Please register as a company or ask an administrator.",
           403,
           ErrorCode.FORBIDDEN
         );
       }
     } else {
       // Обновляем lastLogin и имя для существующих корректных пользователей
-    user.lastLogin = new Date();
-    if (name && user.name !== name) {
-      user.name = name;
-    }
-    await user.save();
+      user.lastLogin = new Date();
+      if (name && user.name !== name) {
+        user.name = name;
+      }
+      await user.save();
     }
   } else {
     // Проверяем, существует ли этот email в админах или компаниях

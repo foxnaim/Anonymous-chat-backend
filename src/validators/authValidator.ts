@@ -68,6 +68,12 @@ export const resetPasswordSchema = z.object({
   }),
 });
 
+export const verifyEmailSchema = z.object({
+  body: z.object({
+    token: z.string().min(1, "Verification token is required"),
+  }),
+});
+
 export const changeEmailSchema = z.object({
   body: z.object({
     newEmail: z.string().email("Invalid email format"),

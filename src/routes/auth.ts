@@ -16,6 +16,7 @@ import {
   loginSchema,
   registerSchema,
   verifyPasswordSchema,
+  verifyEmailSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   changeEmailSchema,
@@ -132,6 +133,31 @@ router.post("/login", validate(loginSchema), login);
  *         description: Bad request
  */
 router.post("/register", validate(registerSchema), register);
+
+/**
+ * @swagger
+ * /api/auth/verify-email:
+ *   post:
+ *     summary: Подтверждение email
+ *     tags: [Аутентификация]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email успешно подтвержден
+ *       400:
+ *         description: Неверный токен
+ */
+router.post("/verify-email", validate(verifyEmailSchema), verifyEmail);
 
 /**
  * @swagger
