@@ -247,7 +247,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   // При регистрации мы НЕ возвращаем JWT токен, чтобы пользователь не мог сразу войти
   // Отправляем email верификации с бэкенда
   const verificationUrl = `${config.frontendUrl}/verify-email?token=${verificationToken}`;
-  
+
   // Отправляем email верификации асинхронно ПОСЛЕ отправки ответа
   setImmediate(() => {
     emailService
@@ -289,61 +289,59 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // Verify email handler
-const verifyEmailHandler = asyncHandler(
-  async (req: Request, res: Response) => {
-    const body = req.body as { token?: string };
-    const { token } = body;
+const verifyEmailHandler = asyncHandler(async (req: Request, res: Response) => {
+  const body = req.body as { token?: string };
+  const { token } = body;
 
-    if (!token) {
-      throw new AppError(
-        "Verification token is required",
-        400,
-        ErrorCode.BAD_REQUEST,
-      );
-    }
+  if (!token) {
+    throw new AppError(
+      "Verification token is required",
+      400,
+      ErrorCode.BAD_REQUEST,
+    );
+  }
 
-    const hashedToken = hashResetToken(token);
+  const hashedToken = hashResetToken(token);
 
-    const user = await User.findOne({
-      verificationToken: hashedToken,
-    });
+  const user = await User.findOne({
+    verificationToken: hashedToken,
+  });
 
-    if (!user) {
-      throw new AppError(
-        "Invalid or expired verification token",
-        400,
-        ErrorCode.BAD_REQUEST,
-      );
-    }
+  if (!user) {
+    throw new AppError(
+      "Invalid or expired verification token",
+      400,
+      ErrorCode.BAD_REQUEST,
+    );
+  }
 
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    await user.save();
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  await user.save();
 
-    // После подтверждения сразу логиним пользователя
-    const jwtToken = generateToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role.toLowerCase(),
-      companyId: user.companyId?.toString(),
-    });
+  // После подтверждения сразу логиним пользователя
+  const jwtToken = generateToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role.toLowerCase(),
+    companyId: user.companyId?.toString(),
+  });
 
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user._id.toString(),
-          email: user.email,
-          role: user.role.toLowerCase(),
-          companyId: user.companyId,
-          name: user.name,
-        },
-        token: jwtToken,
+  res.json({
+    success: true,
+    data: {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role.toLowerCase(),
+        companyId: user.companyId,
+        name: user.name,
       },
-      message: "Email verified successfully",
-    });
-  },
-);
+      token: jwtToken,
+    },
+    message: "Email verified successfully",
+  });
+});
 
 export const verifyEmail = verifyEmailHandler;
 
@@ -461,7 +459,7 @@ export const forgotPassword = asyncHandler(
 
     // Отправляем email восстановления пароля с бэкенда
     const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
-    
+
     // Отправляем email асинхронно ПОСЛЕ отправки ответа
     setImmediate(() => {
       emailService
@@ -475,7 +473,10 @@ export const forgotPassword = asyncHandler(
         })
         .catch((error) => {
           // Логируем ошибку, но не прерываем работу (токен уже создан)
-          logger.error(`Failed to send password reset email to ${email}:`, error);
+          logger.error(
+            `Failed to send password reset email to ${email}:`,
+            error,
+          );
           // В development режиме можно вернуть токен, но ответ уже отправлен
           if (process.env.NODE_ENV === "development") {
             logger.warn(
