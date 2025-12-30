@@ -3,6 +3,7 @@ import {
   login,
   register,
   verifyPassword,
+  verifyEmail,
   getMe,
   forgotPassword,
   resetPassword,
