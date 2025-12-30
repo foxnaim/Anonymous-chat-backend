@@ -118,8 +118,18 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const existingUser = await User.findOne({
     email: String(email).toLowerCase(),
   });
+  
   if (existingUser) {
-    throw new AppError("User already exists", 409, ErrorCode.CONFLICT);
+    // Если пользователь существует, но имеет роль 'user' и мы регистрируем компанию
+    // Значит это "пустой" аккаунт (например, от OAuth или старый), который хочет стать компанией.
+    // Мы можем разрешить это, но нужно убедиться, что это не админ или уже существующая компания.
+    // role берется из body, при регистрации компании она равна 'company'
+    if (existingUser.role === 'user' && !existingUser.companyId && role === 'company') {
+        // Удаляем "пустого" пользователя, чтобы создать нового с правильными данными компании
+        await User.deleteOne({ _id: existingUser._id });
+    } else {
+        throw new AppError("User already exists", 409, ErrorCode.CONFLICT);
+    }
   }
 
   // Проверяем, не существует ли админ с таким email
