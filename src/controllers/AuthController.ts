@@ -128,7 +128,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         // Удаляем "пустого" пользователя, чтобы создать нового с правильными данными компании
         await User.deleteOne({ _id: existingUser._id });
     } else {
-        throw new AppError("User already exists", 409, ErrorCode.CONFLICT);
+    throw new AppError("User already exists", 409, ErrorCode.CONFLICT);
     }
   }
 
@@ -652,11 +652,11 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
       }
     } else {
       // Обновляем lastLogin и имя для существующих корректных пользователей
-      user.lastLogin = new Date();
-      if (name && user.name !== name) {
-        user.name = name;
-      }
-      await user.save();
+    user.lastLogin = new Date();
+    if (name && user.name !== name) {
+      user.name = name;
+    }
+    await user.save();
     }
   } else {
     // Проверяем, существует ли этот email в админах или компаниях
@@ -676,9 +676,9 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
     } else if (company) {
       // Это компания, создаем пользователя
       const randomPassword = generateResetToken();
-      const hashedPassword = await hashPassword(randomPassword);
-      user = await User.create({
-        email: normalizedEmail,
+    const hashedPassword = await hashPassword(randomPassword);
+    user = await User.create({
+      email: normalizedEmail,
         password: hashedPassword,
         name: name || company.name,
         role: "company",
