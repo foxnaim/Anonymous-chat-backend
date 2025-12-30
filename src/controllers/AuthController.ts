@@ -64,7 +64,12 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   // Проверяем, подтвержден ли email (только если поле существует и равно false)
   // Для старых пользователей без поля isVerified вход разрешен (undefined !== false)
-  if (user.isVerified === false) {
+  // Админы и суперадмины не требуют верификации email
+  if (
+    user.isVerified === false &&
+    user.role !== "admin" &&
+    user.role !== "super_admin"
+  ) {
     throw new AppError(
       "Please verify your email address before logging in.",
       403,
