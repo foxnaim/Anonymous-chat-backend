@@ -15,9 +15,12 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Отключаем кэширование на уровне HTTP
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
+  res.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
 
   const { page, limit } = req.query;
 
@@ -35,7 +38,7 @@ export const getAdmins = asyncHandler(async (req: Request, res: Response) => {
       .skip(skip)
       .limit(pageSize)
       .lean() // lean() для быстрого получения простых объектов без overhead Mongoose
-      .readConcern('majority') // Читаем с majority для консистентности
+      .readConcern("majority") // Читаем с majority для консистентности
       .exec(),
     AdminUser.countDocuments().exec(), // Параллельно считаем total
   ]);
@@ -282,7 +285,7 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   const { id } = req.params;
   const cleanId = id.trim();
-  console.log(`[AdminController] DELETE request for admin ID: ${cleanId}`);
+  logger.info(`[AdminController] DELETE request for admin ID: ${cleanId}`);
 
   // 1. Ищем админа чтобы получить email
   // Используем lean() чтобы получить простой объект
@@ -291,17 +294,17 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
   if (!admin) {
     // Если по ID не нашли, ищем по email в User, может это userID?
     const user = await User.findById(cleanId).lean();
-    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
-        // Нашли пользователя, удаляем его и ищем админа по email
-        const email = user.email.toLowerCase();
-        await User.deleteMany({ email }); // Удаляем всех юзеров с таким email
-        await AdminUser.deleteMany({ email }); // Удаляем всех админов с таким email
-        
-        res.json({
-            success: true,
-            message: "Admin deleted successfully (via User ID)",
-        });
-        return;
+    if (user && (user.role === "admin" || user.role === "super_admin")) {
+      // Нашли пользователя, удаляем его и ищем админа по email
+      const email = user.email.toLowerCase();
+      await User.deleteMany({ email }); // Удаляем всех юзеров с таким email
+      await AdminUser.deleteMany({ email }); // Удаляем всех админов с таким email
+
+      res.json({
+        success: true,
+        message: "Admin deleted successfully (via User ID)",
+      });
+      return;
     }
 
     // Если совсем не нашли
@@ -316,18 +319,18 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // 3. Удаляем ВСЁ, что связано с этим email
-  console.log(`[AdminController] Deleting all records for email: ${email}`);
-  
+  logger.info(`[AdminController] Deleting all records for email: ${email}`);
+
   // Удаляем всех админов с таким email
   await AdminUser.deleteMany({ email });
-  
+
   // Удаляем всех пользователей с таким email
   await User.deleteMany({ email });
-  
+
   // На всякий случай удаляем по ID, если вдруг email отличался (хотя это невозможно по схеме)
   await AdminUser.findByIdAndDelete(cleanId);
 
-  console.log(`[AdminController] Successfully deleted admin ${email}`);
+  logger.info(`[AdminController] Successfully deleted admin ${email}`);
 
   res.json({
     success: true,

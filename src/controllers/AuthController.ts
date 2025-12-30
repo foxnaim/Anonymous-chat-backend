@@ -128,17 +128,21 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const existingUser = await User.findOne({
     email: String(email).toLowerCase(),
   });
-  
+
   if (existingUser) {
     // Если пользователь существует, но имеет роль 'user' и мы регистрируем компанию
     // Значит это "пустой" аккаунт (например, от OAuth или старый), который хочет стать компанией.
     // Мы можем разрешить это, но нужно убедиться, что это не админ или уже существующая компания.
     // role берется из body, при регистрации компании она равна 'company'
-    if (existingUser.role === 'user' && !existingUser.companyId && role === 'company') {
-        // Удаляем "пустого" пользователя, чтобы создать нового с правильными данными компании
-        await User.deleteOne({ _id: existingUser._id });
+    if (
+      existingUser.role === "user" &&
+      !existingUser.companyId &&
+      role === "company"
+    ) {
+      // Удаляем "пустого" пользователя, чтобы создать нового с правильными данными компании
+      await User.deleteOne({ _id: existingUser._id });
     } else {
-    throw new AppError("User already exists", 409, ErrorCode.CONFLICT);
+      throw new AppError("User already exists", 409, ErrorCode.CONFLICT);
     }
   }
 
@@ -235,7 +239,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   // При регистрации мы НЕ возвращаем JWT токен, чтобы пользователь не мог сразу войти
   // Вместо этого мы возвращаем verificationToken для отправки письма на фронтенде
-  
+
   res.status(201).json({
     success: true,
     data: {
@@ -248,7 +252,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       },
       verificationToken, // Токен для отправки письма
     },
-    message: "Registration successful. Please check your email to verify your account.",
+    message:
+      "Registration successful. Please check your email to verify your account.",
   });
 });
 
@@ -257,7 +262,11 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   const { token } = body;
 
   if (!token) {
-    throw new AppError("Verification token is required", 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      "Verification token is required",
+      400,
+      ErrorCode.BAD_REQUEST,
+    );
   }
 
   const hashedToken = hashResetToken(token);
@@ -267,7 +276,11 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new AppError("Invalid or expired verification token", 400, ErrorCode.BAD_REQUEST);
+    throw new AppError(
+      "Invalid or expired verification token",
+      400,
+      ErrorCode.BAD_REQUEST,
+    );
   }
 
   user.isVerified = true;
@@ -708,7 +721,7 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(
           "User not registered. Please register as a company or ask an administrator.",
           403,
-          ErrorCode.FORBIDDEN
+          ErrorCode.FORBIDDEN,
         );
       }
     } else {
@@ -737,9 +750,9 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
     } else if (company) {
       // Это компания, создаем пользователя
       const randomPassword = generateResetToken();
-    const hashedPassword = await hashPassword(randomPassword);
-    user = await User.create({
-      email: normalizedEmail,
+      const hashedPassword = await hashPassword(randomPassword);
+      user = await User.create({
+        email: normalizedEmail,
         password: hashedPassword,
         name: name || company.name,
         role: "company",
@@ -750,7 +763,7 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
       throw new AppError(
         "User not registered. Please register as a company or ask an administrator.",
         403,
-        ErrorCode.FORBIDDEN
+        ErrorCode.FORBIDDEN,
       );
     }
   }
@@ -782,55 +795,59 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
  * Временный эндпоинт для обновления роли текущего пользователя на super_admin
  * ТОЛЬКО ДЛЯ РАЗРАБОТКИ - удалить в production!
  */
-export const promoteToSuperAdmin = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError("Not authenticated", 401, ErrorCode.UNAUTHORIZED);
-  }
+export const promoteToSuperAdmin = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new AppError("Not authenticated", 401, ErrorCode.UNAUTHORIZED);
+    }
 
-  const user = await User.findById(req.user.userId);
-  if (!user) {
-    throw new AppError("User not found", 404, ErrorCode.NOT_FOUND);
-  }
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      throw new AppError("User not found", 404, ErrorCode.NOT_FOUND);
+    }
 
-  // Обновляем роль на super_admin
-  user.role = "super_admin";
-  await user.save();
+    // Обновляем роль на super_admin
+    user.role = "super_admin";
+    await user.save();
 
-  // Обновляем или создаем AdminUser
-  let adminUser = await AdminUser.findOne({ email: user.email.toLowerCase() });
-  if (adminUser) {
-    adminUser.role = "super_admin";
-    await adminUser.save();
-  } else {
-    const createdAt = new Date().toISOString().split('T')[0];
-    await AdminUser.create({
+    // Обновляем или создаем AdminUser
+    const adminUser = await AdminUser.findOne({
       email: user.email.toLowerCase(),
-      name: user.name || user.email.split("@")[0],
-      role: "super_admin",
-      createdAt,
     });
-  }
+    if (adminUser) {
+      adminUser.role = "super_admin";
+      await adminUser.save();
+    } else {
+      const createdAt = new Date().toISOString().split("T")[0];
+      await AdminUser.create({
+        email: user.email.toLowerCase(),
+        name: user.name || user.email.split("@")[0],
+        role: "super_admin",
+        createdAt,
+      });
+    }
 
-  // Генерируем новый токен с обновленной ролью
-  const token = generateToken({
-    userId: user._id.toString(),
-    email: user.email,
-    role: user.role,
-    companyId: user.companyId?.toString(),
-  });
+    // Генерируем новый токен с обновленной ролью
+    const token = generateToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      companyId: user.companyId?.toString(),
+    });
 
-  res.json({
-    success: true,
-    message: "Role updated to super_admin",
-    data: {
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        role: user.role,
-        companyId: user.companyId,
-        name: user.name,
+    res.json({
+      success: true,
+      message: "Role updated to super_admin",
+      data: {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          role: user.role,
+          companyId: user.companyId,
+          name: user.name,
+        },
+        token,
       },
-      token,
-    },
-  });
-});
+    });
+  },
+);

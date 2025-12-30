@@ -588,8 +588,10 @@ export const deleteCompany = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const cleanId = id.trim();
-    
-    logger.info(`[CompanyController] DELETE request for company ID: ${cleanId}`);
+
+    logger.info(
+      `[CompanyController] DELETE request for company ID: ${cleanId}`,
+    );
 
     // Только админы могут удалять компании
     if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
@@ -605,21 +607,29 @@ export const deleteCompany = asyncHandler(
 
     const companyCode = company.code;
     const companyId = company._id.toString();
-    
-    logger.info(`[CompanyController] Deleting company: ${company.name} (code: ${companyCode}, id: ${companyId})`);
+
+    logger.info(
+      `[CompanyController] Deleting company: ${company.name} (code: ${companyCode}, id: ${companyId})`,
+    );
 
     // 2. Удаляем все сообщения компании по companyCode
     const messagesResult = await Message.deleteMany({ companyCode });
-    logger.info(`[CompanyController] Deleted ${messagesResult.deletedCount} messages for company ${companyCode}`);
+    logger.info(
+      `[CompanyController] Deleted ${messagesResult.deletedCount} messages for company ${companyCode}`,
+    );
 
     // 3. Удаляем всех пользователей компании по companyId
     const usersResult = await User.deleteMany({ companyId: company._id });
-    logger.info(`[CompanyController] Deleted ${usersResult.deletedCount} users for company ${companyId}`);
+    logger.info(
+      `[CompanyController] Deleted ${usersResult.deletedCount} users for company ${companyId}`,
+    );
 
     // 4. Удаляем компанию по ID
     await Company.findByIdAndDelete(cleanId);
 
-    logger.info(`[CompanyController] Successfully deleted company ${company.name} (${companyCode})`);
+    logger.info(
+      `[CompanyController] Successfully deleted company ${company.name} (${companyCode})`,
+    );
 
     res.json({
       success: true,
