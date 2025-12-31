@@ -26,21 +26,28 @@ export const getAllMessages = asyncHandler(
     }
 
     const query: MessageQuery = {};
-    
+
     // Поиск по ID сообщения (без учета регистра и дефисов)
-    if (messageId && typeof messageId === "string" && messageId.trim().length > 0) {
+    if (
+      messageId &&
+      typeof messageId === "string" &&
+      messageId.trim().length > 0
+    ) {
       // Нормализуем ID: убираем дефисы и пробелы, приводим к верхнему регистру
-      const normalizedId = messageId.replace(/[-_\s]/g, '').toUpperCase().trim();
+      const normalizedId = messageId
+        .replace(/[-_\s]/g, "")
+        .toUpperCase()
+        .trim();
       if (normalizedId.length > 0) {
         // Экранируем специальные символы regex и ищем по ID без учета регистра
-        const escapedId = normalizedId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        query.id = { 
-          $regex: escapedId, 
-          $options: 'i' 
+        const escapedId = normalizedId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        query.id = {
+          $regex: escapedId,
+          $options: "i",
         };
       }
     }
-    
+
     if (companyCode && typeof companyCode === "string") {
       query.companyCode = companyCode.toUpperCase();
     }
@@ -60,7 +67,9 @@ export const getAllMessages = asyncHandler(
       page && typeof page === "string" ? parseInt(page, 10) : 1;
     const pageSize = isSearchingById
       ? 1000 // Большой лимит для поиска по ID
-      : limit && typeof limit === "string" ? parseInt(limit, 10) : 50;
+      : limit && typeof limit === "string"
+        ? parseInt(limit, 10)
+        : 50;
     const skip = isSearchingById ? 0 : (pageNumber - 1) * pageSize;
 
     // Оптимизация: используем select для исключения ненужных полей и lean() для производительности
