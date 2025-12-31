@@ -29,6 +29,10 @@ export const getMessagesSchema = z.object({
       .string()
       .length(8, "Company code must be exactly 8 characters")
       .optional(),
+    messageId: z
+      .string()
+      .min(1, "Message ID must not be empty")
+      .optional(),
   }),
 });
 

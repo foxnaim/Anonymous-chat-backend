@@ -18,13 +18,29 @@ const generateMessageId = (): string => {
 
 export const getAllMessages = asyncHandler(
   async (req: Request, res: Response) => {
-    const { companyCode, page, limit } = req.query;
+    const { companyCode, page, limit, messageId } = req.query;
 
     interface MessageQuery {
       companyCode?: string;
+      id?: { $regex: string; $options: string };
     }
 
     const query: MessageQuery = {};
+    
+    // Поиск по ID сообщения (без учета регистра и дефисов)
+    if (messageId && typeof messageId === "string" && messageId.trim().length > 0) {
+      // Нормализуем ID: убираем дефисы и пробелы, приводим к верхнему регистру
+      const normalizedId = messageId.replace(/[-_\s]/g, '').toUpperCase().trim();
+      if (normalizedId.length > 0) {
+        // Экранируем специальные символы regex и ищем по ID без учета регистра
+        const escapedId = normalizedId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        query.id = { 
+          $regex: escapedId, 
+          $options: 'i' 
+        };
+      }
+    }
+    
     if (companyCode && typeof companyCode === "string") {
       query.companyCode = companyCode.toUpperCase();
     }
@@ -38,12 +54,14 @@ export const getAllMessages = asyncHandler(
       }
     }
 
-    // Пагинация
+    // Если ищем по ID, не применяем пагинацию или увеличиваем лимит
+    const isSearchingById = !!messageId;
     const pageNumber =
       page && typeof page === "string" ? parseInt(page, 10) : 1;
-    const pageSize =
-      limit && typeof limit === "string" ? parseInt(limit, 10) : 50;
-    const skip = (pageNumber - 1) * pageSize;
+    const pageSize = isSearchingById
+      ? 1000 // Большой лимит для поиска по ID
+      : limit && typeof limit === "string" ? parseInt(limit, 10) : 50;
+    const skip = isSearchingById ? 0 : (pageNumber - 1) * pageSize;
 
     // Оптимизация: используем select для исключения ненужных полей и lean() для производительности
     const [messages, total] = await Promise.all([
