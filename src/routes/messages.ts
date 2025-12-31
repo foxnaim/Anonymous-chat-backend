@@ -15,7 +15,7 @@ import {
   getMessageByIdSchema,
   moderateMessageSchema,
 } from "../validators/messageValidator";
-import { authenticate } from "../middleware/auth";
+import { authenticate, optionalAuthenticate } from "../middleware/auth";
 
 const router = Router();
 
@@ -56,6 +56,29 @@ const router = Router();
  */
 // Создание сообщения - публичный endpoint (анонимные сообщения)
 router.post("/", validate(createMessageSchema), createMessage);
+
+/**
+ * @swagger
+ * /api/messages/{id}:
+ *   get:
+ *     summary: Get message by ID (публичный эндпоинт для пользователей)
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID сообщения
+ *     responses:
+ *       200:
+ *         description: Детали сообщения
+ *       404:
+ *         description: Сообщение не найдено
+ */
+// Получение сообщения по ID - публичный endpoint (пользователи могут просматривать свои сообщения)
+// Используем опциональную аутентификацию: если токен есть, проверяем его (для компаний), если нет - работаем без токена
+router.get("/:id", optionalAuthenticate, validate(getMessageByIdSchema), getMessageById);
 
 // Остальные роуты требуют аутентификации
 router.use((req, res, next) => {
@@ -119,29 +142,6 @@ router.use((req, res, next) => {
  *                       type: integer
  */
 router.get("/", validate(getMessagesSchema), getAllMessages);
-
-/**
- * @swagger
- * /api/messages/{id}:
- *   get:
- *     summary: Get message by ID
- *     tags: [Messages]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID сообщения
- *     responses:
- *       200:
- *         description: Детали сообщения
- *       404:
- *         description: Сообщение не найдено
- */
-router.get("/:id", validate(getMessageByIdSchema), getMessageById);
 
 /**
  * @swagger

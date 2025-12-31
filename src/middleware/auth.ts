@@ -50,6 +50,43 @@ export const authenticate = (
   }
 };
 
+/**
+ * Опциональная аутентификация - не требует токен, но если токен есть, проверяет его
+ * Используется для публичных эндпоинтов, которые могут работать как с токеном, так и без него
+ */
+export const optionalAuthenticate = (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Если токена нет, просто продолжаем без установки req.user
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return next();
+    }
+
+    const token = authHeader.substring(7); // Убираем "Bearer "
+
+    try {
+      const decoded = verifyToken(token);
+      req.user = decoded;
+    } catch (error) {
+      // Если токен невалидный, просто игнорируем его и продолжаем без аутентификации
+      // Не выбрасываем ошибку, так как это опциональная аутентификация
+      if (error instanceof TokenError || error instanceof AppError) {
+        // Игнорируем ошибки токена для опциональной аутентификации
+      }
+    }
+
+    next();
+  } catch (error) {
+    // В случае любой другой ошибки просто продолжаем без аутентификации
+    next();
+  }
+};
+
 export const authorize = (...roles: string[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
