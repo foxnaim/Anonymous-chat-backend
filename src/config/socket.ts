@@ -82,6 +82,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       userId: socket.userId,
       role: socket.userRole,
       companyCode: socket.companyCode,
+      hasToken: !!socket.handshake.auth?.token || !!socket.handshake.headers?.authorization,
     });
 
     // Подключаем пользователя к соответствующим комнатам
@@ -103,19 +104,29 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       void (async (): Promise<void> => {
         try {
           const companyCode = socket.companyCode;
-          if (!companyCode) return;
+          if (!companyCode) {
+            logger.warn(`Company socket ${socket.id} has no companyCode`);
+            return;
+          }
 
           const normalizedCode = companyCode.toUpperCase();
           await socket.join(`company:${normalizedCode}`);
           logger.info(
-            `Company ${companyCode} joined company:${normalizedCode} room`,
+            `Company ${companyCode} (socket ${socket.id}) joined company:${normalizedCode} room`,
           );
         } catch (error: unknown) {
           logger.error(`Failed to join company:${socket.companyCode} room:`, {
             error: error instanceof Error ? error.message : String(error),
+            socketId: socket.id,
           });
         }
       })();
+    } else {
+      logger.warn(`Socket ${socket.id} connected without valid role or companyCode`, {
+        role: socket.userRole,
+        companyCode: socket.companyCode,
+        userId: socket.userId,
+      });
     }
 
     // Обработчик для динамического подключения к комнатам
@@ -202,22 +213,38 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
  * Отправить событие о новом сообщении
  */
 export const emitNewMessage = (message: IMessage): void => {
-  if (!io) return;
+  if (!io) {
+    logger.warn("Cannot emit message:new - Socket.IO server not initialized");
+    return;
+  }
 
   // Отправляем всем админам
+  const adminRoom = io.sockets.adapter.rooms.get("admin:messages");
+  const adminCount = adminRoom ? adminRoom.size : 0;
   io.to("admin:messages").emit("message:new", message);
 
   // Отправляем компании, которой принадлежит сообщение
   // Нормализуем companyCode в верхний регистр для совместимости
   if (message.companyCode) {
     const normalizedCode = message.companyCode.toUpperCase();
+    const companyRoom = io.sockets.adapter.rooms.get(`company:${normalizedCode}`);
+    const companyCount = companyRoom ? companyRoom.size : 0;
+    
     io.to(`company:${normalizedCode}`).emit("message:new", message);
     logger.info(
-      `Emitted message:new event for message ${message.id} to company:${normalizedCode}`,
+      `Emitted message:new event for message ${message.id} to company:${normalizedCode} (${companyCount} sockets in room)`,
     );
+    
+    if (companyCount === 0) {
+      logger.warn(
+        `No sockets in room company:${normalizedCode} - message may not be delivered`,
+      );
+    }
   }
 
-  logger.info(`Emitted message:new event for message ${message.id}`);
+  logger.info(
+    `Emitted message:new event for message ${message.id} (admin room: ${adminCount} sockets)`,
+  );
 };
 
 /**
