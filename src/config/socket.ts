@@ -128,6 +128,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       // Если это код компании (8 символов), подключаем к комнате компании
       if (normalizedRoom.length === 8) {
         const roomCompanyCode = normalizedRoom;
+        let joined = false;
 
         // Если пользователь - компания, проверяем, что это его комната
         if (socket.userRole === "company" && socket.companyCode) {
@@ -135,6 +136,13 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
             void socket.join(`company:${roomCompanyCode}`);
             logger.info(
               `Company ${socket.companyCode} joined room company:${roomCompanyCode}`,
+            );
+            joined = true;
+            // Отправляем подтверждение подключения к комнате
+            socket.emit("room:joined", { room: `company:${roomCompanyCode}` });
+          } else {
+            logger.warn(
+              `Company ${socket.companyCode} tried to join wrong room: ${roomCompanyCode}`,
             );
           }
         } else if (
@@ -146,12 +154,26 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
           logger.info(
             `Admin ${socket.userId} joined room company:${roomCompanyCode}`,
           );
+          joined = true;
+          // Отправляем подтверждение подключения к комнате
+          socket.emit("room:joined", { room: `company:${roomCompanyCode}` });
+        }
+
+        if (!joined) {
+          logger.warn(
+            `Failed to join room company:${roomCompanyCode} - insufficient permissions`,
+          );
+          socket.emit("room:join:error", {
+            room: `company:${roomCompanyCode}`,
+            error: "Insufficient permissions",
+          });
         }
       } else if (normalizedRoom === "ADMIN:MESSAGES") {
         // Админы могут подключаться к комнате админов
         if (socket.userRole === "admin" || socket.userRole === "super_admin") {
           void socket.join("admin:messages");
           logger.info(`Admin ${socket.userId} joined admin:messages room`);
+          socket.emit("room:joined", { room: "admin:messages" });
         }
       }
     });
