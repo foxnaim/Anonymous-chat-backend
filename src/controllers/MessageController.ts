@@ -34,17 +34,47 @@ export const getAllMessages = asyncHandler(
       messageId.trim().length > 0
     ) {
       // Нормализуем ID: убираем дефисы и пробелы, приводим к верхнему регистру
-      const normalizedId = messageId
+      const cleanId = messageId
         .replace(/[-_\s]/g, "")
         .toUpperCase()
         .trim();
-      if (normalizedId.length > 0) {
-        // Экранируем специальные символы regex и ищем по ID без учета регистра
-        const escapedId = normalizedId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        query.id = {
-          $regex: escapedId,
-          $options: "i",
-        };
+
+      if (cleanId.length > 0) {
+        // Если ID начинается с FB, пытаемся сформировать regex, который учитывает возможные разделители
+        // ID формат: FB-YYYY-CODE, но пользователь может ввести FBYYYYCODE
+        if (cleanId.startsWith("FB")) {
+          let pattern = "FB";
+          const afterFB = cleanId.substring(2);
+
+          if (afterFB.length > 0) {
+            pattern += "[-_]?"; // Опциональный разделитель после FB
+
+            // Берем год (следующие 4 символа)
+            const year = afterFB.substring(0, 4);
+            pattern += year;
+
+            // Если есть символы после года
+            const afterYear = afterFB.substring(4);
+            if (afterYear.length > 0) {
+              pattern += "[-_]?"; // Опциональный разделитель после года
+              // Экранируем оставшуюся часть кода на всякий случай
+              pattern += afterYear.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            }
+          }
+
+          query.id = {
+            $regex: pattern,
+            $options: "i",
+          };
+        } else {
+          // Если это не FB ID, ищем как есть (частичное совпадение)
+          // Например, пользователь ищет просто "2026"
+          const escapedId = cleanId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          query.id = {
+            $regex: escapedId,
+            $options: "i",
+          };
+        }
       }
     }
 
