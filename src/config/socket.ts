@@ -98,7 +98,9 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       userId: socket.userId,
       role: socket.userRole,
       companyCode: socket.companyCode,
-      hasToken: !!socket.handshake.auth?.token || !!socket.handshake.headers?.authorization,
+      hasToken:
+        !!socket.handshake.auth?.token ||
+        !!socket.handshake.headers?.authorization,
     });
 
     // Подключаем пользователя к соответствующим комнатам
@@ -138,11 +140,14 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
         }
       })();
     } else {
-      logger.warn(`Socket ${socket.id} connected without valid role or companyCode`, {
-        role: socket.userRole,
-        companyCode: socket.companyCode,
-        userId: socket.userId,
-      });
+      logger.warn(
+        `Socket ${socket.id} connected without valid role or companyCode`,
+        {
+          role: socket.userRole,
+          companyCode: socket.companyCode,
+          userId: socket.userId,
+        },
+      );
     }
 
     // Обработчик для динамического подключения к комнатам
@@ -243,14 +248,16 @@ export const emitNewMessage = (message: IMessage): void => {
   // Нормализуем companyCode в верхний регистр для совместимости
   if (message.companyCode) {
     const normalizedCode = message.companyCode.toUpperCase();
-    const companyRoom = io.sockets.adapter.rooms.get(`company:${normalizedCode}`);
+    const companyRoom = io.sockets.adapter.rooms.get(
+      `company:${normalizedCode}`,
+    );
     const companyCount = companyRoom ? companyRoom.size : 0;
-    
+
     io.to(`company:${normalizedCode}`).emit("message:new", message);
     logger.info(
       `Emitted message:new event for message ${message.id} to company:${normalizedCode} (${companyCount} sockets in room)`,
     );
-    
+
     if (companyCount === 0) {
       logger.warn(
         `No sockets in room company:${normalizedCode} - message may not be delivered`,
