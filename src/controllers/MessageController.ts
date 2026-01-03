@@ -177,6 +177,7 @@ export const createMessage = asyncHandler(
     // Санитизируем контент сообщения для защиты от XSS
     const sanitizedContent = sanitizeMessageContent(String(content));
 
+    // Создаем сообщение с явным указанием write concern для гарантии сохранения
     const message = await Message.create({
       id: messageId,
       companyCode: companyCode.toUpperCase(),
@@ -197,7 +198,9 @@ export const createMessage = asyncHandler(
     }
     await company.save();
 
-    // Отправляем событие через WebSocket
+    // Message.create() уже возвращает сохраненный документ
+    // Отправляем событие через WebSocket сразу после создания
+    // Mongoose гарантирует, что документ сохранен в БД после успешного выполнения create()
     emitNewMessage(JSON.parse(JSON.stringify(message)) as IMessage);
 
     res.status(201).json({
