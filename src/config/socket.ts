@@ -44,6 +44,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       if (!token) {
         // Разрешаем подключение без токена (для публичных событий)
         // Но пользователь не будет иметь доступа к защищенным комнатам
+        logger.info(`Socket connecting without token: ${socket.id}`);
         next();
         return;
       }
@@ -62,7 +63,18 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
           const company = await CompanyModel.findById(decoded.companyId);
           if (company) {
             socket.companyCode = company.code;
+            logger.info(
+              `Socket authenticated as company: ${company.code} (userId: ${decoded.userId}, socketId: ${socket.id})`,
+            );
+          } else {
+            logger.warn(
+              `Company not found for companyId: ${decoded.companyId} (socketId: ${socket.id})`,
+            );
           }
+        } else {
+          logger.info(
+            `Socket authenticated: role=${decoded.role}, userId=${decoded.userId}, socketId=${socket.id}`,
+          );
         }
 
         next();
@@ -70,6 +82,10 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
         // Логируем только некритичные ошибки (expired/invalid токены - норма для публичных подключений)
         if (error instanceof Error && error.name !== "TokenError") {
           logger.warn("Socket authentication error:", error);
+        } else {
+          logger.info(
+            `Socket authentication failed (invalid/expired token): ${socket.id}`,
+          );
         }
         // Разрешаем подключение, но без аутентификации
         next();
