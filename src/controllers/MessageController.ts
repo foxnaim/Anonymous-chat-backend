@@ -18,6 +18,9 @@ const generateMessageId = (): string => {
 
 export const getAllMessages = asyncHandler(
   async (req: Request, res: Response) => {
+    // Запрещаем кеширование ответов, чтобы не получать 304 и всегда видеть свежие сообщения
+    res.set("Cache-Control", "no-store");
+
     const { companyCode, page, limit, messageId } = req.query;
 
     interface MessageQuery {
@@ -129,6 +132,9 @@ export const getAllMessages = asyncHandler(
 
 export const getMessageById = asyncHandler(
   async (req: Request, res: Response) => {
+    // Запрещаем кеширование ответа для детального запроса
+    res.set("Cache-Control", "no-store");
+
     const { id } = req.params;
 
     const message = await Message.findOne({ id });
