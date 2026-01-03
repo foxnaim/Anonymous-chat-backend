@@ -99,11 +99,16 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       })();
     } else if (socket.userRole === "company" && socket.companyCode) {
       // Компании подключаются к комнате своих сообщений
+      // Нормализуем companyCode в верхний регистр для совместимости
       void (async (): Promise<void> => {
         try {
-          await socket.join(`company:${socket.companyCode}`);
+          const companyCode = socket.companyCode;
+          if (!companyCode) return;
+
+          const normalizedCode = companyCode.toUpperCase();
+          await socket.join(`company:${normalizedCode}`);
           logger.info(
-            `Company ${socket.companyCode} joined company:${socket.companyCode} room`,
+            `Company ${companyCode} joined company:${normalizedCode} room`,
           );
         } catch (error: unknown) {
           logger.error(`Failed to join company:${socket.companyCode} room:`, {
@@ -112,6 +117,51 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
         }
       })();
     }
+
+    // Обработчик для динамического подключения к комнатам
+    socket.on("join", (room: string) => {
+      if (!room) return;
+
+      // Нормализуем код комнаты (верхний регистр для companyCode)
+      const normalizedRoom = room.toUpperCase().trim();
+
+      // Если это код компании (8 символов), подключаем к комнате компании
+      if (normalizedRoom.length === 8) {
+        const roomCompanyCode = normalizedRoom;
+
+        // Если пользователь - компания, проверяем, что это его комната
+        if (socket.userRole === "company" && socket.companyCode) {
+          if (socket.companyCode.toUpperCase() === roomCompanyCode) {
+            void socket.join(`company:${roomCompanyCode}`);
+            logger.info(
+              `Company ${socket.companyCode} joined room company:${roomCompanyCode}`,
+            );
+          }
+        } else if (
+          socket.userRole === "admin" ||
+          socket.userRole === "super_admin"
+        ) {
+          // Админы могут подключаться к любым комнатам компаний
+          void socket.join(`company:${roomCompanyCode}`);
+          logger.info(
+            `Admin ${socket.userId} joined room company:${roomCompanyCode}`,
+          );
+        }
+      } else if (normalizedRoom === "ADMIN:MESSAGES") {
+        // Админы могут подключаться к комнате админов
+        if (socket.userRole === "admin" || socket.userRole === "super_admin") {
+          void socket.join("admin:messages");
+          logger.info(`Admin ${socket.userId} joined admin:messages room`);
+        }
+      }
+    });
+
+    socket.on("leave", (room: string) => {
+      if (room) {
+        void socket.leave(room);
+        logger.info(`Socket ${socket.id} left room ${room}`);
+      }
+    });
 
     socket.on("disconnect", () => {
       logger.info(`Socket disconnected: ${socket.id}`);
@@ -136,8 +186,13 @@ export const emitNewMessage = (message: IMessage): void => {
   io.to("admin:messages").emit("message:new", message);
 
   // Отправляем компании, которой принадлежит сообщение
+  // Нормализуем companyCode в верхний регистр для совместимости
   if (message.companyCode) {
-    io.to(`company:${message.companyCode}`).emit("message:new", message);
+    const normalizedCode = message.companyCode.toUpperCase();
+    io.to(`company:${normalizedCode}`).emit("message:new", message);
+    logger.info(
+      `Emitted message:new event for message ${message.id} to company:${normalizedCode}`,
+    );
   }
 
   logger.info(`Emitted message:new event for message ${message.id}`);
