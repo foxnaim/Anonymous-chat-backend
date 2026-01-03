@@ -78,7 +78,12 @@ router.post("/", validate(createMessageSchema), createMessage);
  */
 // Получение сообщения по ID - публичный endpoint (пользователи могут просматривать свои сообщения)
 // Используем опциональную аутентификацию: если токен есть, проверяем его (для компаний), если нет - работаем без токена
-router.get("/:id", optionalAuthenticate, validate(getMessageByIdSchema), getMessageById);
+router.get(
+  "/:id",
+  optionalAuthenticate,
+  validate(getMessageByIdSchema),
+  getMessageById,
+);
 
 // Остальные роуты требуют аутентификации
 router.use((req, res, next) => {

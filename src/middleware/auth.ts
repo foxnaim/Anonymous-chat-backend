@@ -81,7 +81,7 @@ export const optionalAuthenticate = (
     }
 
     next();
-  } catch (error) {
+  } catch {
     // В случае любой другой ошибки просто продолжаем без аутентификации
     next();
   }
