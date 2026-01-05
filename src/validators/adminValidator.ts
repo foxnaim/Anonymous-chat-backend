@@ -5,6 +5,10 @@ export const createAdminSchema = z.object({
     email: z.string().email("Invalid email format"),
     name: z.string().min(1, "Name is required"),
     role: z.enum(["admin", "super_admin"]).optional(),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .optional(),
   }),
 });
 

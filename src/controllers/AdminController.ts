@@ -61,8 +61,13 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
   }
 
-  const body = req.body as { email?: string; name?: string; role?: string };
-  const { email, name, role = "admin" } = body;
+  const body = req.body as {
+    email?: string;
+    name?: string;
+    role?: string;
+    password?: string;
+  };
+  const { email, name, role = "admin", password } = body;
 
   if (!email) {
     throw new AppError("Email is required", 400, ErrorCode.BAD_REQUEST);
@@ -152,9 +157,16 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw createError;
   }
 
-  // Генерируем безопасный случайный пароль
-  const generatedPassword = generateSecurePassword(16);
-  const hashedPassword = await hashPassword(generatedPassword);
+  // Генерируем или принимаем пароль от клиента (если передан)
+  const normalizedPassword = password?.trim();
+  const isCustomPasswordValid =
+    normalizedPassword && normalizedPassword.length >= 8;
+
+  const plainPassword = isCustomPasswordValid
+    ? normalizedPassword
+    : generateSecurePassword(16);
+
+  const hashedPassword = await hashPassword(plainPassword);
 
   // Создаем или обновляем пользователя под этого админа (идемпотентно)
   try {
@@ -205,34 +217,41 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   // Отправляем email асинхронно ПОСЛЕ отправки ответа, чтобы не блокировать запрос
   // Используем setImmediate, чтобы гарантировать, что ответ уже отправлен
-  setImmediate(() => {
-    emailService
-      .sendAdminPasswordEmail(
-        String(email).toLowerCase(),
-        name || "Администратор",
-        generatedPassword,
-      )
-      .then(() => {
-        logger.info(`Admin password email sent to ${email}`);
-      })
-      .catch((error) => {
-        // Логируем ошибку, но не прерываем работу (админ уже создан)
-        logger.error(`Failed to send admin password email to ${email}:`, error);
-        // В development режиме можно вернуть пароль, но ответ уже отправлен
-        if (process.env.NODE_ENV === "development") {
-          logger.warn(
-            `Development mode: Admin password for ${email} is ${generatedPassword}`,
+  if (!isCustomPasswordValid) {
+    setImmediate(() => {
+      emailService
+        .sendAdminPasswordEmail(
+          String(email).toLowerCase(),
+          name || "Администратор",
+          plainPassword,
+        )
+        .then(() => {
+          logger.info(`Admin password email sent to ${email}`);
+        })
+        .catch((error) => {
+          // Логируем ошибку, но не прерываем работу (админ уже создан)
+          logger.error(
+            `Failed to send admin password email to ${email}:`,
+            error,
           );
-        }
-      });
-  });
+          // В development режиме можно вернуть пароль, но ответ уже отправлен
+          if (process.env.NODE_ENV === "development") {
+            logger.warn(
+              `Development mode: Admin password for ${email} is ${plainPassword}`,
+            );
+          }
+        });
+    });
+  }
 
   // Отправляем ответ клиенту, чтобы не блокировать UI
   return res.status(201).json({
     success: true,
     data: admin,
-    message:
-      "Admin created successfully. Password has been sent to the provided email address.",
+    tempPassword: isCustomPasswordValid ? undefined : plainPassword,
+    message: isCustomPasswordValid
+      ? "Admin created successfully with provided password."
+      : "Admin created successfully. Password has been sent to the provided email address.",
   });
 });
 
