@@ -322,6 +322,11 @@ export const createCompany = asyncHandler(
         user.name = desiredName;
         shouldSave = true;
       }
+      // При создании через админ-панель email считается верифицированным
+      if (!user.isVerified) {
+        user.isVerified = true;
+        shouldSave = true;
+      }
       if (shouldSave) {
         await user.save();
       }
@@ -332,6 +337,7 @@ export const createCompany = asyncHandler(
         role: "company",
         companyId: company._id,
         name: `${normalizedName} Admin`,
+        isVerified: true, // При создании через админ-панель email считается верифицированным
       });
     }
 
