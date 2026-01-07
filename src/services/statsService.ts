@@ -223,11 +223,11 @@ export const getGrowthMetrics = async (
   let achievementsBonus = 0;
   try {
     const achievements = await getCompanyAchievements(companyId);
-    const unlockedCount = achievements.filter((a) => a.isUnlocked).length;
+    const completedCount = achievements.filter((a) => a.completed).length;
     const totalAchievements = achievements.length;
     
     if (totalAchievements > 0) {
-      achievementsBonus = (unlockedCount / totalAchievements) * 1.5;
+      achievementsBonus = (completedCount / totalAchievements) * 1.5;
     }
   } catch {
     // Если ошибка получения достижений - пропускаем бонус
