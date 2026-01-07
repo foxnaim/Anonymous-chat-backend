@@ -1,5 +1,6 @@
 import { Message } from "../models/Message";
 import { Company } from "../models/Company";
+import { getCompanyAchievements } from "./achievementsService";
 
 export interface Stats {
   new: number;
@@ -24,6 +25,7 @@ export interface GrowthMetrics {
     responseSpeed: number;
     activityBonus: number;
     achievementsBonus: number;
+    praiseBonus: number;
   };
   nextLevel?: {
     current: number;
@@ -81,6 +83,21 @@ export const getMessageDistribution = async (
   return { complaints, praises, suggestions };
 };
 
+/**
+ * Улучшенный расчёт рейтинга роста компании
+ * 
+ * Формула (максимум 10 баллов):
+ * 1. Решённые кейсы (до 3 баллов) - процент решённых жалоб и предложений
+ * 2. Скорость ответа (до 2 баллов) - как быстро отвечают на сообщения  
+ * 3. Бонус за похвалы (до 2 баллов) - соотношение похвал к жалобам
+ * 4. Бонус за активность (до 1.5 балла) - количество сообщений (вовлечённость)
+ * 5. Бонус за достижения (до 1.5 балла) - разблокированные достижения
+ * 
+ * Особенности:
+ * - Новая компания без сообщений получает базовый рейтинг 5.0
+ * - Компания с только похвалами получает высокий рейтинг
+ * - Тренд рассчитывается на основе сравнения с прошлым месяцем
+ */
 export const getGrowthMetrics = async (
   companyId: string,
 ): Promise<GrowthMetrics> => {
@@ -96,18 +113,42 @@ export const getGrowthMetrics = async (
         responseSpeed: 0,
         activityBonus: 0,
         achievementsBonus: 0,
+        praiseBonus: 0,
       },
     };
   }
 
   const messages = await Message.find({ companyCode: company.code });
+  const totalMessages = messages.length;
 
-  const distribution = {
-    complaints: messages.filter((m) => m.type === "complaint").length,
-    praises: messages.filter((m) => m.type === "praise").length,
-    suggestions: messages.filter((m) => m.type === "suggestion").length,
-  };
+  // Если нет сообщений - базовый рейтинг 5.0 (нейтральный старт)
+  if (totalMessages === 0) {
+    return {
+      rating: 5.0,
+      mood: "Нейтральный",
+      trend: "stable",
+      pointsBreakdown: {
+        totalMessages: 0,
+        resolvedCases: 0,
+        responseSpeed: 0,
+        activityBonus: 0,
+        achievementsBonus: 0,
+        praiseBonus: 0,
+      },
+      nextLevel: {
+        current: 5,
+        next: 6,
+        progress: 0,
+      },
+    };
+  }
 
+  // Распределение по типам
+  const complaints = messages.filter((m) => m.type === "complaint").length;
+  const praises = messages.filter((m) => m.type === "praise").length;
+  const suggestions = messages.filter((m) => m.type === "suggestion").length;
+
+  // === 1. РЕШЁННЫЕ КЕЙСЫ (до 3 баллов) ===
   const resolvedComplaints = messages.filter(
     (m) => m.type === "complaint" && m.status === "Решено",
   ).length;
@@ -115,12 +156,19 @@ export const getGrowthMetrics = async (
     (m) => m.type === "suggestion" && m.status === "Решено",
   ).length;
   const totalResolved = resolvedComplaints + resolvedSuggestions;
-  const totalProblems = distribution.complaints + distribution.suggestions;
+  const totalProblems = complaints + suggestions;
 
-  const resolvedRatio = totalProblems > 0 ? totalResolved / totalProblems : 0;
-  const resolvedPoints = resolvedRatio * 50;
+  let resolvedCasesPoints = 0;
+  if (totalProblems > 0) {
+    const resolvedRatio = totalResolved / totalProblems;
+    resolvedCasesPoints = resolvedRatio * 3; // До 3 баллов
+  } else {
+    // Нет жалоб и предложений - полный балл за решение
+    resolvedCasesPoints = 3;
+  }
 
-  let responseSpeedPoints = 0;
+  // === 2. СКОРОСТЬ ОТВЕТА (до 2 баллов) ===
+  let responseSpeedRaw = 0;
   let totalResponses = 0;
 
   messages.forEach((msg) => {
@@ -128,29 +176,130 @@ export const getGrowthMetrics = async (
       totalResponses++;
       const created = new Date(msg.createdAt);
       const updated = new Date(msg.updatedAt);
-      const daysDiff = Math.floor(
-        (updated.getTime() - created.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      const hoursDiff = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
 
-      if (daysDiff <= 1) responseSpeedPoints += 5;
-      else if (daysDiff <= 3) responseSpeedPoints += 3;
-      else if (daysDiff <= 7) responseSpeedPoints += 1;
+      // Более детальная шкала скорости
+      if (hoursDiff <= 2) responseSpeedRaw += 10;      // Очень быстро (2 часа)
+      else if (hoursDiff <= 12) responseSpeedRaw += 8; // Быстро (12 часов)
+      else if (hoursDiff <= 24) responseSpeedRaw += 6; // В тот же день
+      else if (hoursDiff <= 72) responseSpeedRaw += 4; // За 3 дня
+      else if (hoursDiff <= 168) responseSpeedRaw += 2; // За неделю
+      else responseSpeedRaw += 1;                       // Позже недели
     }
   });
 
-  const maxSpeedPoints = totalResponses * 5;
-  const normalizedSpeedPoints =
-    maxSpeedPoints > 0 ? (responseSpeedPoints / maxSpeedPoints) * 50 : 0;
+  let responseSpeedPoints = 0;
+  if (totalResponses > 0) {
+    const maxSpeedRaw = totalResponses * 10;
+    responseSpeedPoints = (responseSpeedRaw / maxSpeedRaw) * 2; // До 2 баллов
+  }
 
-  const totalPoints = resolvedPoints + normalizedSpeedPoints;
-  const rating = Math.min(10, Math.round((totalPoints / 10) * 10) / 10);
+  // === 3. БОНУС ЗА ПОХВАЛЫ (до 2 баллов) ===
+  let praiseBonus = 0;
+  if (totalMessages > 0) {
+    // Соотношение похвал к общему числу сообщений
+    const praiseRatio = praises / totalMessages;
+    
+    // Соотношение похвал к жалобам (если есть жалобы)
+    const praiseToComplaintRatio = complaints > 0 ? praises / complaints : (praises > 0 ? 3 : 1);
+    
+    // Комбинированный бонус
+    // - Много похвал относительно всех сообщений = хорошо
+    // - Больше похвал чем жалоб = очень хорошо
+    praiseBonus = Math.min(2, praiseRatio * 2 + Math.min(1, praiseToComplaintRatio * 0.5));
+  }
 
+  // === 4. БОНУС ЗА АКТИВНОСТЬ (до 1.5 балла) ===
+  // Больше сообщений = больше вовлечённость сотрудников
+  let activityBonus = 0;
+  if (totalMessages >= 100) activityBonus = 1.5;
+  else if (totalMessages >= 50) activityBonus = 1.2;
+  else if (totalMessages >= 20) activityBonus = 0.9;
+  else if (totalMessages >= 10) activityBonus = 0.6;
+  else if (totalMessages >= 5) activityBonus = 0.3;
+  else activityBonus = 0.1;
+
+  // === 5. БОНУС ЗА ДОСТИЖЕНИЯ (до 1.5 балла) ===
+  let achievementsBonus = 0;
+  try {
+    const achievements = await getCompanyAchievements(companyId);
+    const unlockedCount = achievements.filter((a) => a.isUnlocked).length;
+    const totalAchievements = achievements.length;
+    
+    if (totalAchievements > 0) {
+      achievementsBonus = (unlockedCount / totalAchievements) * 1.5;
+    }
+  } catch {
+    // Если ошибка получения достижений - пропускаем бонус
+    achievementsBonus = 0;
+  }
+
+  // === ИТОГОВЫЙ РЕЙТИНГ ===
+  const rawRating = resolvedCasesPoints + responseSpeedPoints + praiseBonus + activityBonus + achievementsBonus;
+  const rating = Math.min(10, Math.round(rawRating * 10) / 10);
+
+  // === НАСТРОЕНИЕ ===
   let mood: "Позитивный" | "Нейтральный" | "Негативный" = "Нейтральный";
-  if (rating >= 7) mood = "Позитивный";
-  else if (rating <= 4) mood = "Негативный";
+  
+  // Учитываем и рейтинг, и соотношение похвал/жалоб
+  const sentimentRatio = complaints > 0 ? praises / complaints : (praises > 0 ? 10 : 1);
+  
+  if (rating >= 7 || sentimentRatio >= 2) {
+    mood = "Позитивный";
+  } else if (rating <= 4 || sentimentRatio <= 0.3) {
+    mood = "Негативный";
+  }
 
-  const trend: "up" | "down" | "stable" = "stable";
+  // === ТРЕНД (сравнение с прошлым месяцем) ===
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
+  const currentMonthMessages = messages.filter((m) => {
+    const date = new Date(m.createdAt);
+    return date >= currentMonthStart;
+  });
+
+  const lastMonthMessages = messages.filter((m) => {
+    const date = new Date(m.createdAt);
+    return date >= lastMonthStart && date <= lastMonthEnd;
+  });
+
+  let trend: "up" | "down" | "stable" = "stable";
+
+  // Сравниваем количество сообщений и соотношение похвал
+  const currentPraises = currentMonthMessages.filter((m) => m.type === "praise").length;
+  const currentComplaints = currentMonthMessages.filter((m) => m.type === "complaint").length;
+  const lastPraises = lastMonthMessages.filter((m) => m.type === "praise").length;
+  const lastComplaints = lastMonthMessages.filter((m) => m.type === "complaint").length;
+
+  const currentSentiment = currentComplaints > 0 ? currentPraises / currentComplaints : currentPraises;
+  const lastSentiment = lastComplaints > 0 ? lastPraises / lastComplaints : lastPraises;
+
+  // Также учитываем решённые кейсы
+  const currentResolved = currentMonthMessages.filter((m) => m.status === "Решено").length;
+  const lastResolved = lastMonthMessages.filter((m) => m.status === "Решено").length;
+
+  // Определяем тренд на основе нескольких факторов
+  let trendScore = 0;
+  
+  // Больше сообщений = больше вовлечённость
+  if (currentMonthMessages.length > lastMonthMessages.length * 1.2) trendScore += 1;
+  else if (currentMonthMessages.length < lastMonthMessages.length * 0.8) trendScore -= 1;
+
+  // Лучше настроение
+  if (currentSentiment > lastSentiment * 1.1) trendScore += 1;
+  else if (currentSentiment < lastSentiment * 0.9) trendScore -= 1;
+
+  // Больше решённых кейсов
+  if (currentResolved > lastResolved) trendScore += 1;
+  else if (currentResolved < lastResolved) trendScore -= 1;
+
+  if (trendScore >= 2) trend = "up";
+  else if (trendScore <= -2) trend = "down";
+
+  // === ПРОГРЕСС К СЛЕДУЮЩЕМУ УРОВНЮ ===
   const currentLevel = Math.floor(rating);
   const nextLevel = Math.min(10, currentLevel + 1);
   const progress = ((rating - currentLevel) / 1) * 100;
@@ -160,11 +309,12 @@ export const getGrowthMetrics = async (
     mood,
     trend,
     pointsBreakdown: {
-      totalMessages: 0,
-      resolvedCases: resolvedPoints,
-      responseSpeed: normalizedSpeedPoints,
-      activityBonus: 0,
-      achievementsBonus: 0,
+      totalMessages,
+      resolvedCases: Math.round(resolvedCasesPoints * 100) / 100,
+      responseSpeed: Math.round(responseSpeedPoints * 100) / 100,
+      activityBonus: Math.round(activityBonus * 100) / 100,
+      achievementsBonus: Math.round(achievementsBonus * 100) / 100,
+      praiseBonus: Math.round(praiseBonus * 100) / 100,
     },
     nextLevel: {
       current: currentLevel,
