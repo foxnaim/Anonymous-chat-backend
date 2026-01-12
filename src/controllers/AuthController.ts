@@ -5,6 +5,7 @@ import { AppError, ErrorCode } from "../utils/AppError";
 import { User } from "../models/User";
 import { Company } from "../models/Company";
 import { AdminUser } from "../models/AdminUser";
+import { FreePlanSettings } from "../models/FreePlanSettings";
 import {
   hashPassword,
   comparePassword,
@@ -208,8 +209,21 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     }
 
     const registeredDate = new Date().toISOString().split("T")[0];
+    
+    // Получаем настройки пробного периода из БД
+    let freePlanSettings = await FreePlanSettings.findOne({ settingsId: "default" });
+    if (!freePlanSettings) {
+      // Создаем дефолтные настройки, если их еще нет
+      freePlanSettings = await FreePlanSettings.create({
+        settingsId: "default",
+        messagesLimit: 10,
+        storageLimit: 1,
+        freePeriodDays: 60,
+      });
+    }
+    
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 60); // 60 дней пробного периода
+    trialEndDate.setDate(trialEndDate.getDate() + freePlanSettings.freePeriodDays);
 
     const company = await Company.create({
       name: String(companyName),

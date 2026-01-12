@@ -5,6 +5,7 @@ import { Company } from "../models/Company";
 import { User } from "../models/User";
 import { AdminUser } from "../models/AdminUser";
 import { SubscriptionPlan } from "../models/SubscriptionPlan";
+import { FreePlanSettings } from "../models/FreePlanSettings";
 import { Message } from "../models/Message";
 import { hashPassword } from "../utils/password";
 import { logger } from "../utils/logger";
@@ -247,8 +248,20 @@ export const createCompany = asyncHandler(
     let trialEndDate: string | undefined;
 
     if (isTrialPlan) {
+      // Получаем настройки пробного периода из БД
+      let freePlanSettings = await FreePlanSettings.findOne({ settingsId: "default" });
+      if (!freePlanSettings) {
+        // Создаем дефолтные настройки, если их еще нет
+        freePlanSettings = await FreePlanSettings.create({
+          settingsId: "default",
+          messagesLimit: 10,
+          storageLimit: 1,
+          freePeriodDays: 60,
+        });
+      }
+      
       const endDate = new Date(registeredDate);
-      endDate.setMonth(endDate.getMonth() + 2);
+      endDate.setDate(endDate.getDate() + freePlanSettings.freePeriodDays);
       trialEndDate = endDate.toISOString().split("T")[0];
     }
 
@@ -558,6 +571,26 @@ export const updateCompanyPlan = asyncHandler(
         // Для пробного/бесплатного плана устанавливаем неограниченные лимиты
         company.messagesLimit = 999999;
         company.storageLimit = 999999;
+        
+        // Если trialEndDate не указан в запросе, устанавливаем его автоматически на основе настроек
+        if (!planEndDate || typeof planEndDate !== "string") {
+          // Получаем настройки пробного периода из БД
+          let freePlanSettings = await FreePlanSettings.findOne({ settingsId: "default" });
+          if (!freePlanSettings) {
+            // Создаем дефолтные настройки, если их еще нет
+            freePlanSettings = await FreePlanSettings.create({
+              settingsId: "default",
+              messagesLimit: 10,
+              storageLimit: 1,
+              freePeriodDays: 60,
+            });
+          }
+          
+          const startDate = company.registered ? new Date(company.registered) : new Date();
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + freePlanSettings.freePeriodDays);
+          company.trialEndDate = endDate.toISOString().split("T")[0];
+        }
       } else if (subscriptionPlan) {
         // Обновляем лимиты из найденного плана
         company.messagesLimit = subscriptionPlan.messagesLimit;
