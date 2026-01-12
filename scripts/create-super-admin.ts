@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { AdminUser } from '../src/models/AdminUser';
 import { User } from '../src/models/User';
+import { Company } from '../src/models/Company';
 import { hashPassword } from '../src/utils/password';
 
 dotenv.config({ path: '.env' });
@@ -34,15 +35,26 @@ const createSuperAdmin = async (): Promise<void> => {
     await mongoose.connect(mongodbUri);
     console.log('Connected to MongoDB successfully');
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Проверяем, не существует ли уже админ с таким email
-    const existingAdmin = await AdminUser.findOne({ email: email.toLowerCase() });
+    const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
     if (existingAdmin) {
       console.error(`Error: Admin with email ${email} already exists`);
       await mongoose.disconnect();
       process.exit(1);
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    // Проверяем, не существует ли компания с таким adminEmail
+    const existingCompany = await Company.findOne({ adminEmail: normalizedEmail });
+    if (existingCompany) {
+      console.error(`Error: Company with admin email ${email} already exists`);
+      console.error(`Company name: ${existingCompany.name}, code: ${existingCompany.code}`);
+      await mongoose.disconnect();
+      process.exit(1);
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       console.error(`Error: User with email ${email} already exists`);
       await mongoose.disconnect();
@@ -53,7 +65,7 @@ const createSuperAdmin = async (): Promise<void> => {
     console.log('Creating super admin...');
     const createdAt = new Date().toISOString().split('T')[0];
     const admin = await AdminUser.create({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       name,
       role: 'super_admin',
       createdAt,
@@ -64,7 +76,7 @@ const createSuperAdmin = async (): Promise<void> => {
     console.log('Creating user for admin...');
     const hashedPassword = await hashPassword(password);
     const user = await User.create({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
       role: 'super_admin',
       name,

@@ -405,7 +405,36 @@ export const updateCompany = asyncHandler(
       updates.code = updates.code.toUpperCase();
     }
     if (updates.adminEmail && typeof updates.adminEmail === "string") {
-      updates.adminEmail = updates.adminEmail.toLowerCase();
+      const normalizedNewEmail = updates.adminEmail.toLowerCase().trim();
+      
+      // Проверяем, не используется ли новый email админом (если email меняется)
+      if (normalizedNewEmail !== company.adminEmail.toLowerCase()) {
+        const existingAdmin = await AdminUser.findOne({
+          email: normalizedNewEmail,
+        });
+        if (existingAdmin) {
+          throw new AppError(
+            "Admin with this email already exists",
+            409,
+            ErrorCode.CONFLICT,
+          );
+        }
+        
+        // Проверяем, не используется ли новый email другой компанией
+        const existingCompanyWithEmail = await Company.findOne({
+          adminEmail: normalizedNewEmail,
+          _id: { $ne: company._id }, // Исключаем текущую компанию
+        });
+        if (existingCompanyWithEmail) {
+          throw new AppError(
+            "Company with this email already exists",
+            409,
+            ErrorCode.CONFLICT,
+          );
+        }
+      }
+      
+      updates.adminEmail = normalizedNewEmail;
     }
 
     // Валидация размера логотипа (base64 строка)
