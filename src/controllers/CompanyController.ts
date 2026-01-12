@@ -591,7 +591,7 @@ export const updateCompanyPlan = asyncHandler(
     const isCurrentPlanTrial = isCurrentPlanTrialByName || currentSubscriptionPlan?.isFree === true;
 
     // Обычные админы не могут редактировать пробный/бесплатный план
-    if (req.user?.role === "admin" && req.user?.role !== "super_admin") {
+    if (req.user?.role === "admin") {
       // Проверяем, если пытаются установить пробный/бесплатный план
       if (plan && typeof plan === "string") {
         const trialPlanNames = [
