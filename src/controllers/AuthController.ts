@@ -413,6 +413,14 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("User not found", 404, ErrorCode.NOT_FOUND);
   }
 
+  // Проверяем, заблокирована ли компания (для пользователей с ролью company)
+  if (user.role === "company" && user.companyId) {
+    const company = await Company.findById(user.companyId);
+    if (company && company.status === "Заблокирована") {
+      throw new AppError("COMPANY_BLOCKED", 403, ErrorCode.FORBIDDEN);
+    }
+  }
+
   res.json({
     success: true,
     data: {
