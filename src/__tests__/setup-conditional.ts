@@ -47,10 +47,6 @@ if (isUnitTest || !process.env.TEST_MONGODB_URI) {
           socketTimeoutMS: 45000,
         });
       } catch {
-        console.warn(
-          "⚠️  MongoDB не доступен. Integration/E2E тесты требуют запущенный MongoDB.",
-        );
-        console.warn("   Запустите MongoDB или установите TEST_MONGODB_URI");
         // Не бросаем ошибку, просто пропускаем тесты
       }
     }
@@ -75,8 +71,8 @@ if (isUnitTest || !process.env.TEST_MONGODB_URI) {
       try {
         await mongoose.connection.dropDatabase();
         await mongoose.connection.close();
-      } catch {
-        console.warn("Ошибка при закрытии MongoDB");
+      } catch (error) {
+        console.error("Ошибка при закрытии MongoDB:", error);
       }
     }
   });

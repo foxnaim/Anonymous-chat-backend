@@ -23,10 +23,6 @@ beforeAll(async () => {
         socketTimeoutMS: 45000,
       });
     } catch (error) {
-      console.warn(
-        "⚠️  MongoDB не доступен. Integration/E2E тесты требуют запущенный MongoDB.",
-      );
-      console.warn("   Запустите MongoDB или установите TEST_MONGODB_URI");
       throw error;
     }
   }
@@ -50,7 +46,7 @@ afterAll(async () => {
       await mongoose.connection.close();
     } catch (error) {
       // Игнорируем ошибки при закрытии, если БД уже закрыта
-      console.warn("Ошибка при закрытии MongoDB:", error);
+      console.error("Ошибка при закрытии MongoDB:", error);
     }
   }
 });
