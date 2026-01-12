@@ -331,9 +331,9 @@ export const getFreePlanSettings = asyncHandler(
 
 export const updateFreePlanSettings = asyncHandler(
   async (req: Request, res: Response) => {
-    // Только админы могут обновлять настройки
-    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
-      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    // Только суперадмины могут обновлять настройки пробного плана
+    if (req.user?.role !== "super_admin") {
+      throw new AppError("Access denied. Only super admins can edit trial plan settings", 403, ErrorCode.FORBIDDEN);
     }
 
     const body = req.body as {

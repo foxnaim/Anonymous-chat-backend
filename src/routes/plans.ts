@@ -142,7 +142,7 @@ router.post(
  */
 router.put(
   "/free-settings",
-  authorize("admin", "super_admin"),
+  authorize("super_admin"),
   validate(updateFreePlanSettingsSchema),
   updateFreePlanSettings,
 );
