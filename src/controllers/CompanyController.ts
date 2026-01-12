@@ -569,6 +569,69 @@ export const updateCompanyPlan = asyncHandler(
       throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
     }
 
+    // Проверяем, является ли текущий план компании пробным/бесплатным
+    const currentTrialPlanNames = [
+      "Пробный",
+      "Trial",
+      "Бесплатный",
+      "Free",
+      "Тегін",
+    ];
+    const isCurrentPlanTrialByName = currentTrialPlanNames.includes(company.plan);
+    
+    // Ищем текущий план в базе данных
+    const currentSubscriptionPlan = await SubscriptionPlan.findOne({
+      $or: [
+        { "name.ru": company.plan },
+        { "name.en": company.plan },
+        { "name.kk": company.plan },
+        { name: company.plan },
+      ],
+    });
+    const isCurrentPlanTrial = isCurrentPlanTrialByName || currentSubscriptionPlan?.isFree === true;
+
+    // Обычные админы не могут редактировать пробный/бесплатный план
+    if (req.user?.role === "admin" && req.user?.role !== "super_admin") {
+      // Проверяем, если пытаются установить пробный/бесплатный план
+      if (plan && typeof plan === "string") {
+        const trialPlanNames = [
+          "Пробный",
+          "Trial",
+          "Бесплатный",
+          "Free",
+          "Тегін",
+        ];
+        const isNewPlanTrialByName = trialPlanNames.includes(plan);
+        
+        const newSubscriptionPlan = await SubscriptionPlan.findOne({
+          $or: [
+            { "name.ru": plan },
+            { "name.en": plan },
+            { "name.kk": plan },
+            { name: plan },
+          ],
+        });
+        const isNewPlanTrial = isNewPlanTrialByName || newSubscriptionPlan?.isFree === true;
+        
+        if (isNewPlanTrial) {
+          throw new AppError(
+            "Regular admins cannot edit trial/free plans",
+            403,
+            ErrorCode.FORBIDDEN,
+          );
+        }
+      }
+      
+      // Проверяем, если пытаются изменить компанию с пробным/бесплатным планом
+      if (isCurrentPlanTrial) {
+        throw new AppError(
+          "Regular admins cannot edit companies with trial/free plans",
+          403,
+          ErrorCode.FORBIDDEN,
+        );
+      }
+    }
+
     if (plan && typeof plan === "string") {
       company.plan = plan;
 
