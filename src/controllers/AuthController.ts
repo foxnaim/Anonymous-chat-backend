@@ -849,6 +849,14 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
+  // Проверяем, заблокирована ли компания (для пользователей с ролью company)
+  if (user.role === "company" && user.companyId) {
+    const company = await Company.findById(user.companyId);
+    if (company && company.status === "Заблокирована") {
+      throw new AppError("COMPANY_BLOCKED", 403, ErrorCode.FORBIDDEN);
+    }
+  }
+
   // Генерируем JWT токен
   const token = generateToken({
     userId: user._id.toString(),
