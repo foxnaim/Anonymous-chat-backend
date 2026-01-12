@@ -8,6 +8,7 @@ import { SubscriptionPlan } from "../models/SubscriptionPlan";
 import { Message } from "../models/Message";
 import { hashPassword } from "../utils/password";
 import { logger } from "../utils/logger";
+import { cache } from "../utils/cacheRedis";
 
 export const getAllCompanies = asyncHandler(
   async (req: Request, res: Response) => {
@@ -347,6 +348,9 @@ export const createCompany = asyncHandler(
       _id: undefined,
     };
 
+    // Инвалидируем кэш планов, так как статистика изменилась
+    void cache.delete("plans:all");
+
     res.status(201).json({
       success: true,
       data: companyData,
@@ -577,6 +581,9 @@ export const updateCompanyPlan = asyncHandler(
 
     await company.save();
 
+    // Инвалидируем кэш планов, так как статистика изменилась
+    void cache.delete("plans:all");
+
     const companyData = {
       id: company._id.toString(),
       ...company.toObject(),
@@ -632,6 +639,9 @@ export const deleteCompany = asyncHandler(
 
     // 4. Удаляем компанию по ID
     await Company.findByIdAndDelete(cleanId);
+
+    // Инвалидируем кэш планов, так как статистика изменилась
+    void cache.delete("plans:all");
 
     logger.info(
       `[CompanyController] Successfully deleted company ${company.name} (${companyCode})`,
