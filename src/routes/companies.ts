@@ -298,7 +298,7 @@ router.put(
  * @swagger
  * /api/companies/{id}:
  *   delete:
- *     summary: Удалить компанию (только для админов)
+ *     summary: Удалить компанию (для админов и администраторов компании)
  *     tags: [Компании]
  *     security:
  *       - bearerAuth: []
@@ -309,14 +309,28 @@ router.put(
  *         schema:
  *           type: string
  *         description: Company ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: Password required for company admins
  *     responses:
  *       200:
  *         description: Компания успешно удалена
+ *       400:
+ *         description: Пароль обязателен для администраторов компании
+ *       401:
+ *         description: Неверный пароль
  *       403:
  *         description: Запрещено
  *       404:
  *         description: Компания не найдена
  */
-router.delete("/:id", authorize("admin", "super_admin"), deleteCompany);
+router.delete("/:id", authenticate, deleteCompany);
 
 export default router;

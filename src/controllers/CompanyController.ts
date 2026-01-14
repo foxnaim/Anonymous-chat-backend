@@ -726,6 +726,8 @@ export const deleteCompany = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const cleanId = id.trim();
+    const body = req.body as { password?: string };
+    const { password } = body;
 
     logger.info(
       `[CompanyController] DELETE request for company ID: ${cleanId}`,
@@ -739,8 +741,8 @@ export const deleteCompany = asyncHandler(
     }
 
     // Проверка прав доступа:
-    // - Системные админы могут удалять любую компанию
-    // - Администратор компании может удалить только свою компанию
+    // - Системные админы могут удалять любую компанию (без проверки пароля)
+    // - Администратор компании может удалить только свою компанию (с проверкой пароля)
     const isSystemAdmin = req.user?.role === "admin" || req.user?.role === "super_admin";
     const isCompanyAdmin = req.user?.role === "company" && 
                           req.user?.companyId && 
@@ -748,6 +750,26 @@ export const deleteCompany = asyncHandler(
 
     if (!isSystemAdmin && !isCompanyAdmin) {
       throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
+
+    // Для администраторов компании требуется проверка пароля
+    if (isCompanyAdmin && !isSystemAdmin) {
+      if (!password) {
+        throw new AppError("Password is required to delete company", 400, ErrorCode.BAD_REQUEST);
+      }
+
+      // Находим пользователя компании для проверки пароля
+      const user = await User.findById(req.user?.userId).select("+password");
+      if (!user) {
+        throw new AppError("User not found", 404, ErrorCode.NOT_FOUND);
+      }
+
+      // Проверяем пароль
+      const { comparePassword } = await import("../utils/password");
+      const isPasswordValid = await comparePassword(String(password), user.password);
+      if (!isPasswordValid) {
+        throw new AppError("Invalid password", 401, ErrorCode.UNAUTHORIZED);
+      }
     }
 
     const companyCode = company.code;
