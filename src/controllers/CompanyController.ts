@@ -731,16 +731,23 @@ export const deleteCompany = asyncHandler(
       `[CompanyController] DELETE request for company ID: ${cleanId}`,
     );
 
-    // Только админы могут удалять компании
-    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
-      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
-    }
-
     // 1. Находим компанию
     const company = await Company.findById(cleanId).lean();
     if (!company) {
       logger.warn(`[CompanyController] Company with ID ${cleanId} not found`);
       throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
+
+    // Проверка прав доступа:
+    // - Системные админы могут удалять любую компанию
+    // - Администратор компании может удалить только свою компанию
+    const isSystemAdmin = req.user?.role === "admin" || req.user?.role === "super_admin";
+    const isCompanyAdmin = req.user?.role === "company" && 
+                          req.user?.companyId && 
+                          req.user.companyId.toString() === company._id.toString();
+
+    if (!isSystemAdmin && !isCompanyAdmin) {
+      throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
     }
 
     const companyCode = company.code;
