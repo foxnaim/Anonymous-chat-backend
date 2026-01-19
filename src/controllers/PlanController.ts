@@ -40,16 +40,9 @@ async function getFreePlanSettingsFromDB(): Promise<{
 
 export const getAllPlans = asyncHandler(
   async (_req: Request, res: Response) => {
-    // Проверяем кэш
+    // Инвалидируем кэш, чтобы гарантировать актуальные данные
     const cacheKey = "plans:all";
-    const cachedPlans = await cache.get<PlanLean[]>(cacheKey);
-    if (cachedPlans) {
-      res.json({
-        success: true,
-        data: cachedPlans,
-      });
-      return;
-    }
+    void cache.delete(cacheKey);
 
     // Получаем настройки бесплатного плана из БД
     const freePlanSettings = await getFreePlanSettingsFromDB();
@@ -75,6 +68,11 @@ export const getAllPlans = asyncHandler(
           freePeriodDays: freePlanSettings.freePeriodDays,
           features: [
             {
+              ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
+              en: `Trial period ${freePlanSettings.freePeriodDays} days`,
+              kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+            },
+            {
               ru: "Приём сообщений",
               en: "Receive messages",
               kk: "Хабарламаларды қабылдау",
@@ -85,9 +83,9 @@ export const getAllPlans = asyncHandler(
               kk: "Хабарламаларды көру",
             },
             {
-              ru: "Все действия заблокированы (read-only режим)",
-              en: "All actions blocked (read-only mode)",
-              kk: "Барлық әрекеттер бұғатталған (тек оқу режимі)",
+              ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
+              en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
+              kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
             },
           ],
         },
@@ -168,6 +166,116 @@ export const getAllPlans = asyncHandler(
         .sort({ price: 1 })
         .lean()
         .exec();
+    } else {
+      // Обновляем существующие планы, чтобы гарантировать актуальные цены и features
+      const freePlan = await SubscriptionPlan.findOne({
+        $or: [{ id: "free" }, { isFree: true }],
+      });
+      if (freePlan) {
+        freePlan.name = { ru: "Пробный", en: "Trial", kk: "Сынақ" };
+        freePlan.freePeriodDays = freePlanSettings.freePeriodDays;
+        freePlan.messagesLimit = freePlanSettings.messagesLimit;
+        freePlan.features = [
+          {
+            ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
+            en: `Trial period ${freePlanSettings.freePeriodDays} days`,
+            kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+          },
+          {
+            ru: "Приём сообщений",
+            en: "Receive messages",
+            kk: "Хабарламаларды қабылдау",
+          },
+          {
+            ru: "Просмотр сообщений",
+            en: "View messages",
+            kk: "Хабарламаларды көру",
+          },
+          {
+            ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
+            en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
+            kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
+          },
+        ];
+        await freePlan.save();
+      }
+
+      const standardPlan = await SubscriptionPlan.findOne({ id: "standard" });
+      if (standardPlan) {
+        standardPlan.price = 5990;
+        standardPlan.features = [
+          {
+            ru: "Ответы на сообщения",
+            en: "Reply to messages",
+            kk: "Хабарламаларға жауап беру",
+          },
+          {
+            ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+            en: "Change statuses (new / in progress / resolved / rejected / spam)",
+            kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+          },
+          {
+            ru: "Базовая аналитика (распределение сообщений)",
+            en: "Basic analytics (message distribution)",
+            kk: "Негізгі аналитика (хабарламалардың бөлінуі)",
+          },
+          {
+            ru: "Рейтинг роста",
+            en: "Growth rating",
+            kk: "Өсу рейтингі",
+          },
+        ];
+        await standardPlan.save();
+      }
+
+      const proPlan = await SubscriptionPlan.findOne({ id: "pro" });
+      if (proPlan) {
+        proPlan.price = 11990;
+        proPlan.features = [
+          {
+            ru: "Ответы на сообщения",
+            en: "Reply to messages",
+            kk: "Хабарламаларға жауап беру",
+          },
+          {
+            ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+            en: "Change statuses (new / in progress / resolved / rejected / spam)",
+            kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+          },
+          {
+            ru: "Расширенная аналитика",
+            en: "Extended analytics",
+            kk: "Кеңейтілген аналитика",
+          },
+          {
+            ru: "Отчёты (месячные PDF)",
+            en: "Reports (monthly PDF)",
+            kk: "Есептер (айлық PDF)",
+          },
+          {
+            ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+            en: "Team mood indicator (based on message types and statuses)",
+            kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+          },
+          {
+            ru: "Приоритетная поддержка",
+            en: "Priority support",
+            kk: "Басымдықты қолдау",
+          },
+        ];
+        await proPlan.save();
+      }
+
+      // Обновляем кэш после обновления планов
+      void cache.delete("plans:all");
+
+      // Перезагружаем планы после обновления
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      plans = await SubscriptionPlan.find()
+        .select("-__v")
+        .sort({ price: 1 })
+        .lean()
+        .exec();
     }
 
     // Обновляем freePeriodDays для бесплатного плана из текущих настроек
@@ -181,8 +289,34 @@ export const getAllPlans = asyncHandler(
         $or: [{ id: "free" }, { isFree: true }],
       });
       if (freePlanDoc) {
+        // Обновляем название (переводимое)
+        freePlanDoc.name = { ru: "Пробный", en: "Trial", kk: "Сынақ" };
         freePlanDoc.freePeriodDays = freePlanSettings.freePeriodDays;
         freePlanDoc.messagesLimit = freePlanSettings.messagesLimit;
+        // Обновляем features с описанием пробного периода
+        const expectedFeatures = [
+          {
+            ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
+            en: `Trial period ${freePlanSettings.freePeriodDays} days`,
+            kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+          },
+          {
+            ru: "Приём сообщений",
+            en: "Receive messages",
+            kk: "Хабарламаларды қабылдау",
+          },
+          {
+            ru: "Просмотр сообщений",
+            en: "View messages",
+            kk: "Хабарламаларды көру",
+          },
+          {
+            ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
+            en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
+            kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
+          },
+        ];
+        freePlanDoc.features = expectedFeatures;
         await freePlanDoc.save();
 
         // Обновляем в массиве для ответа
@@ -193,7 +327,180 @@ export const getAllPlans = asyncHandler(
           planToUpdate.freePeriodDays = freePlanSettings.freePeriodDays;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           planToUpdate.messagesLimit = freePlanSettings.messagesLimit;
+          // Обновляем название (переводимое)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          planToUpdate.name = { ru: "Пробный", en: "Trial", kk: "Сынақ" };
+          // Обновляем features с описанием пробного периода
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          planToUpdate.features = [
+            {
+              ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
+              en: `Trial period ${freePlanSettings.freePeriodDays} days`,
+              kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+            },
+            {
+              ru: "Приём сообщений",
+              en: "Receive messages",
+              kk: "Хабарламаларды қабылдау",
+            },
+            {
+              ru: "Просмотр сообщений",
+              en: "View messages",
+              kk: "Хабарламаларды көру",
+            },
+            {
+              ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
+              en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
+              kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
+            },
+          ];
         }
+      }
+    }
+
+    // Обновляем цены и features для Standard и Pro планов в базе данных и в массиве ответа
+    const standardPlanDoc = await SubscriptionPlan.findOne({ id: "standard" });
+    if (standardPlanDoc) {
+      standardPlanDoc.price = 5990;
+      standardPlanDoc.features = [
+        {
+          ru: "Ответы на сообщения",
+          en: "Reply to messages",
+          kk: "Хабарламаларға жауап беру",
+        },
+        {
+          ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+          en: "Change statuses (new / in progress / resolved / rejected / spam)",
+          kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+        },
+        {
+          ru: "Базовая аналитика (распределение сообщений)",
+          en: "Basic analytics (message distribution)",
+          kk: "Негізгі аналитика (хабарламалардың бөлінуі)",
+        },
+        {
+          ru: "Рейтинг роста",
+          en: "Growth rating",
+          kk: "Өсу рейтингі",
+        },
+      ];
+      await standardPlanDoc.save();
+    }
+
+    const proPlanDoc = await SubscriptionPlan.findOne({ id: "pro" });
+    if (proPlanDoc) {
+      proPlanDoc.price = 11990;
+      proPlanDoc.features = [
+        {
+          ru: "Ответы на сообщения",
+          en: "Reply to messages",
+          kk: "Хабарламаларға жауап беру",
+        },
+        {
+          ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+          en: "Change statuses (new / in progress / resolved / rejected / spam)",
+          kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+        },
+        {
+          ru: "Расширенная аналитика",
+          en: "Extended analytics",
+          kk: "Кеңейтілген аналитика",
+        },
+        {
+          ru: "Отчёты (месячные PDF)",
+          en: "Reports (monthly PDF)",
+          kk: "Есептер (айлық PDF)",
+        },
+        {
+          ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+          en: "Team mood indicator (based on message types and statuses)",
+          kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+        },
+        {
+          ru: "Приоритетная поддержка",
+          en: "Priority support",
+          kk: "Басымдықты қолдау",
+        },
+      ];
+      await proPlanDoc.save();
+    }
+
+    // Обновляем цены и features для Standard и Pro планов в массиве ответа
+    const standardPlanIndex = plans.findIndex(
+      (p: PlanLean) => p.id === "standard",
+    );
+    if (standardPlanIndex !== -1) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      const standardPlan = plans[standardPlanIndex];
+      if (standardPlan) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        standardPlan.price = 5990;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        standardPlan.features = [
+          {
+            ru: "Ответы на сообщения",
+            en: "Reply to messages",
+            kk: "Хабарламаларға жауап беру",
+          },
+          {
+            ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+            en: "Change statuses (new / in progress / resolved / rejected / spam)",
+            kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+          },
+          {
+            ru: "Базовая аналитика (распределение сообщений)",
+            en: "Basic analytics (message distribution)",
+            kk: "Негізгі аналитика (хабарламалардың бөлінуі)",
+          },
+          {
+            ru: "Рейтинг роста",
+            en: "Growth rating",
+            kk: "Өсу рейтингі",
+          },
+        ];
+      }
+    }
+
+    const proPlanIndex = plans.findIndex((p: PlanLean) => p.id === "pro");
+    if (proPlanIndex !== -1) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      const proPlan = plans[proPlanIndex];
+      if (proPlan) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        proPlan.price = 11990;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        proPlan.features = [
+          {
+            ru: "Ответы на сообщения",
+            en: "Reply to messages",
+            kk: "Хабарламаларға жауап беру",
+          },
+          {
+            ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+            en: "Change statuses (new / in progress / resolved / rejected / spam)",
+            kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+          },
+          {
+            ru: "Расширенная аналитика",
+            en: "Extended analytics",
+            kk: "Кеңейтілген аналитика",
+          },
+          {
+            ru: "Отчёты (месячные PDF)",
+            en: "Reports (monthly PDF)",
+            kk: "Есептер (айлық PDF)",
+          },
+          {
+            ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+            en: "Team mood indicator (based on message types and statuses)",
+            kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+          },
+          {
+            ru: "Приоритетная поддержка",
+            en: "Priority support",
+            kk: "Басымдықты қолдау",
+          },
+        ];
       }
     }
 
