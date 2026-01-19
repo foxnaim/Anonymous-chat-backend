@@ -31,7 +31,7 @@ const freePlanSettingsSchema = new Schema<IFreePlanSettings>(
     freePeriodDays: {
       type: Number,
       required: true,
-      default: 60,
+      default: 22,
       min: 0,
     },
   },

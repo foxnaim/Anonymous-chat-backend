@@ -27,7 +27,7 @@ async function getFreePlanSettingsFromDB(): Promise<{
       settingsId: "default",
       messagesLimit: 10,
       storageLimit: 1,
-      freePeriodDays: 60,
+      freePeriodDays: 22,
     });
   }
 
@@ -75,11 +75,6 @@ export const getAllPlans = asyncHandler(
           freePeriodDays: freePlanSettings.freePeriodDays,
           features: [
             {
-              ru: `До ${freePlanSettings.messagesLimit} сообщений в месяц`,
-              en: `Up to ${freePlanSettings.messagesLimit} messages per month`,
-              kk: `Айына ${freePlanSettings.messagesLimit} хабарламаға дейін`,
-            },
-            {
               ru: "Приём сообщений",
               en: "Receive messages",
               kk: "Хабарламаларды қабылдау",
@@ -89,33 +84,78 @@ export const getAllPlans = asyncHandler(
               en: "View messages",
               kk: "Хабарламаларды көру",
             },
+            {
+              ru: "Все действия заблокированы (read-only режим)",
+              en: "All actions blocked (read-only mode)",
+              kk: "Барлық әрекеттер бұғатталған (тек оқу режимі)",
+            },
           ],
         },
         {
           id: "standard",
           name: { ru: "Стандарт", en: "Standard", kk: "Стандарт" },
-          price: 2999,
+          price: 5990,
           messagesLimit: 100,
           storageLimit: 10,
           features: [
             {
-              ru: "До 100 сообщений в месяц",
-              en: "Up to 100 messages per month",
-              kk: "Айына 100 хабарламаға дейін",
+              ru: "Ответы на сообщения",
+              en: "Reply to messages",
+              kk: "Хабарламаларға жауап беру",
+            },
+            {
+              ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+              en: "Change statuses (new / in progress / resolved / rejected / spam)",
+              kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+            },
+            {
+              ru: "Базовая аналитика (распределение сообщений)",
+              en: "Basic analytics (message distribution)",
+              kk: "Негізгі аналитика (хабарламалардың бөлінуі)",
+            },
+            {
+              ru: "Рейтинг роста",
+              en: "Growth rating",
+              kk: "Өсу рейтингі",
             },
           ],
         },
         {
           id: "pro",
           name: { ru: "Про", en: "Pro", kk: "Про" },
-          price: 9999,
+          price: 11990,
           messagesLimit: 500,
           storageLimit: 50,
           features: [
             {
-              ru: "До 500 сообщений в месяц",
-              en: "Up to 500 messages per month",
-              kk: "Айына 500 хабарламаға дейін",
+              ru: "Ответы на сообщения",
+              en: "Reply to messages",
+              kk: "Хабарламаларға жауап беру",
+            },
+            {
+              ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+              en: "Change statuses (new / in progress / resolved / rejected / spam)",
+              kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
+            },
+            {
+              ru: "Расширенная аналитика",
+              en: "Extended analytics",
+              kk: "Кеңейтілген аналитика",
+            },
+            {
+              ru: "Отчёты (месячные PDF)",
+              en: "Reports (monthly PDF)",
+              kk: "Есептер (айлық PDF)",
+            },
+            {
+              ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+              en: "Team mood indicator (based on message types and statuses)",
+              kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+            },
+            {
+              ru: "Приоритетная поддержка",
+              en: "Priority support",
+              kk: "Басымдықты қолдау",
             },
           ],
         },
@@ -189,27 +229,39 @@ export const getAllPlans = asyncHandler(
     };
 
     // Подсчитываем количество компаний на каждом тарифе и вычисляем среднее время до окончания
-    const planStats = new Map<string, { count: number; totalDaysUntilExpiry: number; companiesWithExpiry: number }>();
+    const planStats = new Map<
+      string,
+      {
+        count: number;
+        totalDaysUntilExpiry: number;
+        companiesWithExpiry: number;
+      }
+    >();
 
     companies.forEach((company) => {
       const companyPlan = company.plan || "Бесплатный";
-      
+
       // Находим соответствующий план в списке планов
-      const matchingPlan = plans.find((p: PlanLean) => {
+      const matchingPlan = (plans as PlanLean[]).find((p: PlanLean) => {
         const planName = getPlanName(p);
-        return planName === companyPlan || 
-               (typeof p.name === "object" && (
-                 p.name.ru === companyPlan || 
-                 p.name.en === companyPlan || 
-                 p.name.kk === companyPlan
-               ));
+        return (
+          planName === companyPlan ||
+          (typeof p.name === "object" &&
+            (p.name.ru === companyPlan ||
+              p.name.en === companyPlan ||
+              p.name.kk === companyPlan))
+        );
       });
 
       // Используем ID плана или имя плана как ключ
-      const planKey = matchingPlan ? matchingPlan.id : companyPlan;
+      const planKey = matchingPlan ? String(matchingPlan.id) : companyPlan;
 
       if (!planStats.has(planKey)) {
-        planStats.set(planKey, { count: 0, totalDaysUntilExpiry: 0, companiesWithExpiry: 0 });
+        planStats.set(planKey, {
+          count: 0,
+          totalDaysUntilExpiry: 0,
+          companiesWithExpiry: 0,
+        });
       }
 
       const stats = planStats.get(planKey)!;
@@ -227,13 +279,24 @@ export const getAllPlans = asyncHandler(
 
     // Добавляем статистику к каждому плану
     const plansWithStats = plans.map((plan: PlanLean) => {
-      const planKey = plan.id;
-      const stats = planStats.get(planKey) || { count: 0, totalDaysUntilExpiry: 0, companiesWithExpiry: 0 };
-      
+      const planKey = String(plan.id);
+      const stats =
+        planStats.get(planKey) ||
+        ({
+          count: 0,
+          totalDaysUntilExpiry: 0,
+          companiesWithExpiry: 0,
+        } as {
+          count: number;
+          totalDaysUntilExpiry: number;
+          companiesWithExpiry: number;
+        });
+
       // Вычисляем среднее количество дней до окончания
-      const avgDaysUntilExpiry = stats.companiesWithExpiry > 0
-        ? Math.round(stats.totalDaysUntilExpiry / stats.companiesWithExpiry)
-        : null;
+      const avgDaysUntilExpiry =
+        stats.companiesWithExpiry > 0
+          ? Math.round(stats.totalDaysUntilExpiry / stats.companiesWithExpiry)
+          : null;
 
       return {
         ...plan,
@@ -333,7 +396,11 @@ export const updateFreePlanSettings = asyncHandler(
   async (req: Request, res: Response) => {
     // Только суперадмины могут обновлять настройки пробного плана
     if (req.user?.role !== "super_admin") {
-      throw new AppError("Access denied. Only super admins can edit trial plan settings", 403, ErrorCode.FORBIDDEN);
+      throw new AppError(
+        "Access denied. Only super admins can edit trial plan settings",
+        403,
+        ErrorCode.FORBIDDEN,
+      );
     }
 
     const body = req.body as {
@@ -352,7 +419,7 @@ export const updateFreePlanSettings = asyncHandler(
         settingsId: "default",
         messagesLimit: messagesLimit ?? 10,
         storageLimit: storageLimit ?? 1,
-        freePeriodDays: freePeriodDays ?? 60,
+        freePeriodDays: freePeriodDays ?? 22,
       });
     } else {
       // Обновляем только переданные поля

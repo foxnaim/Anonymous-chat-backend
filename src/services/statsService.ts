@@ -85,14 +85,14 @@ export const getMessageDistribution = async (
 
 /**
  * Улучшенный расчёт рейтинга роста компании
- * 
+ *
  * Формула (максимум 10 баллов):
  * 1. Решённые кейсы (до 3 баллов) - процент решённых жалоб и предложений
- * 2. Скорость ответа (до 2 баллов) - как быстро отвечают на сообщения  
+ * 2. Скорость ответа (до 2 баллов) - как быстро отвечают на сообщения
  * 3. Бонус за похвалы (до 2 баллов) - соотношение похвал к жалобам
  * 4. Бонус за активность (до 1.5 балла) - количество сообщений (вовлечённость)
  * 5. Бонус за достижения (до 1.5 балла) - разблокированные достижения
- * 
+ *
  * Особенности:
  * - Новая компания без сообщений получает базовый рейтинг 5.0
  * - Компания с только похвалами получает высокий рейтинг
@@ -176,15 +176,23 @@ export const getGrowthMetrics = async (
       totalResponses++;
       const created = new Date(msg.createdAt);
       const updated = new Date(msg.updatedAt);
-      const hoursDiff = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
+      const hoursDiff =
+        (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
 
       // Более детальная шкала скорости
-      if (hoursDiff <= 2) responseSpeedRaw += 10;      // Очень быстро (2 часа)
-      else if (hoursDiff <= 12) responseSpeedRaw += 8; // Быстро (12 часов)
-      else if (hoursDiff <= 24) responseSpeedRaw += 6; // В тот же день
-      else if (hoursDiff <= 72) responseSpeedRaw += 4; // За 3 дня
-      else if (hoursDiff <= 168) responseSpeedRaw += 2; // За неделю
-      else responseSpeedRaw += 1;                       // Позже недели
+      if (hoursDiff <= 2) {
+        responseSpeedRaw += 10; // Очень быстро (2 часа)
+      } else if (hoursDiff <= 12) {
+        responseSpeedRaw += 8; // Быстро (12 часов)
+      } else if (hoursDiff <= 24) {
+        responseSpeedRaw += 6; // В тот же день
+      } else if (hoursDiff <= 72) {
+        responseSpeedRaw += 4; // За 3 дня
+      } else if (hoursDiff <= 168) {
+        responseSpeedRaw += 2; // За неделю
+      } else {
+        responseSpeedRaw += 1; // Позже недели
+      }
     }
   });
 
@@ -199,14 +207,18 @@ export const getGrowthMetrics = async (
   if (totalMessages > 0) {
     // Соотношение похвал к общему числу сообщений
     const praiseRatio = praises / totalMessages;
-    
+
     // Соотношение похвал к жалобам (если есть жалобы)
-    const praiseToComplaintRatio = complaints > 0 ? praises / complaints : (praises > 0 ? 3 : 1);
-    
+    const praiseToComplaintRatio =
+      complaints > 0 ? praises / complaints : praises > 0 ? 3 : 1;
+
     // Комбинированный бонус
     // - Много похвал относительно всех сообщений = хорошо
     // - Больше похвал чем жалоб = очень хорошо
-    praiseBonus = Math.min(2, praiseRatio * 2 + Math.min(1, praiseToComplaintRatio * 0.5));
+    praiseBonus = Math.min(
+      2,
+      praiseRatio * 2 + Math.min(1, praiseToComplaintRatio * 0.5),
+    );
   }
 
   // === 4. БОНУС ЗА АКТИВНОСТЬ (до 1.5 балла) ===
@@ -225,7 +237,7 @@ export const getGrowthMetrics = async (
     const achievements = await getCompanyAchievements(companyId);
     const completedCount = achievements.filter((a) => a.completed).length;
     const totalAchievements = achievements.length;
-    
+
     if (totalAchievements > 0) {
       achievementsBonus = (completedCount / totalAchievements) * 1.5;
     }
@@ -235,15 +247,21 @@ export const getGrowthMetrics = async (
   }
 
   // === ИТОГОВЫЙ РЕЙТИНГ ===
-  const rawRating = resolvedCasesPoints + responseSpeedPoints + praiseBonus + activityBonus + achievementsBonus;
+  const rawRating =
+    resolvedCasesPoints +
+    responseSpeedPoints +
+    praiseBonus +
+    activityBonus +
+    achievementsBonus;
   const rating = Math.min(10, Math.round(rawRating * 10) / 10);
 
   // === НАСТРОЕНИЕ ===
   let mood: "Позитивный" | "Нейтральный" | "Негативный" = "Нейтральный";
-  
+
   // Учитываем и рейтинг, и соотношение похвал/жалоб
-  const sentimentRatio = complaints > 0 ? praises / complaints : (praises > 0 ? 10 : 1);
-  
+  const sentimentRatio =
+    complaints > 0 ? praises / complaints : praises > 0 ? 10 : 1;
+
   if (rating >= 7 || sentimentRatio >= 2) {
     mood = "Позитивный";
   } else if (rating <= 4 || sentimentRatio <= 0.3) {
@@ -269,24 +287,41 @@ export const getGrowthMetrics = async (
   let trend: "up" | "down" | "stable" = "stable";
 
   // Сравниваем количество сообщений и соотношение похвал
-  const currentPraises = currentMonthMessages.filter((m) => m.type === "praise").length;
-  const currentComplaints = currentMonthMessages.filter((m) => m.type === "complaint").length;
-  const lastPraises = lastMonthMessages.filter((m) => m.type === "praise").length;
-  const lastComplaints = lastMonthMessages.filter((m) => m.type === "complaint").length;
+  const currentPraises = currentMonthMessages.filter(
+    (m) => m.type === "praise",
+  ).length;
+  const currentComplaints = currentMonthMessages.filter(
+    (m) => m.type === "complaint",
+  ).length;
+  const lastPraises = lastMonthMessages.filter(
+    (m) => m.type === "praise",
+  ).length;
+  const lastComplaints = lastMonthMessages.filter(
+    (m) => m.type === "complaint",
+  ).length;
 
-  const currentSentiment = currentComplaints > 0 ? currentPraises / currentComplaints : currentPraises;
-  const lastSentiment = lastComplaints > 0 ? lastPraises / lastComplaints : lastPraises;
+  const currentSentiment =
+    currentComplaints > 0 ? currentPraises / currentComplaints : currentPraises;
+  const lastSentiment =
+    lastComplaints > 0 ? lastPraises / lastComplaints : lastPraises;
 
   // Также учитываем решённые кейсы
-  const currentResolved = currentMonthMessages.filter((m) => m.status === "Решено").length;
-  const lastResolved = lastMonthMessages.filter((m) => m.status === "Решено").length;
+  const currentResolved = currentMonthMessages.filter(
+    (m) => m.status === "Решено",
+  ).length;
+  const lastResolved = lastMonthMessages.filter(
+    (m) => m.status === "Решено",
+  ).length;
 
   // Определяем тренд на основе нескольких факторов
   let trendScore = 0;
-  
+
   // Больше сообщений = больше вовлечённость
-  if (currentMonthMessages.length > lastMonthMessages.length * 1.2) trendScore += 1;
-  else if (currentMonthMessages.length < lastMonthMessages.length * 0.8) trendScore -= 1;
+  if (currentMonthMessages.length > lastMonthMessages.length * 1.2) {
+    trendScore += 1;
+  } else if (currentMonthMessages.length < lastMonthMessages.length * 0.8) {
+    trendScore -= 1;
+  }
 
   // Лучше настроение
   if (currentSentiment > lastSentiment * 1.1) trendScore += 1;

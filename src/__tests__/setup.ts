@@ -17,14 +17,10 @@ beforeAll(async () => {
   if (
     mongoose.connection.readyState === mongoose.ConnectionStates.disconnected
   ) {
-    try {
-      await mongoose.connect(testDbUri, {
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-      });
-    } catch (error) {
-      throw error;
-    }
+    await mongoose.connect(testDbUri, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
   }
 });
 

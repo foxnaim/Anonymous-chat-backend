@@ -11,6 +11,7 @@ import {
   getCompanyAchievements,
   getGroupedAchievements,
 } from "../services/achievementsService";
+import { getPlanPermissions } from "../utils/planPermissions";
 
 export const getCompanyStatsController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -27,6 +28,18 @@ export const getCompanyStatsController = asyncHandler(
       req.user.companyId?.toString() !== company._id.toString()
     ) {
       throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
+
+    // Проверка прав плана для компаний
+    if (req.user?.role === "company") {
+      const permissions = await getPlanPermissions(company);
+      if (!permissions.canViewBasicAnalytics) {
+        throw new AppError(
+          "Basic analytics is not available in your plan. Please upgrade to Standard or Pro plan.",
+          403,
+          ErrorCode.FORBIDDEN,
+        );
+      }
     }
 
     const stats = await getCompanyStats(id);
@@ -55,6 +68,18 @@ export const getMessageDistributionController = asyncHandler(
       throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
     }
 
+    // Проверка прав плана для компаний
+    if (req.user?.role === "company") {
+      const permissions = await getPlanPermissions(company);
+      if (!permissions.canViewBasicAnalytics) {
+        throw new AppError(
+          "Basic analytics is not available in your plan. Please upgrade to Standard or Pro plan.",
+          403,
+          ErrorCode.FORBIDDEN,
+        );
+      }
+    }
+
     const distribution = await getMessageDistribution(id);
 
     res.json({
@@ -79,6 +104,18 @@ export const getGrowthMetricsController = asyncHandler(
       req.user.companyId?.toString() !== company._id.toString()
     ) {
       throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
+    }
+
+    // Проверка прав плана для компаний
+    if (req.user?.role === "company") {
+      const permissions = await getPlanPermissions(company);
+      if (!permissions.canViewGrowth) {
+        throw new AppError(
+          "Growth rating is not available in your plan. Please upgrade to Standard or Pro plan.",
+          403,
+          ErrorCode.FORBIDDEN,
+        );
+      }
     }
 
     const metrics = await getGrowthMetrics(id);

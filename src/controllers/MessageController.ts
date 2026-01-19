@@ -264,6 +264,34 @@ export const updateMessageStatus = asyncHandler(
       if (company && message.companyCode !== company.code) {
         throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
       }
+
+      // Проверка прав плана для компаний
+      if (company) {
+        const { getPlanPermissions } = await import("../utils/planPermissions");
+        const permissions = await getPlanPermissions(company);
+
+        // Проверка права на ответ
+        if (
+          response !== undefined &&
+          response.trim().length > 0 &&
+          !permissions.canReply
+        ) {
+          throw new AppError(
+            "Reply to messages is not available in your plan. Please upgrade to Standard or Pro plan.",
+            403,
+            ErrorCode.FORBIDDEN,
+          );
+        }
+
+        // Проверка права на смену статуса
+        if (status && !permissions.canChangeStatus) {
+          throw new AppError(
+            "Changing message status is not available in your plan. Please upgrade to Standard or Pro plan.",
+            403,
+            ErrorCode.FORBIDDEN,
+          );
+        }
+      }
     }
 
     // Блокируем изменение статуса и ответа для сообщений, отклоненных админом

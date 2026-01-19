@@ -249,17 +249,19 @@ export const createCompany = asyncHandler(
 
     if (isTrialPlan) {
       // Получаем настройки пробного периода из БД
-      let freePlanSettings = await FreePlanSettings.findOne({ settingsId: "default" });
+      let freePlanSettings = await FreePlanSettings.findOne({
+        settingsId: "default",
+      });
       if (!freePlanSettings) {
         // Создаем дефолтные настройки, если их еще нет
         freePlanSettings = await FreePlanSettings.create({
           settingsId: "default",
           messagesLimit: 10,
           storageLimit: 1,
-          freePeriodDays: 60,
+          freePeriodDays: 22,
         });
       }
-      
+
       const endDate = new Date(registeredDate);
       endDate.setDate(endDate.getDate() + freePlanSettings.freePeriodDays);
       trialEndDate = endDate.toISOString().split("T")[0];
@@ -406,7 +408,7 @@ export const updateCompany = asyncHandler(
     }
     if (updates.adminEmail && typeof updates.adminEmail === "string") {
       const normalizedNewEmail = updates.adminEmail.toLowerCase().trim();
-      
+
       // Проверяем, не используется ли новый email админом (если email меняется)
       if (normalizedNewEmail !== company.adminEmail.toLowerCase()) {
         const existingAdmin = await AdminUser.findOne({
@@ -419,7 +421,7 @@ export const updateCompany = asyncHandler(
             ErrorCode.CONFLICT,
           );
         }
-        
+
         // Проверяем, не используется ли новый email другой компанией
         const existingCompanyWithEmail = await Company.findOne({
           adminEmail: normalizedNewEmail,
@@ -433,7 +435,7 @@ export const updateCompany = asyncHandler(
           );
         }
       }
-      
+
       updates.adminEmail = normalizedNewEmail;
     }
 
@@ -577,8 +579,10 @@ export const updateCompanyPlan = asyncHandler(
       "Free",
       "Тегін",
     ];
-    const isCurrentPlanTrialByName = currentTrialPlanNames.includes(company.plan);
-    
+    const isCurrentPlanTrialByName = currentTrialPlanNames.includes(
+      company.plan,
+    );
+
     // Ищем текущий план в базе данных
     const currentSubscriptionPlan = await SubscriptionPlan.findOne({
       $or: [
@@ -588,7 +592,8 @@ export const updateCompanyPlan = asyncHandler(
         { name: company.plan },
       ],
     });
-    const isCurrentPlanTrial = isCurrentPlanTrialByName || currentSubscriptionPlan?.isFree === true;
+    const isCurrentPlanTrial =
+      isCurrentPlanTrialByName || currentSubscriptionPlan?.isFree === true;
 
     // Обычные админы не могут редактировать пробный/бесплатный план
     if (req.user?.role === "admin") {
@@ -602,7 +607,7 @@ export const updateCompanyPlan = asyncHandler(
           "Тегін",
         ];
         const isNewPlanTrialByName = trialPlanNames.includes(plan);
-        
+
         const newSubscriptionPlan = await SubscriptionPlan.findOne({
           $or: [
             { "name.ru": plan },
@@ -611,8 +616,9 @@ export const updateCompanyPlan = asyncHandler(
             { name: plan },
           ],
         });
-        const isNewPlanTrial = isNewPlanTrialByName || newSubscriptionPlan?.isFree === true;
-        
+        const isNewPlanTrial =
+          isNewPlanTrialByName || newSubscriptionPlan?.isFree === true;
+
         if (isNewPlanTrial) {
           throw new AppError(
             "Regular admins cannot edit trial/free plans",
@@ -621,7 +627,7 @@ export const updateCompanyPlan = asyncHandler(
           );
         }
       }
-      
+
       // Проверяем, если пытаются изменить компанию с пробным/бесплатным планом
       if (isCurrentPlanTrial) {
         throw new AppError(
@@ -663,22 +669,26 @@ export const updateCompanyPlan = asyncHandler(
         // Для пробного/бесплатного плана устанавливаем неограниченные лимиты
         company.messagesLimit = 999999;
         company.storageLimit = 999999;
-        
+
         // Если trialEndDate не указан в запросе, устанавливаем его автоматически на основе настроек
         if (!planEndDate || typeof planEndDate !== "string") {
           // Получаем настройки пробного периода из БД
-          let freePlanSettings = await FreePlanSettings.findOne({ settingsId: "default" });
+          let freePlanSettings = await FreePlanSettings.findOne({
+            settingsId: "default",
+          });
           if (!freePlanSettings) {
             // Создаем дефолтные настройки, если их еще нет
             freePlanSettings = await FreePlanSettings.create({
               settingsId: "default",
               messagesLimit: 10,
               storageLimit: 1,
-              freePeriodDays: 60,
+              freePeriodDays: 22,
             });
           }
-          
-          const startDate = company.registered ? new Date(company.registered) : new Date();
+
+          const startDate = company.registered
+            ? new Date(company.registered)
+            : new Date();
           const endDate = new Date(startDate);
           endDate.setDate(endDate.getDate() + freePlanSettings.freePeriodDays);
           company.trialEndDate = endDate.toISOString().split("T")[0];
@@ -743,10 +753,12 @@ export const deleteCompany = asyncHandler(
     // Проверка прав доступа:
     // - Системные админы могут удалять любую компанию (без проверки пароля)
     // - Администратор компании может удалить только свою компанию (с проверкой пароля)
-    const isSystemAdmin = req.user?.role === "admin" || req.user?.role === "super_admin";
-    const isCompanyAdmin = req.user?.role === "company" && 
-                          req.user?.companyId && 
-                          req.user.companyId.toString() === company._id.toString();
+    const isSystemAdmin =
+      req.user?.role === "admin" || req.user?.role === "super_admin";
+    const isCompanyAdmin =
+      req.user?.role === "company" &&
+      req.user?.companyId &&
+      req.user.companyId.toString() === company._id.toString();
 
     if (!isSystemAdmin && !isCompanyAdmin) {
       throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
@@ -755,7 +767,11 @@ export const deleteCompany = asyncHandler(
     // Для администраторов компании требуется проверка пароля
     if (isCompanyAdmin && !isSystemAdmin) {
       if (!password) {
-        throw new AppError("Password is required to delete company", 400, ErrorCode.BAD_REQUEST);
+        throw new AppError(
+          "Password is required to delete company",
+          400,
+          ErrorCode.BAD_REQUEST,
+        );
       }
 
       // Находим пользователя компании для проверки пароля
@@ -766,7 +782,10 @@ export const deleteCompany = asyncHandler(
 
       // Проверяем пароль
       const { comparePassword } = await import("../utils/password");
-      const isPasswordValid = await comparePassword(String(password), user.password);
+      const isPasswordValid = await comparePassword(
+        String(password),
+        user.password,
+      );
       if (!isPasswordValid) {
         throw new AppError("Invalid password", 401, ErrorCode.UNAUTHORIZED);
       }
