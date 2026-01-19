@@ -87,6 +87,7 @@ export const updateAdminSettings = asyncHandler(
       itemsPerPage?: number;
       notificationsEnabled?: boolean;
       emailNotifications?: boolean;
+      supportWhatsAppNumber?: string;
     };
 
     // Валидация
@@ -140,6 +141,9 @@ export const updateAdminSettings = asyncHandler(
       }
       if (body.emailNotifications !== undefined) {
         settings.emailNotifications = body.emailNotifications;
+      }
+      if (body.supportWhatsAppNumber !== undefined) {
+        settings.supportWhatsAppNumber = body.supportWhatsAppNumber;
       }
 
       await settings.save();

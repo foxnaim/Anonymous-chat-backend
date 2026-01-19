@@ -20,6 +20,7 @@ export interface ICompany extends BaseDocument {
   storageLimit?: number;
   logoUrl?: string;
   fullscreenMode?: boolean;
+  supportWhatsApp?: string;
 }
 
 const companySchema = new Schema<ICompany>(
@@ -102,6 +103,10 @@ const companySchema = new Schema<ICompany>(
     fullscreenMode: {
       type: Boolean,
       default: false,
+    },
+    supportWhatsApp: {
+      type: String,
+      trim: true,
     },
   },
   baseSchemaOptions,

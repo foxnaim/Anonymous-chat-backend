@@ -402,6 +402,7 @@ export const updateCompany = asyncHandler(
       storageLimit?: number;
       logoUrl?: string;
       fullscreenMode?: boolean;
+      supportWhatsApp?: string;
     };
     if (updates.code && typeof updates.code === "string") {
       updates.code = updates.code.toUpperCase();
@@ -503,6 +504,20 @@ export const updateCompany = asyncHandler(
         updates.storageLimit = subscriptionPlan.storageLimit;
       }
       // Если план не найден, оставляем лимиты как есть (или используем переданные значения)
+    }
+
+    // Проверка прав на обновление supportWhatsApp (только для Pro плана)
+    if (updates.supportWhatsApp !== undefined && req.user?.role === "company") {
+      const { getPlanById } = await import("../utils/planPermissions");
+      const planInfo = await getPlanById(company.plan);
+
+      if (planInfo?.id !== "pro") {
+        throw new AppError(
+          "Support WhatsApp is only available for Pro plan",
+          403,
+          ErrorCode.FORBIDDEN,
+        );
+      }
     }
 
     Object.assign(company, updates);

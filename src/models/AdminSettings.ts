@@ -9,6 +9,7 @@ export interface IAdminSettings extends BaseDocument {
   itemsPerPage?: number; // Количество элементов на странице
   notificationsEnabled?: boolean;
   emailNotifications?: boolean;
+  supportWhatsAppNumber?: string;
 }
 
 const adminSettingsSchema = new Schema<IAdminSettings>(
@@ -46,6 +47,10 @@ const adminSettingsSchema = new Schema<IAdminSettings>(
     emailNotifications: {
       type: Boolean,
       default: true,
+    },
+    supportWhatsAppNumber: {
+      type: String,
+      trim: true,
     },
   },
   baseSchemaOptions,
