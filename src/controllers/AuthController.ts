@@ -237,6 +237,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       plan: "Пробный",
       registered: registeredDate,
       trialEndDate: trialEndDate.toISOString().split("T")[0],
+      trialUsed: true, // Устанавливаем флаг, что пользователь использовал пробный тариф
       employees: 0,
       messages: 0,
       messagesThisMonth: 0,

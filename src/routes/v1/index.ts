@@ -7,6 +7,7 @@ import statsRoutes from "../stats";
 import planRoutes from "../plans";
 import adminRoutes from "../admins";
 import adminSettingsRoutes from "../adminSettings";
+import supportRoutes from "../support";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use("/stats", statsRoutes);
 router.use("/plans", planRoutes);
 router.use("/admins", adminRoutes);
 router.use("/admin-settings", adminSettingsRoutes);
+router.use("/support", supportRoutes);
 
 export default router;

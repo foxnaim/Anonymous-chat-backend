@@ -68,24 +68,39 @@ export const getAllPlans = asyncHandler(
           freePeriodDays: freePlanSettings.freePeriodDays,
           features: [
             {
-              ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
-              en: `Trial period ${freePlanSettings.freePeriodDays} days`,
-              kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+              ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
+              en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
+              kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
             },
             {
-              ru: "Приём сообщений",
-              en: "Receive messages",
-              kk: "Хабарламаларды қабылдау",
+              ru: "Ответы на сообщения",
+              en: "Reply to messages",
+              kk: "Хабарламаларға жауап беру",
             },
             {
-              ru: "Просмотр сообщений",
-              en: "View messages",
-              kk: "Хабарламаларды көру",
+              ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+              en: "Change statuses (new / in progress / resolved / rejected / spam)",
+              kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
             },
             {
-              ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
-              en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
-              kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
+              ru: "Расширенная аналитика",
+              en: "Extended analytics",
+              kk: "Кеңейтілген аналитика",
+            },
+            {
+              ru: "Отчёты (месячные PDF)",
+              en: "Reports (monthly PDF)",
+              kk: "Есептер (айлық PDF)",
+            },
+            {
+              ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+              en: "Team mood indicator (based on message types and statuses)",
+              kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+            },
+            {
+              ru: "Рейтинг роста",
+              en: "Growth rating",
+              kk: "Өсу рейтингі",
             },
           ],
         },
@@ -177,24 +192,39 @@ export const getAllPlans = asyncHandler(
         freePlan.messagesLimit = freePlanSettings.messagesLimit;
         freePlan.features = [
           {
-            ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
-            en: `Trial period ${freePlanSettings.freePeriodDays} days`,
-            kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+            ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
+            en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
+            kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
           },
           {
-            ru: "Приём сообщений",
-            en: "Receive messages",
-            kk: "Хабарламаларды қабылдау",
+            ru: "Ответы на сообщения",
+            en: "Reply to messages",
+            kk: "Хабарламаларға жауап беру",
           },
           {
-            ru: "Просмотр сообщений",
-            en: "View messages",
-            kk: "Хабарламаларды көру",
+            ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+            en: "Change statuses (new / in progress / resolved / rejected / spam)",
+            kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
           },
           {
-            ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
-            en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
-            kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
+            ru: "Расширенная аналитика",
+            en: "Extended analytics",
+            kk: "Кеңейтілген аналитика",
+          },
+          {
+            ru: "Отчёты (месячные PDF)",
+            en: "Reports (monthly PDF)",
+            kk: "Есептер (айлық PDF)",
+          },
+          {
+            ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+            en: "Team mood indicator (based on message types and statuses)",
+            kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+          },
+          {
+            ru: "Рейтинг роста",
+            en: "Growth rating",
+            kk: "Өсу рейтингі",
           },
         ];
         await freePlan.save();
@@ -296,24 +326,39 @@ export const getAllPlans = asyncHandler(
         // Обновляем features с описанием пробного периода
         const expectedFeatures = [
           {
-            ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
-            en: `Trial period ${freePlanSettings.freePeriodDays} days`,
-            kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+            ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
+            en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
+            kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
           },
           {
-            ru: "Приём сообщений",
-            en: "Receive messages",
-            kk: "Хабарламаларды қабылдау",
+            ru: "Ответы на сообщения",
+            en: "Reply to messages",
+            kk: "Хабарламаларға жауап беру",
           },
           {
-            ru: "Просмотр сообщений",
-            en: "View messages",
-            kk: "Хабарламаларды көру",
+            ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+            en: "Change statuses (new / in progress / resolved / rejected / spam)",
+            kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
           },
           {
-            ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
-            en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
-            kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
+            ru: "Расширенная аналитика",
+            en: "Extended analytics",
+            kk: "Кеңейтілген аналитика",
+          },
+          {
+            ru: "Отчёты (месячные PDF)",
+            en: "Reports (monthly PDF)",
+            kk: "Есептер (айлық PDF)",
+          },
+          {
+            ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+            en: "Team mood indicator (based on message types and statuses)",
+            kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+          },
+          {
+            ru: "Рейтинг роста",
+            en: "Growth rating",
+            kk: "Өсу рейтингі",
           },
         ];
         freePlanDoc.features = expectedFeatures;
@@ -334,24 +379,39 @@ export const getAllPlans = asyncHandler(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           planToUpdate.features = [
             {
-              ru: `Пробный период ${freePlanSettings.freePeriodDays} дня`,
-              en: `Trial period ${freePlanSettings.freePeriodDays} days`,
-              kk: `Сынақ кезеңі ${freePlanSettings.freePeriodDays} күн`,
+              ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
+              en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
+              kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
             },
             {
-              ru: "Приём сообщений",
-              en: "Receive messages",
-              kk: "Хабарламаларды қабылдау",
+              ru: "Ответы на сообщения",
+              en: "Reply to messages",
+              kk: "Хабарламаларға жауап беру",
             },
             {
-              ru: "Просмотр сообщений",
-              en: "View messages",
-              kk: "Хабарламаларды көру",
+              ru: "Смена статусов (новое / в работе / решено / отклонено / спам)",
+              en: "Change statuses (new / in progress / resolved / rejected / spam)",
+              kk: "Статустарды өзгерту (жаңа / жұмыс істеп жатыр / шешілді / қабылданбады / спам)",
             },
             {
-              ru: "Все действия (ответы, смена статусов, аналитика, рост, отчёты) заблокированы (read-only режим)",
-              en: "All actions (replies, status changes, analytics, growth, reports) are blocked (read-only mode)",
-              kk: "Барлық әрекеттер (жауаптар, мәртебе өзгерту, аналитика, өсу, есептер) бұғатталған (тек оқу режимі)",
+              ru: "Расширенная аналитика",
+              en: "Extended analytics",
+              kk: "Кеңейтілген аналитика",
+            },
+            {
+              ru: "Отчёты (месячные PDF)",
+              en: "Reports (monthly PDF)",
+              kk: "Есептер (айлық PDF)",
+            },
+            {
+              ru: "Показатель «настроение команды» (на основе типов и статусов сообщений)",
+              en: "Team mood indicator (based on message types and statuses)",
+              kk: "Команда көңіл-күй көрсеткіші (хабарлама түрлері мен статустарына негізделген)",
+            },
+            {
+              ru: "Рейтинг роста",
+              en: "Growth rating",
+              kk: "Өсу рейтингі",
             },
           ];
         }

@@ -12,6 +12,7 @@ export interface ICompany extends BaseDocument {
   plan: string;
   registered: string;
   trialEndDate?: string;
+  trialUsed?: boolean; // Флаг, что пользователь уже использовал пробный тариф
   employees: number;
   messages: number;
   messagesThisMonth?: number;
@@ -65,6 +66,10 @@ const companySchema = new Schema<ICompany>(
     },
     trialEndDate: {
       type: String,
+    },
+    trialUsed: {
+      type: Boolean,
+      default: false,
     },
     employees: {
       type: Number,

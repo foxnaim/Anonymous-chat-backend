@@ -506,19 +506,8 @@ export const updateCompany = asyncHandler(
       // Если план не найден, оставляем лимиты как есть (или используем переданные значения)
     }
 
-    // Проверка прав на обновление supportWhatsApp (только для Pro плана)
-    if (updates.supportWhatsApp !== undefined && req.user?.role === "company") {
-      const { getPlanById } = await import("../utils/planPermissions");
-      const planInfo = await getPlanById(company.plan);
-
-      if (planInfo?.id !== "pro") {
-        throw new AppError(
-          "Support WhatsApp is only available for Pro plan",
-          403,
-          ErrorCode.FORBIDDEN,
-        );
-      }
-    }
+    // supportWhatsApp доступен для всех планов
+    // Для Pro плана это приоритетная поддержка, для остальных - обычная
 
     Object.assign(company, updates);
     await company.save();
@@ -681,6 +670,9 @@ export const updateCompanyPlan = asyncHandler(
       const isTrialPlan =
         isTrialPlanByName || subscriptionPlan?.isFree === true;
       if (isTrialPlan) {
+        // Устанавливаем флаг, что пользователь использовал пробный тариф
+        company.trialUsed = true;
+        
         // Для пробного/бесплатного плана устанавливаем неограниченные лимиты
         company.messagesLimit = 999999;
         company.storageLimit = 999999;
