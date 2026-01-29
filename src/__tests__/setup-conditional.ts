@@ -12,12 +12,12 @@ const isUnitTest =
 // Для unit тестов - не подключаемся к MongoDB
 if (isUnitTest || !process.env.TEST_MONGODB_URI) {
   // Мокаем Sentry и logger
-  jest.mock("../../config/sentry", () => ({
+  jest.mock("../config/sentry", () => ({
     initializeSentry: jest.fn(),
     setupSentryErrorHandler: jest.fn(),
   }));
 
-  jest.mock("../../utils/logger", () => ({
+  jest.mock("../utils/logger", () => ({
     logger: {
       info: jest.fn(),
       error: jest.fn(),
@@ -78,12 +78,12 @@ if (isUnitTest || !process.env.TEST_MONGODB_URI) {
   });
 
   // Мокаем Sentry и logger
-  jest.mock("../../config/sentry", () => ({
+  jest.mock("../config/sentry", () => ({
     initializeSentry: jest.fn(),
     setupSentryErrorHandler: jest.fn(),
   }));
 
-  jest.mock("../../utils/logger", () => ({
+  jest.mock("../utils/logger", () => ({
     logger: {
       info: jest.fn(),
       error: jest.fn(),

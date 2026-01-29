@@ -68,9 +68,9 @@ export const getAllPlans = asyncHandler(
           freePeriodDays: freePlanSettings.freePeriodDays,
           features: [
             {
-              ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
-              en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
-              kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
+              ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "день" : freePlanSettings.freePeriodDays < 5 ? "дня" : "дней"}`,
+              en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "day" : "days"}`,
+              kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "күн" : "күнге"}`,
             },
             {
               ru: "Ответы на сообщения",
@@ -192,9 +192,9 @@ export const getAllPlans = asyncHandler(
         freePlan.messagesLimit = freePlanSettings.messagesLimit;
         freePlan.features = [
           {
-            ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
-            en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
-            kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
+            ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "день" : freePlanSettings.freePeriodDays < 5 ? "дня" : "дней"}`,
+            en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "day" : "days"}`,
+            kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "күн" : "күнге"}`,
           },
           {
             ru: "Ответы на сообщения",
@@ -326,9 +326,9 @@ export const getAllPlans = asyncHandler(
         // Обновляем features с описанием пробного периода
         const expectedFeatures = [
           {
-            ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
-            en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
-            kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
+            ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "день" : freePlanSettings.freePeriodDays < 5 ? "дня" : "дней"}`,
+            en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "day" : "days"}`,
+            kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "күн" : "күнге"}`,
           },
           {
             ru: "Ответы на сообщения",
@@ -379,9 +379,9 @@ export const getAllPlans = asyncHandler(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           planToUpdate.features = [
             {
-              ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'день' : freePlanSettings.freePeriodDays < 5 ? 'дня' : 'дней'}`,
-              en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'day' : 'days'}`,
-              kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? 'күн' : 'күнге'}`,
+              ru: `Все функции на ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "день" : freePlanSettings.freePeriodDays < 5 ? "дня" : "дней"}`,
+              en: `All features for ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "day" : "days"}`,
+              kk: `Барлық функциялар ${freePlanSettings.freePeriodDays} ${freePlanSettings.freePeriodDays === 1 ? "күн" : "күнге"}`,
             },
             {
               ru: "Ответы на сообщения",

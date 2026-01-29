@@ -23,8 +23,14 @@ export const updateMessageStatusSchema = z.object({
   }),
 });
 
+// Общая схема пагинации для переиспользования
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50).optional(),
+});
+
 export const getMessagesSchema = z.object({
-  query: z.object({
+  query: paginationSchema.extend({
     companyCode: z
       .string()
       .length(8, "Company code must be exactly 8 characters")

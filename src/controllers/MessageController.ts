@@ -2,7 +2,9 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { AppError, ErrorCode } from "../utils/AppError";
 import { Message, MessageStatus, type IMessage } from "../models/Message";
+import { Company } from "../models/Company";
 import { sanitizeMessageContent } from "../utils/sanitize";
+import { getPlanPermissions } from "../utils/planPermissions";
 import {
   emitNewMessage,
   emitMessageUpdate,
@@ -87,7 +89,7 @@ export const getAllMessages = asyncHandler(
 
     // Если пользователь - компания, показываем только их сообщения
     if (req.user?.role === "company" && req.user.companyId) {
-      const CompanyModel = (await import("../models/Company")).Company;
+      const CompanyModel = Company;
       const company = await CompanyModel.findById(req.user.companyId);
       if (company) {
         query.companyCode = company.code;
@@ -144,7 +146,7 @@ export const getMessageById = asyncHandler(
 
     // Проверка доступа для компаний
     if (req.user?.role === "company" && req.user.companyId) {
-      const CompanyModel = (await import("../models/Company")).Company;
+      const CompanyModel = Company;
       const company = await CompanyModel.findById(req.user.companyId);
       if (company && message.companyCode !== company.code) {
         throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
@@ -176,7 +178,7 @@ export const createMessage = asyncHandler(
     }
 
     // Проверяем существование компании
-    const CompanyModel = (await import("../models/Company")).Company;
+    const CompanyModel = Company;
     const company = await CompanyModel.findOne({
       code: String(companyCode).toUpperCase(),
     });
@@ -259,7 +261,7 @@ export const updateMessageStatus = asyncHandler(
 
     // Проверка доступа для компаний
     if (req.user?.role === "company" && req.user.companyId) {
-      const CompanyModel = (await import("../models/Company")).Company;
+      const CompanyModel = Company;
       const company = await CompanyModel.findById(req.user.companyId);
       if (company && message.companyCode !== company.code) {
         throw new AppError("Access denied", 403, ErrorCode.FORBIDDEN);
@@ -267,7 +269,6 @@ export const updateMessageStatus = asyncHandler(
 
       // Проверка прав плана для компаний
       if (company) {
-        const { getPlanPermissions } = await import("../utils/planPermissions");
         const permissions = await getPlanPermissions(company);
 
         // Проверка права на ответ
@@ -420,7 +421,7 @@ export const deleteMessage = asyncHandler(
     await Message.deleteOne({ id });
 
     // Обновляем счетчик сообщений компании
-    const CompanyModel = (await import("../models/Company")).Company;
+    const CompanyModel = Company;
     const company = await CompanyModel.findOne({ code: message.companyCode });
     if (company) {
       company.messages = Math.max(0, (company.messages || 0) - 1);

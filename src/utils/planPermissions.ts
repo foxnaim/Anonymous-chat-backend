@@ -1,6 +1,47 @@
 import { ICompany } from "../models/Company";
 import { SubscriptionPlan } from "../models/SubscriptionPlan";
 
+/**
+ * Список названий бесплатных/пробных планов на разных языках
+ */
+export const TRIAL_PLAN_NAMES = [
+  "Пробный",
+  "Trial",
+  "Бесплатный",
+  "Free",
+  "Тегін",
+  "Сынақ",
+] as const;
+
+/**
+ * Проверяет, является ли план бесплатным/пробным по имени
+ */
+export function isTrialPlanName(planName: string): boolean {
+  return TRIAL_PLAN_NAMES.includes(
+    planName as (typeof TRIAL_PLAN_NAMES)[number],
+  );
+}
+
+/**
+ * Проверяет, является ли план бесплатным (по имени или через БД)
+ */
+export async function isTrialPlan(planName: string): Promise<boolean> {
+  if (isTrialPlanName(planName)) {
+    return true;
+  }
+
+  const subscriptionPlan = await SubscriptionPlan.findOne({
+    $or: [
+      { "name.ru": planName },
+      { "name.en": planName },
+      { "name.kk": planName },
+      { name: planName },
+    ],
+  });
+
+  return subscriptionPlan?.isFree === true;
+}
+
 export interface PlanPermissions {
   canReply: boolean;
   canChangeStatus: boolean;
@@ -20,15 +61,7 @@ export async function getPlanById(planName: string): Promise<{
   isFree: boolean;
 } | null> {
   // Проверяем, является ли план бесплатным по имени
-  const freePlanNames = [
-    "Пробный",
-    "Trial",
-    "Бесплатный",
-    "Free",
-    "Тегін",
-    "Сынақ",
-  ];
-  const isFreeByName = freePlanNames.includes(planName);
+  const isFreeByName = isTrialPlanName(planName);
 
   // Ищем план в базе данных
   const subscriptionPlan = await SubscriptionPlan.findOne({

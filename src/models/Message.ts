@@ -88,6 +88,8 @@ const messageSchema = new Schema<IMessage>(
 messageSchema.index({ companyCode: 1, status: 1 });
 messageSchema.index({ companyCode: 1, type: 1 });
 messageSchema.index({ companyCode: 1, createdAt: -1 });
+messageSchema.index({ createdAt: -1 }); // Для админских запросов с сортировкой по дате
+messageSchema.index({ status: 1, createdAt: -1 }); // Для фильтрации по статусу
 // id уже имеет индекс через unique: true, не дублируем
 
 export const Message = model<IMessage>("Message", messageSchema);

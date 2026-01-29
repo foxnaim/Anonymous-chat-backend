@@ -46,6 +46,7 @@ const companySchema = new Schema<ICompany>(
     adminEmail: {
       type: String,
       required: true,
+      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -118,8 +119,7 @@ const companySchema = new Schema<ICompany>(
 );
 
 // Индексы для оптимизации запросов
-// code уже имеет индекс через unique: true, не дублируем
-companySchema.index({ adminEmail: 1 });
+// code и adminEmail уже имеют индексы через unique: true, не дублируем
 companySchema.index({ status: 1 });
 companySchema.index({ createdAt: -1 }); // Для сортировки по дате создания
 companySchema.index({ name: 1 }); // Для поиска по имени

@@ -9,6 +9,8 @@ interface AuthenticatedSocket extends Socket {
   userRole?: "admin" | "super_admin" | "company";
   companyId?: string;
   companyCode?: string;
+  authToken?: string;
+  tokenCheckInterval?: ReturnType<typeof setInterval>;
 }
 
 interface SocketHandshakeAuth {
@@ -56,6 +58,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
         socket.userId = decoded.userId;
         socket.userRole = decoded.role as "admin" | "super_admin" | "company";
         socket.companyId = decoded.companyId;
+        socket.authToken = token;
 
         // Если пользователь - компания, получаем код компании из БД
         if (decoded.role === "company" && decoded.companyId) {
@@ -217,7 +220,35 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       }
     });
 
+    // Периодическая проверка токена каждые 5 минут
+    if (socket.authToken) {
+      socket.tokenCheckInterval = setInterval(
+        () => {
+          void (async (): Promise<void> => {
+            if (!socket.authToken) {
+              return;
+            }
+            try {
+              const { verifyToken } = await import("../utils/jwt");
+              verifyToken(socket.authToken);
+            } catch {
+              logger.info(
+                `Token expired for socket ${socket.id}, disconnecting...`,
+              );
+              socket.emit("auth:expired", { message: "Token expired" });
+              socket.disconnect(true);
+            }
+          })();
+        },
+        5 * 60 * 1000,
+      ); // Проверка каждые 5 минут
+    }
+
     socket.on("disconnect", () => {
+      // Очищаем интервал проверки токена
+      if (socket.tokenCheckInterval) {
+        clearInterval(socket.tokenCheckInterval);
+      }
       logger.info(`Socket disconnected: ${socket.id}`);
     });
 

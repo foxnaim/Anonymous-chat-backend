@@ -24,6 +24,7 @@ import {
   changePasswordSchema,
 } from "../validators/authValidator";
 import { authenticate } from "../middleware/auth";
+import { authLimiter, passwordResetLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
@@ -80,7 +81,7 @@ const router = Router();
  *       401:
  *         description: Invalid credentials
  */
-router.post("/login", validate(loginSchema), login);
+router.post("/login", authLimiter, validate(loginSchema), login);
 
 /**
  * @swagger
@@ -133,7 +134,7 @@ router.post("/login", validate(loginSchema), login);
  *       400:
  *         description: Bad request
  */
-router.post("/register", validate(registerSchema), register);
+router.post("/register", authLimiter, validate(registerSchema), register);
 
 /**
  * @swagger
@@ -213,7 +214,12 @@ router.post("/verify-password", validate(verifyPasswordSchema), verifyPassword);
  *       404:
  *         description: Пользователь не найден
  */
-router.post("/forgot-password", validate(forgotPasswordSchema), forgotPassword);
+router.post(
+  "/forgot-password",
+  passwordResetLimiter,
+  validate(forgotPasswordSchema),
+  forgotPassword,
+);
 
 /**
  * @swagger
@@ -388,14 +394,16 @@ router.post("/oauth-sync", oauthSync);
 
 /**
  * Временный эндпоинт для обновления роли текущего пользователя на super_admin
- * ТОЛЬКО ДЛЯ РАЗРАБОТКИ!
+ * ТОЛЬКО ДЛЯ РАЗРАБОТКИ! Отключен в production.
  */
-router.post(
-  "/promote-super-admin",
-  (req, res, next) => {
-    authenticate(req, res, next);
-  },
-  promoteToSuperAdmin,
-);
+if (process.env.NODE_ENV === "development") {
+  router.post(
+    "/promote-super-admin",
+    (req, res, next) => {
+      authenticate(req, res, next);
+    },
+    promoteToSuperAdmin,
+  );
+}
 
 export default router;

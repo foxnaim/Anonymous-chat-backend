@@ -10,6 +10,7 @@ import { Message } from "../models/Message";
 import { hashPassword } from "../utils/password";
 import { logger } from "../utils/logger";
 import { cache } from "../utils/cacheRedis";
+import { isTrialPlan } from "../utils/planPermissions";
 
 export const getAllCompanies = asyncHandler(
   async (req: Request, res: Response) => {
@@ -470,31 +471,19 @@ export const updateCompany = asyncHandler(
       (req.user?.role === "admin" || req.user?.role === "super_admin")
     ) {
       const plan = updates.plan;
+      const isPlanTrial = await isTrialPlan(plan);
 
-      // Проверяем, является ли план пробным (Пробный, Trial, Бесплатный, Free, Тегін)
-      const trialPlanNames = [
-        "Пробный",
-        "Trial",
-        "Бесплатный",
-        "Free",
-        "Тегін",
-      ];
-      const isTrialPlanByName = trialPlanNames.includes(plan);
-
-      // Ищем план в базе данных по имени (проверяем все языковые варианты)
+      // Ищем план в базе данных для получения лимитов
       const subscriptionPlan = await SubscriptionPlan.findOne({
         $or: [
           { "name.ru": plan },
           { "name.en": plan },
           { "name.kk": plan },
-          { name: plan }, // На случай, если name - строка
+          { name: plan },
         ],
       });
 
-      // Проверяем, является ли план бесплатным (по имени или по флагу isFree)
-      const isTrialPlan =
-        isTrialPlanByName || subscriptionPlan?.isFree === true;
-      if (isTrialPlan) {
+      if (isPlanTrial) {
         // Для пробного/бесплатного плана устанавливаем неограниченные лимиты
         updates.messagesLimit = 999999;
         updates.storageLimit = 999999;
@@ -503,7 +492,6 @@ export const updateCompany = asyncHandler(
         updates.messagesLimit = subscriptionPlan.messagesLimit;
         updates.storageLimit = subscriptionPlan.storageLimit;
       }
-      // Если план не найден, оставляем лимиты как есть (или используем переданные значения)
     }
 
     // supportWhatsApp доступен для всех планов
@@ -576,53 +564,13 @@ export const updateCompanyPlan = asyncHandler(
     }
 
     // Проверяем, является ли текущий план компании пробным/бесплатным
-    const currentTrialPlanNames = [
-      "Пробный",
-      "Trial",
-      "Бесплатный",
-      "Free",
-      "Тегін",
-    ];
-    const isCurrentPlanTrialByName = currentTrialPlanNames.includes(
-      company.plan,
-    );
-
-    // Ищем текущий план в базе данных
-    const currentSubscriptionPlan = await SubscriptionPlan.findOne({
-      $or: [
-        { "name.ru": company.plan },
-        { "name.en": company.plan },
-        { "name.kk": company.plan },
-        { name: company.plan },
-      ],
-    });
-    const isCurrentPlanTrial =
-      isCurrentPlanTrialByName || currentSubscriptionPlan?.isFree === true;
+    const isCurrentPlanTrial = await isTrialPlan(company.plan);
 
     // Обычные админы не могут редактировать пробный/бесплатный план
     if (req.user?.role === "admin") {
       // Проверяем, если пытаются установить пробный/бесплатный план
       if (plan && typeof plan === "string") {
-        const trialPlanNames = [
-          "Пробный",
-          "Trial",
-          "Бесплатный",
-          "Free",
-          "Тегін",
-        ];
-        const isNewPlanTrialByName = trialPlanNames.includes(plan);
-
-        const newSubscriptionPlan = await SubscriptionPlan.findOne({
-          $or: [
-            { "name.ru": plan },
-            { "name.en": plan },
-            { "name.kk": plan },
-            { name: plan },
-          ],
-        });
-        const isNewPlanTrial =
-          isNewPlanTrialByName || newSubscriptionPlan?.isFree === true;
-
+        const isNewPlanTrial = await isTrialPlan(plan);
         if (isNewPlanTrial) {
           throw new AppError(
             "Regular admins cannot edit trial/free plans",
@@ -646,33 +594,22 @@ export const updateCompanyPlan = asyncHandler(
       company.plan = plan;
 
       // Обновляем лимиты на основе нового плана
-      // Проверяем, является ли план пробным (Пробный, Trial, Бесплатный, Free, Тегін)
-      const trialPlanNames = [
-        "Пробный",
-        "Trial",
-        "Бесплатный",
-        "Free",
-        "Тегін",
-      ];
-      const isTrialPlanByName = trialPlanNames.includes(plan);
+      const isPlanTrial = await isTrialPlan(plan);
 
-      // Ищем план в базе данных по имени (проверяем все языковые варианты)
+      // Ищем план в базе данных для получения лимитов
       const subscriptionPlan = await SubscriptionPlan.findOne({
         $or: [
           { "name.ru": plan },
           { "name.en": plan },
           { "name.kk": plan },
-          { name: plan }, // На случай, если name - строка
+          { name: plan },
         ],
       });
 
-      // Проверяем, является ли план бесплатным (по имени или по флагу isFree)
-      const isTrialPlan =
-        isTrialPlanByName || subscriptionPlan?.isFree === true;
-      if (isTrialPlan) {
+      if (isPlanTrial) {
         // Устанавливаем флаг, что пользователь использовал пробный тариф
         company.trialUsed = true;
-        
+
         // Для пробного/бесплатного плана устанавливаем неограниченные лимиты
         company.messagesLimit = 999999;
         company.storageLimit = 999999;

@@ -65,11 +65,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  // Проверяем, подтвержден ли email (только если поле существует и равно false)
-  // Для старых пользователей без поля isVerified вход разрешен (undefined !== false)
+  // Проверяем, подтвержден ли email
   // Админы и суперадмины не требуют верификации email
+  // Используем !user.isVerified чтобы также блокировать undefined (новые пользователи)
   if (
-    user.isVerified === false &&
+    !user.isVerified &&
     user.role !== "admin" &&
     user.role !== "super_admin"
   ) {
@@ -300,7 +300,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         companyId: user.companyId,
         name: user.name,
       },
-      verificationToken, // Токен для отправки письма (fallback, если email не отправился)
+      // В development возвращаем токен как fallback
+      ...(process.env.NODE_ENV === "development" && { verificationToken }),
     },
     message:
       "Registration successful. Please check your email to verify your account.",
@@ -513,11 +514,19 @@ export const forgotPassword = asyncHandler(
         });
     });
 
-    return res.json({
-      success: true,
-      message: "If the email exists, a password reset link has been sent",
-      resetToken, // Возвращаем токен фронтенду как fallback (если email не отправился)
-    });
+    // В production не возвращаем токен - только через email
+    const response: { success: boolean; message: string; resetToken?: string } =
+      {
+        success: true,
+        message: "If the email exists, a password reset link has been sent",
+      };
+
+    // В development возвращаем токен как fallback
+    if (process.env.NODE_ENV === "development") {
+      response.resetToken = resetToken;
+    }
+
+    return res.json(response);
   },
 );
 
