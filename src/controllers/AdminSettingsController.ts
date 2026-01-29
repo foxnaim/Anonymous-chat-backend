@@ -121,6 +121,7 @@ export const updateAdminSettings = asyncHandler(
         itemsPerPage: body.itemsPerPage ?? 10,
         notificationsEnabled: body.notificationsEnabled ?? true,
         emailNotifications: body.emailNotifications ?? true,
+        supportWhatsAppNumber: body.supportWhatsAppNumber,
       });
     } else {
       // Обновляем только переданные поля
