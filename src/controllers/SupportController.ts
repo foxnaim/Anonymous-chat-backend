@@ -7,7 +7,7 @@ import { AdminSettings } from "../models/AdminSettings";
  * Публичный endpoint - доступен без аутентификации
  */
 export const getSupportInfo = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (_req: Request, res: Response) => {
     // Получаем первый доступный AdminSettings (обычно должен быть только один админ)
     // Или можно получить по какому-то дефолтному adminId
     const settings = await AdminSettings.findOne().lean().exec();
