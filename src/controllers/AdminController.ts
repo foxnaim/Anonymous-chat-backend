@@ -270,9 +270,11 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError("Admin not found", 404, ErrorCode.NOT_FOUND);
   }
 
-  if (name && typeof name === "string") admin.name = name;
+  if (name !== undefined && typeof name === "string" && name.trim() !== "") {
+    admin.name = name.trim();
+  }
   if (
-    role &&
+    role !== undefined &&
     typeof role === "string" &&
     (role === "admin" || role === "super_admin")
   ) {
@@ -281,18 +283,29 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   await admin.save();
 
-  // Обновляем пользователя
+  // Обновляем пользователя в коллекции User
   const user = await User.findOne({ email: admin.email });
   if (user) {
-    if (name && typeof name === "string") user.name = name;
-    if (role && typeof role === "string")
+    let userChanged = false;
+    if (name !== undefined && typeof name === "string" && name.trim() !== "") {
+      user.name = name.trim();
+      userChanged = true;
+    }
+    if (
+      role !== undefined &&
+      typeof role === "string" &&
+      (role === "admin" || role === "super_admin")
+    ) {
       user.role = role === "super_admin" ? "super_admin" : "admin";
-    await user.save();
+      userChanged = true;
+    }
+    if (userChanged) await user.save();
   }
 
+  const data = admin.toObject ? admin.toObject() : { ...admin, _id: admin._id };
   res.json({
     success: true,
-    data: admin,
+    data,
   });
 });
 
