@@ -22,6 +22,19 @@ export const updateAdminSchema = z.object({
   }),
 });
 
+/** WhatsApp/телефон: + и цифры, пробелы/дефисы/скобки; после очистки — от 10 до 15 цифр */
+const supportPhoneSchema = z
+  .string()
+  .optional()
+  .refine(
+    (val) => {
+      if (val === undefined || val === null || val === "") return true;
+      const digits = val.replace(/\D/g, "");
+      return digits.length >= 10 && digits.length <= 15 && /^\+?[\d\s\-()]+$/.test(val.trim());
+    },
+    { message: "Invalid support phone number. Use international format, e.g. +7 700 123 4567" },
+  );
+
 export const updateAdminSettingsSchema = z.object({
   body: z.object({
     fullscreenMode: z.boolean().optional(),
@@ -30,5 +43,6 @@ export const updateAdminSettingsSchema = z.object({
     itemsPerPage: z.number().int().min(5).max(100).optional(),
     notificationsEnabled: z.boolean().optional(),
     emailNotifications: z.boolean().optional(),
+    supportWhatsAppNumber: supportPhoneSchema,
   }),
 });
