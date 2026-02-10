@@ -585,7 +585,8 @@ export const changeEmail = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const body = req.body as { newEmail?: string; password?: string };
-  const { newEmail, password } = body;
+  const newEmail = typeof body.newEmail === "string" ? body.newEmail.trim() : "";
+  const { password } = body;
 
   if (!newEmail || !password) {
     throw new AppError(

@@ -76,7 +76,7 @@ export const verifyEmailSchema = z.object({
 
 export const changeEmailSchema = z.object({
   body: z.object({
-    newEmail: z.string().email("Invalid email format"),
+    newEmail: z.string().trim().min(1, "Email is required").email("Invalid email format"),
     password: z.string().min(1, "Current password is required"),
   }),
 });
