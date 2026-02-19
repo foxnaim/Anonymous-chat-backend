@@ -655,6 +655,17 @@ export const updateCompanyPlan = asyncHandler(
     }
 
     if (planEndDate && typeof planEndDate === "string") {
+      const endDate = new Date(planEndDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      if (endDate < today) {
+        throw new AppError(
+          "Plan end date cannot be in the past",
+          400,
+          ErrorCode.VALIDATION_ERROR,
+        );
+      }
       company.trialEndDate = planEndDate;
     }
 
