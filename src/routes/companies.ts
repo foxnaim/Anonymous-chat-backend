@@ -8,6 +8,7 @@ import {
   updateCompany,
   updateCompanyStatus,
   updateCompanyPlan,
+  updateCompanyPassword,
   deleteCompany,
 } from "../controllers/CompanyController";
 import { validate } from "../middleware/validation";
@@ -18,6 +19,7 @@ import {
   getCompanyByCodeSchema,
   updateCompanyStatusSchema,
   updateCompanyPlanSchema,
+  updateCompanyPasswordSchema,
 } from "../validators/companyValidator";
 import { authenticate, authorize } from "../middleware/auth";
 
@@ -292,6 +294,44 @@ router.put(
   authorize("admin", "super_admin"),
   validate(updateCompanyPlanSchema),
   updateCompanyPlan,
+);
+
+/**
+ * @swagger
+ * /api/companies/{id}/password:
+ *   put:
+ *     summary: Сменить пароль компании (только суперадмин, без подтверждения старого)
+ *     tags: [Компании]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Company ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: New company password
+ *     responses:
+ *       200:
+ *         description: Company password updated
+ *       403:
+ *         description: Access denied (super_admin only)
+ */
+router.put(
+  "/:id/password",
+  authorize("super_admin"),
+  validate(updateCompanyPasswordSchema),
+  updateCompanyPassword,
 );
 
 /**

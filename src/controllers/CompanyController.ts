@@ -687,6 +687,43 @@ export const updateCompanyPlan = asyncHandler(
   },
 );
 
+/**
+ * Смена пароля компании (только суперадмин, без подтверждения старого пароля)
+ */
+export const updateCompanyPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (req.user?.role !== "super_admin") {
+      throw new AppError("Access denied. Only super admins can change company password without confirmation.", 403, ErrorCode.FORBIDDEN);
+    }
+
+    const { id } = req.params;
+    const body = req.body as { password?: string };
+    const { password } = body;
+
+    if (!password || typeof password !== "string" || password.trim().length < 8) {
+      throw new AppError("Valid new password is required", 400, ErrorCode.BAD_REQUEST);
+    }
+
+    const company = await Company.findById(id);
+    if (!company) {
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
+
+    const user = await User.findOne({ companyId: company._id, role: "company" }).select("+password");
+    if (!user) {
+      throw new AppError("Company user not found", 404, ErrorCode.NOT_FOUND);
+    }
+
+    user.password = await hashPassword(password.trim());
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Company password updated successfully",
+    });
+  },
+);
+
 export const deleteCompany = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
