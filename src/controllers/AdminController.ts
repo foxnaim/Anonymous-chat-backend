@@ -262,17 +262,40 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const { id } = req.params;
-  const body = req.body as { name?: string; role?: string };
-  const { name, role } = body;
+  const body = req.body as { name?: string; email?: string; role?: string; password?: string };
+  const { name, email, role, password } = body;
 
   const admin = await AdminUser.findById(id);
   if (!admin) {
     throw new AppError("Admin not found", 404, ErrorCode.NOT_FOUND);
   }
 
+  const oldEmail = admin.email;
+
   if (name !== undefined && typeof name === "string" && name.trim() !== "") {
     admin.name = name.trim();
   }
+
+  // Обновление email
+  if (email !== undefined && typeof email === "string") {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail !== oldEmail) {
+      const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
+      if (existingAdmin) {
+        throw new AppError("Admin with this email already exists", 409, ErrorCode.CONFLICT);
+      }
+      const existingUser = await User.findOne({ email: normalizedEmail });
+      if (existingUser) {
+        throw new AppError("User with this email already exists", 409, ErrorCode.CONFLICT);
+      }
+      const existingCompany = await Company.findOne({ adminEmail: normalizedEmail });
+      if (existingCompany) {
+        throw new AppError("Company with this email already exists", 409, ErrorCode.CONFLICT);
+      }
+      admin.email = normalizedEmail;
+    }
+  }
+
   if (
     role !== undefined &&
     typeof role === "string" &&
@@ -283,13 +306,20 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
 
   await admin.save();
 
-  // Обновляем пользователя в коллекции User
-  const user = await User.findOne({ email: admin.email });
+  // Обновляем пользователя в коллекции User (по старому email до смены)
+  const user = await User.findOne({ email: oldEmail }).select("+password");
   if (user) {
     let userChanged = false;
     if (name !== undefined && typeof name === "string" && name.trim() !== "") {
       user.name = name.trim();
       userChanged = true;
+    }
+    if (email !== undefined && typeof email === "string") {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail !== oldEmail) {
+        user.email = normalizedEmail;
+        userChanged = true;
+      }
     }
     if (
       role !== undefined &&
@@ -299,7 +329,21 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
       user.role = role === "super_admin" ? "super_admin" : "admin";
       userChanged = true;
     }
+    // Суперадмин может сбросить пароль без ввода старого
+    if (password !== undefined && typeof password === "string" && password.trim().length >= 8) {
+      user.password = await hashPassword(password.trim());
+      userChanged = true;
+    }
     if (userChanged) await user.save();
+  } else if (password !== undefined && typeof password === "string" && password.trim().length >= 8) {
+    // Пользователя нет в User, но пароль передан — создаём запись для входа
+    const hashedPassword = await hashPassword(password.trim());
+    await User.create({
+      email: admin.email,
+      password: hashedPassword,
+      name: admin.name,
+      role: admin.role === "super_admin" ? "super_admin" : "admin",
+    });
   }
 
   const data = admin.toObject ? admin.toObject() : { ...admin, _id: admin._id };

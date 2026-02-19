@@ -18,7 +18,10 @@ export const updateAdminSchema = z.object({
   }),
   body: z.object({
     name: z.string().min(1).optional(),
+    email: z.string().email("Invalid email format").optional(),
     role: z.enum(["admin", "super_admin"]).optional(),
+    // Пароль: суперадмин может сбросить без старого пароля
+    password: z.string().min(8, "Password must be at least 8 characters").optional(),
   }),
 });
 
