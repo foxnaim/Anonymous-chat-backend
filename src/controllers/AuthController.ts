@@ -4,6 +4,7 @@ import { asyncHandler } from "../middleware/asyncHandler";
 import { AppError, ErrorCode } from "../utils/AppError";
 import { User } from "../models/User";
 import { Company } from "../models/Company";
+import { AdminSettings } from "../models/AdminSettings";
 import { AdminUser } from "../models/AdminUser";
 import { FreePlanSettings } from "../models/FreePlanSettings";
 import {
@@ -17,6 +18,20 @@ import { generateToken } from "../utils/jwt";
 import { logger } from "../utils/logger";
 import { emailService } from "../services/emailService";
 import { config } from "../config/env";
+
+/** Выбросить ошибку COMPANY_BLOCKED с номером WhatsApp поддержки (если указан админом) */
+async function throwCompanyBlocked(): Promise<never> {
+  const settings = await AdminSettings.findOne({
+    supportWhatsAppNumber: { $exists: true, $ne: "" },
+  })
+    .sort({ updatedAt: -1 })
+    .select("supportWhatsAppNumber")
+    .lean()
+    .exec();
+  const num = settings?.supportWhatsAppNumber?.trim() || "";
+  const message = num ? `COMPANY_BLOCKED|${num}` : "COMPANY_BLOCKED";
+  throw new AppError(message, 403, ErrorCode.FORBIDDEN);
+}
 
 /**
  * Вход в систему (для доступа в панель управления компанией)
@@ -61,7 +76,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   if (user.role === "company" && user.companyId) {
     const company = await Company.findById(user.companyId);
     if (company && company.status === "Заблокирована") {
-      throw new AppError("COMPANY_BLOCKED", 403, ErrorCode.FORBIDDEN);
+      await throwCompanyBlocked();
     }
   }
 
@@ -431,7 +446,7 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   if (user.role === "company" && user.companyId) {
     const company = await Company.findById(user.companyId);
     if (company && company.status === "Заблокирована") {
-      throw new AppError("COMPANY_BLOCKED", 403, ErrorCode.FORBIDDEN);
+      await throwCompanyBlocked();
     }
   }
 
@@ -862,7 +877,7 @@ export const oauthSync = asyncHandler(async (req: Request, res: Response) => {
   if (user.role === "company" && user.companyId) {
     const company = await Company.findById(user.companyId);
     if (company && company.status === "Заблокирована") {
-      throw new AppError("COMPANY_BLOCKED", 403, ErrorCode.FORBIDDEN);
+      await throwCompanyBlocked();
     }
   }
 
