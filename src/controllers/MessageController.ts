@@ -23,11 +23,12 @@ export const getAllMessages = asyncHandler(
     // Запрещаем кеширование ответов, чтобы не получать 304 и всегда видеть свежие сообщения
     res.set("Cache-Control", "no-store");
 
-    const { companyCode, page, limit, messageId } = req.query;
+    const { companyCode, page, limit, messageId, fromDate } = req.query;
 
     interface MessageQuery {
       companyCode?: string;
       id?: { $regex: string; $options: string };
+      createdAt?: { $gte: string };
     }
 
     const query: MessageQuery = {};
@@ -85,6 +86,13 @@ export const getAllMessages = asyncHandler(
 
     if (companyCode && typeof companyCode === "string") {
       query.companyCode = companyCode.toUpperCase();
+    }
+
+    // Фильтр по дате: только сообщения за период (например, за месяц)
+    if (fromDate && typeof fromDate === "string" && fromDate.trim().length > 0) {
+      const dateStr = fromDate.trim();
+      // YYYY-MM-DD — строковое сравнение работает корректно с ISO датами
+      query.createdAt = { $gte: dateStr };
     }
 
     // Если пользователь - компания, показываем только их сообщения

@@ -23,10 +23,10 @@ export const updateMessageStatusSchema = z.object({
   }),
 });
 
-// Общая схема пагинации для переиспользования
+// Общая схема пагинации для переиспользования (limit до 500 для админ-аналитики)
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(50).optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(50).optional(),
 });
 
 export const getMessagesSchema = z.object({
@@ -36,6 +36,7 @@ export const getMessagesSchema = z.object({
       .length(8, "Company code must be exactly 8 characters")
       .optional(),
     messageId: z.string().min(1, "Message ID must not be empty").optional(),
+    fromDate: z.string().optional(),
   }),
 });
 
