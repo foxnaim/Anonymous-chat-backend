@@ -254,13 +254,7 @@ export const createCompany = asyncHandler(
         settingsId: "default",
       });
       if (!freePlanSettings) {
-        // Создаем дефолтные настройки, если их еще нет
-        freePlanSettings = await FreePlanSettings.create({
-          settingsId: "default",
-          messagesLimit: 10,
-          storageLimit: 1,
-          freePeriodDays: 22,
-        });
+        freePlanSettings = await FreePlanSettings.create({ settingsId: "default" });
       }
 
       const endDate = new Date(registeredDate);
@@ -621,13 +615,7 @@ export const updateCompanyPlan = asyncHandler(
             settingsId: "default",
           });
           if (!freePlanSettings) {
-            // Создаем дефолтные настройки, если их еще нет
-            freePlanSettings = await FreePlanSettings.create({
-              settingsId: "default",
-              messagesLimit: 10,
-              storageLimit: 1,
-              freePeriodDays: 22,
-            });
+            freePlanSettings = await FreePlanSettings.create({ settingsId: "default" });
           }
 
           const startDate = company.registered

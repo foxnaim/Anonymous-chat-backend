@@ -13,7 +13,7 @@ import { cache, CacheManager } from "../utils/cacheRedis";
 type PlanLean = ISubscriptionPlan;
 
 // Функция для получения настроек бесплатного плана из БД
-// Создает дефолтные настройки, если их еще нет
+// При первом запуске создаёт запись с default из схемы (единственное место значений по умолчанию)
 async function getFreePlanSettingsFromDB(): Promise<{
   messagesLimit: number;
   storageLimit: number;
@@ -22,13 +22,8 @@ async function getFreePlanSettingsFromDB(): Promise<{
   let settings = await FreePlanSettings.findOne({ settingsId: "default" });
 
   if (!settings) {
-    // Создаем дефолтные настройки при первом запуске
-    settings = await FreePlanSettings.create({
-      settingsId: "default",
-      messagesLimit: 10,
-      storageLimit: 1,
-      freePeriodDays: 22,
-    });
+    // Создаём с минимальными полями — остальное заполнит schema default
+    settings = await FreePlanSettings.create({ settingsId: "default" });
   }
 
   return {
@@ -781,12 +776,23 @@ export const updateFreePlanSettings = asyncHandler(
     let settings = await FreePlanSettings.findOne({ settingsId: "default" });
 
     if (!settings) {
-      // Создаем новые настройки, если их еще нет
+      // Создаем новые настройки только если переданы все обязательные поля
+      if (
+        messagesLimit === undefined ||
+        storageLimit === undefined ||
+        freePeriodDays === undefined
+      ) {
+        throw new AppError(
+          "Для создания настроек пробного плана необходимо указать messagesLimit, storageLimit и freePeriodDays.",
+          400,
+          ErrorCode.VALIDATION_ERROR,
+        );
+      }
       settings = await FreePlanSettings.create({
         settingsId: "default",
-        messagesLimit: messagesLimit ?? 10,
-        storageLimit: storageLimit ?? 1,
-        freePeriodDays: freePeriodDays ?? 22,
+        messagesLimit,
+        storageLimit,
+        freePeriodDays,
       });
     } else {
       // Обновляем только переданные поля

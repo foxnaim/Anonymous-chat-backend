@@ -215,13 +215,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       settingsId: "default",
     });
     if (!freePlanSettings) {
-      // Создаем дефолтные настройки, если их еще нет
-      freePlanSettings = await FreePlanSettings.create({
-        settingsId: "default",
-        messagesLimit: 10,
-        storageLimit: 1,
-        freePeriodDays: 22,
-      });
+      freePlanSettings = await FreePlanSettings.create({ settingsId: "default" });
     }
 
     const trialEndDate = new Date();

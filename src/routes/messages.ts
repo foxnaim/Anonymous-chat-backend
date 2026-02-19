@@ -16,6 +16,7 @@ import {
   moderateMessageSchema,
 } from "../validators/messageValidator";
 import { authenticate, optionalAuthenticate } from "../middleware/auth";
+import { messageCreateLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
@@ -55,7 +56,8 @@ const router = Router();
  *         description: Компания не найдена
  */
 // Создание сообщения - публичный endpoint (анонимные сообщения)
-router.post("/", validate(createMessageSchema), createMessage);
+// messageCreateLimiter: 3 сообщения в день с одного IP
+router.post("/", messageCreateLimiter, validate(createMessageSchema), createMessage);
 
 /**
  * @swagger
