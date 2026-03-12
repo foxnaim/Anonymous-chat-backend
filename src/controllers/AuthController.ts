@@ -187,11 +187,41 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   // Если регистрация компании, создаем компанию
   if (role === "company" && companyName && companyCode) {
-    // Проверяем, не существует ли компания с таким кодом
-    const existingCompanyByCode = await Company.findOne({
-      code: String(companyCode).toUpperCase(),
+    // Генерируем и нормализуем код компании
+    const normalizeCode = (code: string) => String(code).toUpperCase();
+    const generateRandomCode = () => {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let result = "";
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
+
+    let finalCompanyCode = normalizeCode(companyCode);
+
+    // Гарантируем уникальность кода компании.
+    // Пользователь код не выбирает, поэтому при конфликте просто генерируем новый.
+    // Делаем ограниченное количество попыток, чтобы не попасть в бесконечный цикл.
+    const MAX_CODE_ATTEMPTS = 5;
+    for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
+      const existingCompanyByCode = await Company.findOne({
+        code: finalCompanyCode,
+      });
+
+      if (!existingCompanyByCode) {
+        break;
+      }
+
+      // Если код занят, пробуем сгенерировать новый
+      finalCompanyCode = generateRandomCode();
+    }
+
+    // Финальная проверка — если даже после нескольких попыток код занят, отдаём понятную ошибку
+    const existingCompanyByFinalCode = await Company.findOne({
+      code: finalCompanyCode,
     });
-    if (existingCompanyByCode) {
+    if (existingCompanyByFinalCode) {
       throw new AppError(
         "Company with this code already exists",
         409,
@@ -240,7 +270,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
     const company = await Company.create({
       name: String(companyName),
-      code: String(companyCode).toUpperCase(),
+      code: finalCompanyCode,
       adminEmail: String(email).toLowerCase(),
       status: "Активна",
       plan: "Пробный",
