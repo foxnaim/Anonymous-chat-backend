@@ -575,12 +575,17 @@ export const updateCompanyPlan = asyncHandler(
       }
 
       // Проверяем, если пытаются изменить компанию с пробным/бесплатным планом
+      // Разрешаем апгрейд с пробного на платный план (после оплаты)
       if (isCurrentPlanTrial) {
-        throw new AppError(
-          "Regular admins cannot edit companies with trial/free plans",
-          403,
-          ErrorCode.FORBIDDEN,
-        );
+        const isNewPlanTrialCheck = plan ? await isTrialPlan(plan) : true;
+        if (isNewPlanTrialCheck) {
+          throw new AppError(
+            "Regular admins cannot edit companies with trial/free plans",
+            403,
+            ErrorCode.FORBIDDEN,
+          );
+        }
+        // Если новый план платный — разрешаем апгрейд
       }
     }
 
