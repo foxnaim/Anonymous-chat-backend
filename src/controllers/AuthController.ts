@@ -553,17 +553,14 @@ export const forgotPassword = asyncHandler(
         });
     });
 
-    // В production не возвращаем токен - только через email
+    // Возвращаем токен клиенту для отправки email через EmailJS на фронте
+    // Токен одноразовый и действует 1 час
     const response: { success: boolean; message: string; resetToken?: string } =
       {
         success: true,
         message: "If the email exists, a password reset link has been sent",
+        resetToken,
       };
-
-    // В development возвращаем токен как fallback
-    if (process.env.NODE_ENV === "development") {
-      response.resetToken = resetToken;
-    }
 
     return res.json(response);
   },
