@@ -671,7 +671,7 @@ export const updateCompanyPlan = asyncHandler(
       company.trialEndDate = planEndDate;
     }
 
-    logger.info(`[CompanyController] Plan change: company=${id}, oldPlan="${oldPlan}" → newPlan="${plan}", by=${req.user?.role}(${req.user?.id})`);
+    logger.info(`[CompanyController] Plan change: company=${id}, oldPlan="${oldPlan}" → newPlan="${plan}", by=${req.user?.role}(${req.user?.userId})`);
 
     await company.save();
 

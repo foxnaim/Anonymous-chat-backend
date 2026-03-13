@@ -33,11 +33,19 @@ export async function getPayPalAccessToken(): Promise<string> {
     throw new Error(`PayPal auth failed: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { access_token: string };
   return data.access_token;
 }
 
-export async function verifyPayPalOrder(orderId: string) {
+interface PayPalOrderDetails {
+  id: string;
+  status: string;
+  purchase_units?: Array<{
+    amount?: { value?: string; currency_code?: string };
+  }>;
+}
+
+export async function verifyPayPalOrder(orderId: string): Promise<PayPalOrderDetails> {
   const accessToken = await getPayPalAccessToken();
 
   const response = await fetch(
@@ -55,5 +63,5 @@ export async function verifyPayPalOrder(orderId: string) {
     throw new Error(`PayPal order verification failed: ${response.status}`);
   }
 
-  return response.json();
+  return (await response.json()) as PayPalOrderDetails;
 }
