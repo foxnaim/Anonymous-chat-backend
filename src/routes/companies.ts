@@ -9,6 +9,7 @@ import {
   updateCompanyStatus,
   updateCompanyPlan,
   updateCompanyPassword,
+  verifyPaymentAndUpgrade,
   deleteCompany,
 } from "../controllers/CompanyController";
 import { validate } from "../middleware/validation";
@@ -294,6 +295,48 @@ router.put(
   authorize("admin", "super_admin"),
   validate(updateCompanyPlanSchema),
   updateCompanyPlan,
+);
+
+/**
+ * @swagger
+ * /api/companies/{id}/verify-payment:
+ *   post:
+ *     summary: Verify PayPal payment and upgrade company plan
+ *     tags: [Компании]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Company ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               orderId:
+ *                 type: string
+ *                 description: PayPal order ID
+ *               planId:
+ *                 type: string
+ *                 description: Subscription plan ID
+ *     responses:
+ *       200:
+ *         description: Plan upgraded successfully
+ *       400:
+ *         description: Payment not completed or invalid plan
+ *       404:
+ *         description: Company not found
+ */
+router.post(
+  "/:id/verify-payment",
+  authorize("admin", "super_admin"),
+  verifyPaymentAndUpgrade,
 );
 
 /**

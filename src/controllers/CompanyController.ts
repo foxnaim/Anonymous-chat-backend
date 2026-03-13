@@ -11,6 +11,7 @@ import { hashPassword } from "../utils/password";
 import { logger } from "../utils/logger";
 import { cache } from "../utils/cacheRedis";
 import { isTrialPlan } from "../utils/planPermissions";
+import { verifyPayPalOrder } from "../services/PaypalService";
 
 export const getAllCompanies = asyncHandler(
   async (req: Request, res: Response) => {
@@ -589,6 +590,8 @@ export const updateCompanyPlan = asyncHandler(
       }
     }
 
+    const oldPlan = company.plan;
+
     if (plan && typeof plan === "string") {
       company.plan = plan;
 
@@ -645,6 +648,12 @@ export const updateCompanyPlan = asyncHandler(
           company.storageLimit = 1;
         }
       }
+
+      if (!isPlanTrial) {
+        // Очищаем trialEndDate при переходе на платный план
+        company.trialEndDate = undefined;
+        company.status = "Активна" as any;
+      }
     }
 
     if (planEndDate && typeof planEndDate === "string") {
@@ -662,6 +671,8 @@ export const updateCompanyPlan = asyncHandler(
       company.trialEndDate = planEndDate;
     }
 
+    logger.info(`[CompanyController] Plan change: company=${id}, oldPlan="${oldPlan}" → newPlan="${plan}", by=${req.user?.role}(${req.user?.id})`);
+
     await company.save();
 
     // Инвалидируем кэш планов, так как статистика изменилась
@@ -676,6 +687,96 @@ export const updateCompanyPlan = asyncHandler(
     res.json({
       success: true,
       data: companyData,
+    });
+  },
+);
+
+export const verifyPaymentAndUpgrade = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const body = req.body as { orderId?: string; planId?: string };
+    const { orderId, planId } = body;
+
+    if (!orderId || !planId) {
+      throw new AppError(
+        "orderId and planId are required",
+        400,
+        ErrorCode.VALIDATION_ERROR,
+      );
+    }
+
+    // 1. Verify PayPal order
+    const orderDetails = await verifyPayPalOrder(orderId);
+
+    if (orderDetails.status !== "COMPLETED") {
+      throw new AppError(
+        "Payment not completed",
+        400,
+        ErrorCode.VALIDATION_ERROR,
+      );
+    }
+
+    // 2. Find the company
+    const company = await Company.findById(id);
+    if (!company) {
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
+
+    // 3. Find the subscription plan
+    const subscriptionPlan = await SubscriptionPlan.findById(planId);
+    if (!subscriptionPlan || subscriptionPlan.isFree) {
+      throw new AppError("Invalid plan", 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    // 4. Verify payment amount
+    const paidAmount = parseFloat(
+      orderDetails.purchase_units?.[0]?.amount?.value || "0",
+    );
+    if (paidAmount < 1) {
+      throw new AppError(
+        "Invalid payment amount",
+        400,
+        ErrorCode.VALIDATION_ERROR,
+      );
+    }
+
+    // 5. Update company plan
+    const oldPlan = company.plan;
+    const planName =
+      typeof subscriptionPlan.name === "string"
+        ? subscriptionPlan.name
+        : subscriptionPlan.name?.ru ||
+          subscriptionPlan.name?.en ||
+          "";
+
+    company.plan = planName;
+    company.messagesLimit = subscriptionPlan.messagesLimit;
+    company.storageLimit = subscriptionPlan.storageLimit;
+
+    // Set plan end date to 30 days from now
+    const endDate = new Date();
+    endDate.setUTCDate(endDate.getUTCDate() + 30);
+    company.trialEndDate = endDate.toISOString().split("T")[0];
+
+    // Clear trial status
+    company.status = "Активна" as "Активна" | "Пробная" | "Заблокирована";
+
+    await company.save();
+
+    // Invalidate cache
+    void cache.delete("plans:all");
+
+    // Log the change
+    logger.info(
+      `[PayPal] Plan upgraded: company=${id}, ${oldPlan} → ${planName}, orderId=${orderId}, amount=$${paidAmount}`,
+    );
+
+    res.json({
+      success: true,
+      message: "Plan upgraded successfully",
+      plan: planName,
+      orderId: orderDetails.id,
+      planEndDate: company.trialEndDate,
     });
   },
 );
