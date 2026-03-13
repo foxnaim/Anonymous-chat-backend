@@ -335,7 +335,7 @@ router.put(
  */
 router.post(
   "/:id/verify-payment",
-  authorize("admin", "super_admin"),
+  authorize("admin", "super_admin", "company"),
   verifyPaymentAndUpgrade,
 );
 
