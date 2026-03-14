@@ -29,11 +29,13 @@ export async function getPayPalAccessToken(): Promise<string> {
   });
 
   if (!response.ok) {
-    logger.error(`[PayPal] Auth failed: ${response.status}`);
+    const errorBody = await response.text();
+    logger.error(`[PayPal] Auth failed: ${response.status} - ${errorBody}`);
     throw new Error(`PayPal auth failed: ${response.status}`);
   }
 
   const data = (await response.json()) as { access_token: string };
+  logger.info(`[PayPal] Auth success, token received`);
   return data.access_token;
 }
 
@@ -59,9 +61,12 @@ export async function verifyPayPalOrder(orderId: string): Promise<PayPalOrderDet
   );
 
   if (!response.ok) {
-    logger.error(`[PayPal] Order verification failed: ${response.status}`);
+    const errorBody = await response.text();
+    logger.error(`[PayPal] Order verification failed: ${response.status} - ${errorBody}`);
     throw new Error(`PayPal order verification failed: ${response.status}`);
   }
 
-  return (await response.json()) as PayPalOrderDetails;
+  const result = (await response.json()) as PayPalOrderDetails;
+  logger.info(`[PayPal] Order ${orderId} status: ${result.status}`);
+  return result;
 }
