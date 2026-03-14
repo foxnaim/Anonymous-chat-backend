@@ -734,18 +734,21 @@ export const verifyPaymentAndUpgrade = asyncHandler(
       throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
     }
 
-    // 3. Find the subscription plan (planId can be MongoDB _id or plan name)
+    // 3. Find the subscription plan (planId can be MongoDB _id or plan name/slug)
+    const planRegex = new RegExp(`^${planId}$`, "i");
     let subscriptionPlan = await SubscriptionPlan.findById(planId).catch(() => null);
     if (!subscriptionPlan) {
       subscriptionPlan = await SubscriptionPlan.findOne({
         $or: [
-          { "name.ru": planId },
-          { "name.en": planId },
-          { "name.kk": planId },
-          { name: planId },
+          { "name.ru": planRegex },
+          { "name.en": planRegex },
+          { "name.kk": planRegex },
+          { name: planRegex },
+          { slug: planRegex },
         ],
       });
     }
+    logger.info(`[PayPal] Plan lookup for "${planId}": ${subscriptionPlan ? `found "${subscriptionPlan.name}"` : "NOT FOUND"}`);
     if (!subscriptionPlan || subscriptionPlan.isFree) {
       throw new AppError("Invalid plan", 400, ErrorCode.VALIDATION_ERROR);
     }
