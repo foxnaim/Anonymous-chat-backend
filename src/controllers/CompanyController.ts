@@ -697,6 +697,8 @@ export const verifyPaymentAndUpgrade = asyncHandler(
     const body = req.body as { orderId?: string; planId?: string };
     const { orderId, planId } = body;
 
+    logger.info(`[PayPal] verify-payment request: companyId=${id}, orderId=${orderId}, planId=${planId}`);
+
     if (!orderId || !planId) {
       throw new AppError(
         "orderId and planId are required",
@@ -706,7 +708,17 @@ export const verifyPaymentAndUpgrade = asyncHandler(
     }
 
     // 1. Verify PayPal order
-    const orderDetails = await verifyPayPalOrder(orderId);
+    let orderDetails;
+    try {
+      orderDetails = await verifyPayPalOrder(orderId);
+    } catch (err: any) {
+      logger.error(`[PayPal] Verification error for order ${orderId}: ${err.message}`);
+      throw new AppError(
+        `Payment verification failed: ${err.message}`,
+        400,
+        ErrorCode.VALIDATION_ERROR,
+      );
+    }
 
     if (orderDetails.status !== "COMPLETED") {
       throw new AppError(
