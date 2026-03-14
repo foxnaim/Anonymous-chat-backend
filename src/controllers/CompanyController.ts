@@ -734,8 +734,18 @@ export const verifyPaymentAndUpgrade = asyncHandler(
       throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
     }
 
-    // 3. Find the subscription plan
-    const subscriptionPlan = await SubscriptionPlan.findById(planId);
+    // 3. Find the subscription plan (planId can be MongoDB _id or plan name)
+    let subscriptionPlan = await SubscriptionPlan.findById(planId).catch(() => null);
+    if (!subscriptionPlan) {
+      subscriptionPlan = await SubscriptionPlan.findOne({
+        $or: [
+          { "name.ru": planId },
+          { "name.en": planId },
+          { "name.kk": planId },
+          { name: planId },
+        ],
+      });
+    }
     if (!subscriptionPlan || subscriptionPlan.isFree) {
       throw new AppError("Invalid plan", 400, ErrorCode.VALIDATION_ERROR);
     }
