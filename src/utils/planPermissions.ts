@@ -105,11 +105,28 @@ export async function getPlanById(planName: string): Promise<{
  */
 export function isTrialExpired(company: ICompany): boolean {
   if (!company.trialEndDate) {
-    return false; // Если нет даты окончания, считаем что не истек
+    return false;
   }
 
   try {
     const endDate = new Date(company.trialEndDate);
+    const now = new Date();
+    return now > endDate;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Проверяет, истек ли платный тариф
+ */
+export function isPlanExpired(company: ICompany): boolean {
+  if (!company.planEndDate) {
+    return false;
+  }
+
+  try {
+    const endDate = new Date(company.planEndDate);
     const now = new Date();
     return now > endDate;
   } catch {
@@ -153,6 +170,21 @@ export async function getPlanPermissions(
       canViewGrowth: true,
       canViewTeamMood: true,
       isReadOnly: false,
+    };
+  }
+
+  // Для платных планов проверяем, не истек ли срок действия
+  const planExpired = isPlanExpired(company);
+  if (planExpired) {
+    return {
+      canReply: false,
+      canChangeStatus: false,
+      canViewBasicAnalytics: false,
+      canViewExtendedAnalytics: false,
+      canViewReports: false,
+      canViewGrowth: false,
+      canViewTeamMood: false,
+      isReadOnly: true,
     };
   }
 

@@ -675,6 +675,17 @@ export const updateCompanyPlan = asyncHandler(
         // Очищаем trialEndDate при переходе на платный план
         company.trialEndDate = undefined;
         company.status = "Активна" as any;
+
+        // Устанавливаем дату окончания платного тарифа — 30 дней от текущей даты
+        const planEnd = new Date();
+        planEnd.setDate(planEnd.getDate() + 30);
+        company.planEndDate = planEnd.toISOString().split("T")[0];
+
+        // Сбрасываем счетчик сообщений за месяц
+        company.messagesThisMonth = 0;
+      } else {
+        // Для пробного плана очищаем planEndDate
+        company.planEndDate = undefined;
       }
     }
 
@@ -690,7 +701,13 @@ export const updateCompanyPlan = asyncHandler(
           ErrorCode.VALIDATION_ERROR,
         );
       }
-      company.trialEndDate = planEndDate;
+      // Устанавливаем дату окончания в правильное поле в зависимости от типа плана
+      const isPlanTrialForEndDate = plan ? await isTrialPlan(plan) : await isTrialPlan(company.plan);
+      if (isPlanTrialForEndDate) {
+        company.trialEndDate = planEndDate;
+      } else {
+        company.planEndDate = planEndDate;
+      }
     }
 
     logger.info(`[CompanyController] Plan change: company=${id}, oldPlan="${oldPlan}" → newPlan="${plan}", by=${req.user?.role}(${req.user?.userId})`);
@@ -803,6 +820,14 @@ export const verifyPaymentAndUpgrade = asyncHandler(
     // Очищаем trialEndDate — платный план не ограничен пробным периодом
     company.trialEndDate = undefined;
 
+    // Устанавливаем дату окончания платного тарифа — 30 дней от текущей даты
+    const planEnd = new Date();
+    planEnd.setDate(planEnd.getDate() + 30);
+    company.planEndDate = planEnd.toISOString().split("T")[0];
+
+    // Сбрасываем счетчик сообщений за месяц при покупке нового тарифа
+    company.messagesThisMonth = 0;
+
     // Clear trial status
     company.status = "Активна" as "Активна" | "Пробная" | "Заблокирована";
 
@@ -813,7 +838,7 @@ export const verifyPaymentAndUpgrade = asyncHandler(
 
     // Log the change
     logger.info(
-      `[PayPal] Plan upgraded: company=${id}, ${oldPlan} → ${planName}, orderId=${orderId}, amount=$${paidAmount}`,
+      `[PayPal] Plan upgraded: company=${id}, ${oldPlan} → ${planName}, orderId=${orderId}, amount=$${paidAmount}, planEndDate=${company.planEndDate}`,
     );
 
     res.json({
