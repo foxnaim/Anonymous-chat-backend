@@ -17,6 +17,7 @@ import {
 } from "../validators/messageValidator";
 import { authenticate, optionalAuthenticate, checkCompanyNotBlocked } from "../middleware/auth";
 import { messageCreateLimiter } from "../middleware/rateLimiter";
+import { antispamCheck } from "../middleware/antispam";
 
 const router = Router();
 
@@ -56,8 +57,9 @@ const router = Router();
  *         description: Компания не найдена
  */
 // Создание сообщения - публичный endpoint (анонимные сообщения)
-// messageCreateLimiter: 3 сообщения в день с одного IP
-router.post("/", messageCreateLimiter, validate(createMessageSchema), createMessage);
+// antispamCheck: burst-защита + fingerprint-лимиты (IP + browser fingerprint)
+// messageCreateLimiter: fallback IP-only rate limit (express-rate-limit)
+router.post("/", antispamCheck, messageCreateLimiter, validate(createMessageSchema), createMessage);
 
 /**
  * @swagger
