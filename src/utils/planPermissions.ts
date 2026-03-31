@@ -63,14 +63,13 @@ export async function getPlanById(planName: string): Promise<{
   // Проверяем, является ли план бесплатным по имени
   const isFreeByName = isTrialPlanName(planName);
 
-  // Ищем план в базе данных
+  // Ищем план в базе данных по имени
   const subscriptionPlan = await SubscriptionPlan.findOne({
     $or: [
       { "name.ru": planName },
       { "name.en": planName },
       { "name.kk": planName },
       { name: planName },
-      { id: "free" },
     ],
   });
 

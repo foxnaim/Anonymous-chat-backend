@@ -15,7 +15,7 @@ import {
   getMessageByIdSchema,
   moderateMessageSchema,
 } from "../validators/messageValidator";
-import { authenticate, optionalAuthenticate } from "../middleware/auth";
+import { authenticate, optionalAuthenticate, checkCompanyNotBlocked } from "../middleware/auth";
 import { messageCreateLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
@@ -87,9 +87,12 @@ router.get(
   getMessageById,
 );
 
-// Остальные роуты требуют аутентификации
+// Остальные роуты требуют аутентификации и проверки блокировки компании
 router.use((req, res, next) => {
   authenticate(req, res, next);
+});
+router.use((req, res, next) => {
+  checkCompanyNotBlocked(req, res, next);
 });
 
 /**

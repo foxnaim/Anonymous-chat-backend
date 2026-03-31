@@ -14,13 +14,16 @@ import {
   getGrowthMetricsSchema,
   getAchievementsSchema,
 } from "../validators/statsValidator";
-import { authenticate } from "../middleware/auth";
+import { authenticate, checkCompanyNotBlocked } from "../middleware/auth";
 
 const router = Router();
 
-// Все роуты требуют аутентификации
+// Все роуты требуют аутентификации и проверки блокировки компании
 router.use((req, res, next) => {
   authenticate(req, res, next);
+});
+router.use((req, res, next) => {
+  checkCompanyNotBlocked(req, res, next);
 });
 
 /**

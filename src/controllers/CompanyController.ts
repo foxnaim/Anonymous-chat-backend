@@ -800,10 +800,8 @@ export const verifyPaymentAndUpgrade = asyncHandler(
     company.messagesLimit = subscriptionPlan.messagesLimit;
     company.storageLimit = subscriptionPlan.storageLimit;
 
-    // Set plan end date to 30 days from now
-    const endDate = new Date();
-    endDate.setUTCDate(endDate.getUTCDate() + 30);
-    company.trialEndDate = endDate.toISOString().split("T")[0];
+    // Очищаем trialEndDate — платный план не ограничен пробным периодом
+    company.trialEndDate = undefined;
 
     // Clear trial status
     company.status = "Активна" as "Активна" | "Пробная" | "Заблокирована";
@@ -823,7 +821,6 @@ export const verifyPaymentAndUpgrade = asyncHandler(
       message: "Plan upgraded successfully",
       plan: planName,
       orderId: orderDetails.id,
-      planEndDate: company.trialEndDate,
     });
   },
 );

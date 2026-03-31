@@ -4,7 +4,7 @@ import { AppError, ErrorCode } from "../utils/AppError";
 import { Message, MessageStatus, type IMessage } from "../models/Message";
 import { Company } from "../models/Company";
 import { sanitizeMessageContent } from "../utils/sanitize";
-import { getPlanPermissions } from "../utils/planPermissions";
+import { getPlanPermissions, isTrialExpired, isTrialPlanName } from "../utils/planPermissions";
 import {
   emitNewMessage,
   emitMessageUpdate,
@@ -192,6 +192,15 @@ export const createMessage = asyncHandler(
     });
     if (!company) {
       throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
+
+    // Проверяем, не истек ли пробный период
+    if (isTrialPlanName(company.plan) && isTrialExpired(company)) {
+      throw new AppError(
+        "Trial period has expired. Please upgrade your plan.",
+        403,
+        ErrorCode.FORBIDDEN,
+      );
     }
 
     // Проверяем лимиты сообщений

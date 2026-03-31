@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken, JWTPayload, TokenError } from "../utils/jwt";
 import { AppError, ErrorCode } from "../utils/AppError";
+import { Company } from "../models/Company";
+import { AdminSettings } from "../models/AdminSettings";
 
 // Расширяем Request для добавления user
 /* eslint-disable @typescript-eslint/no-namespace */
@@ -106,6 +108,51 @@ export const authorize = (...roles: string[]) => {
 
     next();
   };
+};
+
+/**
+ * Middleware для проверки, что компания не заблокирована администратором.
+ * Должен применяться ПОСЛЕ authenticate на маршрутах компаний.
+ * Пропускает админов и запросы без companyId.
+ */
+export const checkCompanyNotBlocked = (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void => {
+  if (!req.user || req.user.role === "admin" || req.user.role === "super_admin") {
+    return next();
+  }
+
+  if (req.user.role === "company" && req.user.companyId) {
+    Company.findById(req.user.companyId)
+      .select("status")
+      .lean()
+      .exec()
+      .then((company) => {
+        if (company && company.status === "Заблокирована") {
+          return AdminSettings.findOne({
+            supportWhatsAppNumber: { $exists: true, $ne: "" },
+          })
+            .sort({ updatedAt: -1 })
+            .select("supportWhatsAppNumber")
+            .lean()
+            .exec()
+            .then((settings) => {
+              const num = settings?.supportWhatsAppNumber?.trim() || "";
+              const message = num ? `COMPANY_BLOCKED|${num}` : "COMPANY_BLOCKED";
+              next(new AppError(message, 403, ErrorCode.FORBIDDEN));
+            });
+        }
+        next();
+      })
+      .catch(() => {
+        next();
+      });
+    return;
+  }
+
+  next();
 };
 
 // Middleware для проверки, что пользователь является владельцем компании или админом

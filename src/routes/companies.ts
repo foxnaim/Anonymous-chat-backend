@@ -22,7 +22,7 @@ import {
   updateCompanyPlanSchema,
   updateCompanyPasswordSchema,
 } from "../validators/companyValidator";
-import { authenticate, authorize } from "../middleware/auth";
+import { authenticate, authorize, checkCompanyNotBlocked } from "../middleware/auth";
 
 const router = Router();
 
@@ -221,7 +221,7 @@ router.post(
  *       404:
  *         description: Компания не найдена
  */
-router.put("/:id", validate(updateCompanySchema), updateCompany);
+router.put("/:id", checkCompanyNotBlocked, validate(updateCompanySchema), updateCompany);
 
 /**
  * @swagger
