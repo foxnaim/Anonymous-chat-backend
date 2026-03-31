@@ -433,6 +433,28 @@ export const updateCompany = asyncHandler(
         }
       }
 
+      // Обновляем email в User модели, чтобы пользователь мог логиниться с новым email
+      const companyUser = await User.findOne({
+        companyId: company._id,
+        role: "company",
+      });
+      if (companyUser) {
+        // Проверяем, не занят ли email другим пользователем
+        const existingUser = await User.findOne({
+          email: normalizedNewEmail,
+          _id: { $ne: companyUser._id },
+        });
+        if (existingUser) {
+          throw new AppError(
+            "User with this email already exists",
+            409,
+            ErrorCode.CONFLICT,
+          );
+        }
+        companyUser.email = normalizedNewEmail;
+        await companyUser.save();
+      }
+
       updates.adminEmail = normalizedNewEmail;
     }
 
