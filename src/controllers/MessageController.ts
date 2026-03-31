@@ -226,7 +226,8 @@ export const createMessage = asyncHandler(
       }
     }
 
-    const now = new Date().toISOString().split("T")[0];
+    const nowDate = new Date().toISOString().split("T")[0];
+    const nowFull = new Date().toISOString();
     const messageId = generateMessageId();
 
     // Санитизируем контент сообщения для защиты от XSS
@@ -239,9 +240,9 @@ export const createMessage = asyncHandler(
       type,
       content: sanitizedContent,
       status: "Новое",
-      createdAt: now,
-      updatedAt: now,
-      lastUpdate: now,
+      createdAt: nowFull,
+      updatedAt: nowFull,
+      lastUpdate: nowDate,
     });
 
     // Обновляем счетчик сообщений компании
@@ -334,7 +335,8 @@ export const updateMessageStatus = asyncHandler(
       }
     }
 
-    const now = new Date().toISOString().split("T")[0];
+    const nowFull = new Date().toISOString();
+    const nowDate = nowFull.split("T")[0];
     if (status && typeof status === "string") {
       const validStatuses: Array<
         "Новое" | "В работе" | "Решено" | "Отклонено" | "Спам"
@@ -343,8 +345,8 @@ export const updateMessageStatus = asyncHandler(
         message.status = status as MessageStatus;
       }
     }
-    message.updatedAt = now;
-    message.lastUpdate = now;
+    message.updatedAt = nowFull;
+    message.lastUpdate = nowDate;
     if (response !== undefined && typeof response === "string") {
       // Санитизируем ответ компании для защиты от XSS
       message.companyResponse = sanitizeMessageContent(response);
@@ -386,7 +388,8 @@ export const moderateMessage = asyncHandler(
       throw new AppError("Message not found", 404, ErrorCode.NOT_FOUND);
     }
 
-    const now = new Date().toISOString().split("T")[0];
+    const nowFull = new Date().toISOString();
+    const nowDate = nowFull.split("T")[0];
 
     if (action === "approve") {
       // При одобрении: если был спам и есть previousStatus, возвращаем предыдущий статус
@@ -404,8 +407,8 @@ export const moderateMessage = asyncHandler(
       message.status = "Спам";
     }
 
-    message.updatedAt = now;
-    message.lastUpdate = now;
+    message.updatedAt = nowFull;
+    message.lastUpdate = nowDate;
 
     await message.save();
 
