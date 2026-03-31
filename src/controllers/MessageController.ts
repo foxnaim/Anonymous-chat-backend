@@ -335,6 +335,21 @@ export const updateMessageStatus = asyncHandler(
       }
     }
 
+    // Если компания отправляет ответ, статус не должен оставаться "Новое"
+    if (
+      req.user?.role === "company" &&
+      response !== undefined &&
+      response.trim().length > 0 &&
+      message.status === "Новое" &&
+      (!status || status === "Новое")
+    ) {
+      throw new AppError(
+        "Please change the message status before replying. Status cannot remain 'New'.",
+        400,
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+
     const nowFull = new Date().toISOString();
     const nowDate = nowFull.split("T")[0];
     if (status && typeof status === "string") {
