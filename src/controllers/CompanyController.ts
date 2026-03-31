@@ -862,6 +862,49 @@ export const updateCompanyPassword = asyncHandler(
   },
 );
 
+/**
+ * Принудительное завершение пробного периода (только super_admin)
+ * Устанавливает trialEndDate на вчерашнюю дату — эффект как при естественном истечении
+ */
+export const expireTrial = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (req.user?.role !== "super_admin") {
+      throw new AppError("Access denied. Only super admins can expire trial.", 403, ErrorCode.FORBIDDEN);
+    }
+
+    const { id } = req.params;
+    const company = await Company.findById(id);
+    if (!company) {
+      throw new AppError("Company not found", 404, ErrorCode.NOT_FOUND);
+    }
+
+    const isTrial = await isTrialPlan(company.plan);
+    if (!isTrial) {
+      throw new AppError("Company is not on a trial plan", 400, ErrorCode.BAD_REQUEST);
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    company.trialEndDate = yesterday.toISOString().split("T")[0];
+    await company.save();
+
+    // Инвалидируем кэш
+    void cache.delete("plans:all");
+
+    logger.info(`[CompanyController] Trial expired manually: company=${id}, by=${req.user?.userId}`);
+
+    res.json({
+      success: true,
+      message: "Trial period expired successfully",
+      data: {
+        id: company._id.toString(),
+        ...company.toObject(),
+        _id: undefined,
+      },
+    });
+  },
+);
+
 export const deleteCompany = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;

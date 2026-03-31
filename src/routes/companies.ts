@@ -10,6 +10,7 @@ import {
   updateCompanyPlan,
   updateCompanyPassword,
   verifyPaymentAndUpgrade,
+  expireTrial,
   deleteCompany,
 } from "../controllers/CompanyController";
 import { validate } from "../middleware/validation";
@@ -375,6 +376,13 @@ router.put(
   authorize("super_admin"),
   validate(updateCompanyPasswordSchema),
   updateCompanyPassword,
+);
+
+// Принудительное завершение пробного периода (только super_admin)
+router.post(
+  "/:id/expire-trial",
+  authorize("super_admin"),
+  expireTrial,
 );
 
 /**
