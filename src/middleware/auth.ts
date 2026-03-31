@@ -131,7 +131,7 @@ export const checkCompanyNotBlocked = (
       .exec()
       .then((company) => {
         if (company && company.status === "Заблокирована") {
-          return AdminSettings.findOne({
+          AdminSettings.findOne({
             supportWhatsAppNumber: { $exists: true, $ne: "" },
           })
             .sort({ updatedAt: -1 })
@@ -142,9 +142,13 @@ export const checkCompanyNotBlocked = (
               const num = settings?.supportWhatsAppNumber?.trim() || "";
               const message = num ? `COMPANY_BLOCKED|${num}` : "COMPANY_BLOCKED";
               next(new AppError(message, 403, ErrorCode.FORBIDDEN));
+            })
+            .catch(() => {
+              next(new AppError("COMPANY_BLOCKED", 403, ErrorCode.FORBIDDEN));
             });
+        } else {
+          next();
         }
-        next();
       })
       .catch(() => {
         next();
