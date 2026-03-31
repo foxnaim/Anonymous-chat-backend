@@ -80,21 +80,6 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  // Проверяем, подтвержден ли email
-  // Админы и суперадмины не требуют верификации email
-  // Используем !user.isVerified чтобы также блокировать undefined (новые пользователи)
-  if (
-    !user.isVerified &&
-    user.role !== "admin" &&
-    user.role !== "super_admin"
-  ) {
-    throw new AppError(
-      "Please verify your email address before logging in.",
-      403,
-      ErrorCode.FORBIDDEN,
-    );
-  }
-
   // Обновляем lastLogin
   user.lastLogin = new Date();
   await user.save();
@@ -288,45 +273,21 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     companyId = company._id.toString();
   }
 
-  // Генерируем токен подтверждения email
-  const verificationToken = generateResetToken();
-  const hashedVerificationToken = hashResetToken(verificationToken);
-
   const user = await User.create({
     email: String(email).toLowerCase(),
     password: hashedPassword,
     name: name || companyName,
     role,
     companyId: companyId ? (companyId as unknown as Types.ObjectId) : undefined,
-    isVerified: false,
-    verificationToken: hashedVerificationToken,
+    isVerified: true,
   });
 
-  // При регистрации мы НЕ возвращаем JWT токен, чтобы пользователь не мог сразу войти
-  // Отправляем email верификации с бэкенда
-  const verificationUrl = `${config.frontendUrl}/verify-email?token=${verificationToken}`;
-
-  // Отправляем email верификации асинхронно ПОСЛЕ отправки ответа
-  setImmediate(() => {
-    emailService
-      .sendVerificationEmail(
-        String(email).toLowerCase(),
-        verificationToken,
-        verificationUrl,
-      )
-      .then(() => {
-        logger.info(`Verification email sent to ${email}`);
-      })
-      .catch((error) => {
-        // Логируем ошибку, но не прерываем работу (пользователь уже создан)
-        logger.error(`Failed to send verification email to ${email}:`, error);
-        // В development режиме можно вернуть токен, но ответ уже отправлен
-        if (process.env.NODE_ENV === "development") {
-          logger.warn(
-            `Development mode: Verification token for ${email} is ${verificationToken}`,
-          );
-        }
-      });
+  // Сразу генерируем JWT токен для автоматического входа после регистрации
+  const token = generateToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role.toLowerCase(),
+    companyId: user.companyId?.toString(),
   });
 
   res.status(201).json({
@@ -339,11 +300,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         companyId: user.companyId,
         name: user.name,
       },
-      // В development возвращаем токен как fallback
-      ...(process.env.NODE_ENV === "development" && { verificationToken }),
+      token,
     },
-    message:
-      "Registration successful. Please check your email to verify your account.",
+    message: "Registration successful.",
   });
 });
 
@@ -524,45 +483,40 @@ export const forgotPassword = asyncHandler(
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 час
     await user.save();
 
-    // Отправляем email восстановления пароля с бэкенда
+    // Отправляем email восстановления пароля с бэкенда (синхронно, чтобы знать результат)
     const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Отправляем email асинхронно ПОСЛЕ отправки ответа
-    setImmediate(() => {
-      emailService
-        .sendPasswordResetEmail(
-          String(email).toLowerCase(),
-          resetToken,
-          resetUrl,
-        )
-        .then(() => {
-          logger.info(`Password reset email sent to ${email}`);
-        })
-        .catch((error) => {
-          // Логируем ошибку, но не прерываем работу (токен уже создан)
-          logger.error(
-            `Failed to send password reset email to ${email}:`,
-            error,
-          );
-          // В development режиме можно вернуть токен, но ответ уже отправлен
-          if (process.env.NODE_ENV === "development") {
-            logger.warn(
-              `Development mode: Reset token for ${email} is ${resetToken}`,
-            );
-          }
-        });
-    });
+    try {
+      await emailService.sendPasswordResetEmail(
+        String(email).toLowerCase(),
+        resetToken,
+        resetUrl,
+      );
+      logger.info(`Password reset email sent to ${email}`);
 
-    // Возвращаем токен клиенту для отправки email через EmailJS на фронте
-    // Токен одноразовый и действует 1 час
-    const response: { success: boolean; message: string; resetToken?: string } =
-      {
+      return res.json({
         success: true,
         message: "If the email exists, a password reset link has been sent",
-        resetToken,
-      };
+      });
+    } catch (error) {
+      logger.error(`Failed to send password reset email to ${email}:`, error);
 
-    return res.json(response);
+      // Получаем номер WhatsApp поддержки из настроек админа
+      const settings = await AdminSettings.findOne({
+        supportWhatsAppNumber: { $exists: true, $ne: "" },
+      })
+        .sort({ updatedAt: -1 })
+        .select("supportWhatsAppNumber")
+        .lean()
+        .exec();
+      const supportNumber = settings?.supportWhatsAppNumber?.trim() || "";
+
+      const message = supportNumber
+        ? `EMAIL_SEND_FAILED|${supportNumber}`
+        : "EMAIL_SEND_FAILED";
+
+      throw new AppError(message, 503, ErrorCode.INTERNAL_ERROR);
+    }
   },
 );
 

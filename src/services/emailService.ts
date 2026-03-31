@@ -165,17 +165,11 @@ class EmailService {
 
     // Fallback: SMTP (может быть заблокирован на Railway)
     if (!this.transporter) {
-      // В development режиме без SMTP просто логируем
-      if (config.nodeEnv === "development") {
-        logger.info("Email не отправлен (SMTP не настроен):", {
-          to: options.to,
-          subject: options.subject,
-        });
-        return;
-      }
-      throw new Error(
-        "Email transporter не инициализирован и RESEND_API_KEY не настроен",
-      );
+      logger.error("Email не отправлен (ни SMTP, ни RESEND_API_KEY не настроены):", {
+        to: options.to,
+        subject: options.subject,
+      });
+      throw new Error("EMAIL_NOT_CONFIGURED");
     }
 
     try {
